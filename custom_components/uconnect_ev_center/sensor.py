@@ -1316,7 +1316,7 @@ class Programmazione(MateSensor):
             "max_amps": c.home_max_amps,
             "reduce_amps": c.home_reduce_amps,
         }
-        return {"schedule": dict(sch), "gse": gse, "home": home}
+        return {"schedule": dict(sch), "gse": gse, "home": home, "notify": c.notify_service}
 
 
 class Percorrenza(MateSensor):

@@ -58,6 +58,8 @@ Tempo richiesto: **~10 minuti**.
 
 ## 2. Configurazione guidata
 
+> 🔁 **Dopo aver completato la prima configurazione, riavvia Home Assistant.** Entità, sensori e dashboard vengono creati al primo avvio: senza il riavvio potrebbero non comparire tutti.
+
 1. **Impostazioni → Dispositivi e servizi → + Aggiungi integrazione**
 2. Cerca **"Uconnect EV Center"**
 

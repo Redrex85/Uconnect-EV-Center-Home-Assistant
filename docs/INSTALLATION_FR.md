@@ -30,6 +30,8 @@ De l'installation au tableau de bord opérationnel en **~10 minutes**.
 
 ## 2. Configuration
 
+> 🔁 **Après la première configuration, redémarrez Home Assistant.** Les entités, capteurs et le tableau de bord sont créés au premier démarrage : sans redémarrage, ils peuvent ne pas tous apparaître.
+
 Paramètres → Appareils et services → Ajouter une intégration → **Uconnect EV Center** :
 
 ### Étape 0 — Profil d'installation (le tout premier écran)

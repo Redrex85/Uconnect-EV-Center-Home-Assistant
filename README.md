@@ -120,6 +120,8 @@ Copia la cartella `custom_components/uconnect_ev_center/` dentro `<config>/custo
 
 ## 🧙 Configurazione (4 schermate)
 
+> 🔁 **Dopo aver completato la prima configurazione, riavvia Home Assistant.** Entità, sensori e dashboard vengono creati al primo avvio: senza il riavvio potrebbero non comparire tutti.
+
 ### 0️⃣ Il profilo
 
 La **prima schermata** chiede il **profilo**: decide quali sezioni del wizard e quali pagine del pannello avrai. Scegli in base a cosa possiedi:
@@ -413,6 +415,8 @@ Copy the `custom_components/uconnect_ev_center/` folder into `<config>/custom_co
 
 ### Setup (4 screens)
 
+> 🔁 **After completing the first setup, restart Home Assistant.** Entities, sensors and the dashboard are created on first load: without the restart they may not all appear.
+
 #### 0️⃣ The profile
 
 The **first screen** asks for the **profile**: it decides which wizard sections and which panel pages you get. Pick it based on what you own:
@@ -694,6 +698,8 @@ utility_meter à configurer à la main. Aucun envoi externe.
 Copiez le dossier `custom_components/uconnect_ev_center/` dans `<config>/custom_components/`, redémarrez et ajoutez l'intégration depuis le menu.
 
 ## 🧙 Configuration (4 écrans)
+
+> 🔁 **Après la première configuration, redémarrez Home Assistant.** Les entités, capteurs et le tableau de bord sont créés au premier démarrage : sans redémarrage, ils peuvent ne pas tous apparaître.
 
 ### 0️⃣ Le profil
 

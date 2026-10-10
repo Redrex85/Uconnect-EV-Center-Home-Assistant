@@ -1,3 +1,10 @@
+set_notify_service:
+  name: Imposta servizio notifica
+  description: Salva il servizio notify usato per le notifiche (es. notify.danilo).
+  fields:
+    service:
+      name: Servizio
+      example: notify.danilo
 close_trip:
   name: Chiudi viaggio ora
   description: Forza la chiusura del viaggio in corso e lo salva nello storico.

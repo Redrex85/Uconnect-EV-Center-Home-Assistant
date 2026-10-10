@@ -35,7 +35,7 @@
           "gse": {
             "name": "⚡ Sperimentazione GSE",
             "data": {
-              "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_enabled": "Attiva la sperimentazione GSE", "gse_kw_max": "Potenza consentita nella fascia (kW)",
               "gse_kw_ridotta": "Potenza fuori fascia (kW)",
               "gse_start": "Inizio fascia consentita",
               "gse_end": "Fine fascia consentita",
@@ -95,11 +95,11 @@
             "name": "🎛️ Comandi Uconnect",
             "data": {
               "charge_start_button": "Pulsante avvio carica (Uconnect)",
-              "ac_button_entity": "Pulsante Avvia A/C (Uconnect)",
+              "ac_button_entity": "Pulsante Avvia preriscaldamento (Uconnect)",
               "climate_entity": "Climatizzatore (climate) Uconnect",
-              "light_entity": "Luci esterne (light/switch/button)",
-              "horn_entity": "Clacson (button/switch)",
-              "charge_target_number": "Number target di carica (per lo stop)"
+              "light_entity": "Luci esterne (light/switch/button) (opzionale)",
+              "horn_entity": "Clacson (button/switch) (opzionale)",
+              "charge_target_number": "Number target di carica (per lo stop) (opzionale)"
             }
           },
           "uc_ricarica": {
@@ -202,7 +202,7 @@
           "gse": {
             "name": "⚡ Sperimentazione GSE",
             "data": {
-              "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_enabled": "Attiva la sperimentazione GSE", "gse_kw_max": "Potenza consentita nella fascia (kW)",
               "gse_kw_ridotta": "Potenza fuori fascia (kW)",
               "gse_start": "Inizio fascia consentita",
               "gse_end": "Fine fascia consentita",
@@ -336,10 +336,10 @@
             "name": "🎛️ Comandi Uconnect",
             "data": {
               "charge_start_button": "Pulsante Avvia carica (Uconnect)",
-              "ac_button_entity": "Pulsante Avvia A/C (Uconnect)",
+              "ac_button_entity": "Pulsante Avvia preriscaldamento (Uconnect)",
               "climate_entity": "Climatizzatore (climate) Uconnect",
-              "light_entity": "Luci esterne (light/switch/button)",
-              "horn_entity": "Clacson (button/switch)"
+              "light_entity": "Luci esterne (light/switch/button) (opzionale)",
+              "horn_entity": "Clacson (button/switch) (opzionale)"
             }
           }
         }
@@ -374,11 +374,11 @@
             "name": "🎛️ Comandi Uconnect",
             "data": {
               "charge_start_button": "Pulsante avvio carica (Uconnect)",
-              "ac_button_entity": "Pulsante Avvia A/C (Uconnect)",
+              "ac_button_entity": "Pulsante Avvia preriscaldamento (Uconnect)",
               "climate_entity": "Climatizzatore (climate) Uconnect",
-              "light_entity": "Luci esterne (light/switch/button)",
-              "horn_entity": "Clacson (button/switch)",
-              "charge_target_number": "Number target di carica (per lo stop)"
+              "light_entity": "Luci esterne (light/switch/button) (opzionale)",
+              "horn_entity": "Clacson (button/switch) (opzionale)",
+              "charge_target_number": "Number target di carica (per lo stop) (opzionale)"
             }
           },
           "uc_ricarica": {
@@ -481,7 +481,7 @@
           "gse": {
             "name": "⚡ Sperimentazione GSE",
             "data": {
-              "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_enabled": "Attiva la sperimentazione GSE", "gse_kw_max": "Potenza consentita nella fascia (kW)",
               "gse_kw_ridotta": "Potenza fuori fascia (kW)",
               "gse_start": "Inizio fascia consentita",
               "gse_end": "Fine fascia consentita",

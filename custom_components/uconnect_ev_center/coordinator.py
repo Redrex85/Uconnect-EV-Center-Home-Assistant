@@ -60,6 +60,7 @@ from .const import (
     CONF_GSE_END,
     CONF_GSE_DOMENICA,
     CONF_GSE_HOLIDAY,
+    CONF_GSE_ENABLED,
     GSE_TOLERANCE,
     DEFAULT_GSE_WPA,
     CONF_HOME_POWER_SENSOR,
@@ -357,6 +358,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         self.low_soc_days = [str(d) for d in _days] if isinstance(_days, (list, tuple)) and _days \
             else list(DEFAULT_LOW_SOC_DAYS)
         # --- sperimentazione GSE -------------------------------------------------
+        self.gse_enabled = bool(opts.get(CONF_GSE_ENABLED, True))
         self.gse_wpa = max(_f(opts.get(CONF_GSE_WPA), DEFAULT_GSE_WPA), 1.0)
         self.gse_kw_max = _f(opts.get(CONF_GSE_KW_MAX), DEFAULT_GSE_KW_MAX)
         self.gse_kw_ridotta = _f(opts.get(CONF_GSE_KW_RIDOTTA), DEFAULT_GSE_KW_RIDOTTA)
@@ -2514,6 +2516,14 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         self.low_soc_days = validi
         return validi
 
+    def service_set_notify_service(self, value: str) -> str:
+        """Salva il servizio notify nella config dell'integrazione (non nel browser)."""
+        opts = dict(self.entry.options)
+        opts[CONF_NOTIFY_SERVICE] = str(value or "").strip()
+        self.hass.config_entries.async_update_entry(self.entry, options=opts)
+        self.notify_service = opts[CONF_NOTIFY_SERVICE]
+        return self.notify_service
+
     async def service_create_automations(self) -> list[str]:
         """Crea (solo se assenti) le automazioni consigliate in automations.yaml."""
         from .dashboard import entry_name, slugify
@@ -3020,6 +3030,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
     def _gse_info(self) -> dict[str, Any]:
         """Stato della sperimentazione GSE per il pannello."""
+        if not self.gse_enabled:
+            return {}
         attivo = self._switch_on("gse")
         info: dict[str, Any] = {
             "attivo": attivo,
@@ -3055,7 +3067,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         della wallbox (6 A) sta sotto il budget, la ricarica viene FERMATA e riprende solo
         se i consumi restano bassi per 30 minuti, in fascia e sotto il SoC obiettivo.
         """
-        if not self._switch_on("gse"):
+        if not self.gse_enabled or not self._switch_on("gse"):
             return
         ent = self.opts.get(CONF_WB_MAX_CURRENT)
         if not ent:

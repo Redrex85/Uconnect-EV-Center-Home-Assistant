@@ -41,7 +41,6 @@ from .const import (
     CONF_CHARGE_STOP_SOC,
     CONF_CHARGE_START_BUTTON,
     CONF_AC_BUTTON,
-    CONF_CLIMATE_ENTITY,
     CONF_CHARGE_TARGET_NUMBER,
     CONF_CREATE_DASHBOARD,
     CONF_WB_CHARGE_SWITCH,
@@ -124,6 +123,7 @@ from .const import (
     CONF_GSE_END,
     CONF_GSE_DOMENICA,
     CONF_GSE_HOLIDAY,
+    CONF_GSE_ENABLED,
     CONF_HOME_POWER_SENSOR,
     CONF_HOME_METER_KW,
     CONF_HOME_MAX_AMPS,
@@ -191,7 +191,7 @@ from .const import (  # noqa: E402
     CONF_SWITCH_CHARGING, CONF_SWITCH_ENGINE, CONF_SWITCH_PRECONDITION, CONF_SWITCH_HVAC,
     CONF_SWITCH_COMFORT, CONF_SWITCH_TRUNK, CONF_LOCK_DOORS, CONF_BUTTON_CHARGE,
     CONF_BUTTON_DEEP_REFRESH, CONF_BUTTON_REFRESH_LOCATION, CONF_BUTTON_LIGHTS,
-    CONF_BUTTON_LIGHTS_HORN, CONF_SELECT_CHARGING_LEVEL, CONF_IMAGE,
+    CONF_BUTTON_LIGHTS_HORN, CONF_SELECT_CHARGING_LEVEL,
     CONF_POWERTRAIN, MODEL_POWERTRAIN, DEFAULT_POWERTRAIN,
 )
 
@@ -292,9 +292,6 @@ def _car_schema(defaults: dict[str, Any]) -> vol.Schema:    return vol.Schema({
                 CONF_AC_BUTTON, description={"suggested_value": defaults.get(CONF_AC_BUTTON)}
             ): EntitySelector(EntitySelectorConfig(domain=["button", "switch"])),
             vol.Optional(
-                CONF_CLIMATE_ENTITY, description={"suggested_value": defaults.get(CONF_CLIMATE_ENTITY)}
-            ): EntitySelector(EntitySelectorConfig(domain="climate")),
-            vol.Optional(
                 CONF_LIGHT_ENTITY, description={"suggested_value": defaults.get(CONF_LIGHT_ENTITY)}
             ): EntitySelector(EntitySelectorConfig(domain=["light", "switch", "button"])),
             vol.Optional(
@@ -363,6 +360,7 @@ def _wallbox_schema(defaults: dict[str, Any], profile: str = DEFAULT_PROFILE) ->
                 NumberSelectorConfig(min=6, max=32, step=1, unit_of_measurement="A", mode=NumberSelectorMode.BOX)),
         }), {"collapsed": True})
         schema[vol.Required("gse")] = section(vol.Schema({
+            vol.Optional(CONF_GSE_ENABLED, default=defaults.get(CONF_GSE_ENABLED, True)): BooleanSelector(),
             vol.Optional(CONF_GSE_KW_MAX, default=defaults.get(CONF_GSE_KW_MAX, DEFAULT_GSE_KW_MAX)): NumberSelector(
                 NumberSelectorConfig(min=1, max=50, step=0.1, unit_of_measurement="kW",
                                      mode=NumberSelectorMode.BOX)),
@@ -478,9 +476,6 @@ def _uconnect_schema(defaults: dict[str, Any]) -> vol.Schema:
             opt(CONF_BUTTON_LIGHTS_HORN, EntitySelectorConfig(domain="button")),
             opt(CONF_SELECT_CHARGING_LEVEL, EntitySelectorConfig(domain="select")),
         ])), {"collapsed": True}),
-        vol.Required("uc_immagine"): section(vol.Schema(dict([
-            opt(CONF_IMAGE, EntitySelectorConfig(domain="image")),
-        ])), {"collapsed": True}),
     })
 
 
@@ -556,7 +551,7 @@ def _settings_schema(defaults: dict[str, Any]) -> vol.Schema:
             ): EntitySelector(EntitySelectorConfig(domain="sensor")),
         }), {"collapsed": True}),
         vol.Required("maint"): section(vol.Schema({
-            vol.Required(CONF_MAINT_ENABLED, default=defaults.get(CONF_MAINT_ENABLED, False)): BooleanSelector(),
+            vol.Required(CONF_MAINT_ENABLED, default=defaults.get(CONF_MAINT_ENABLED, True)): BooleanSelector(),
             vol.Optional(CONF_TAG_TERMICO, default=defaults.get(CONF_TAG_TERMICO, DEFAULT_TAG_TERMICO)): NumberSelector(
                 NumberSelectorConfig(min=0, max=1000, step=5, unit_of_measurement="€/anno", mode=NumberSelectorMode.BOX)),
             vol.Optional(CONF_TAG_EV, default=defaults.get(CONF_TAG_EV, DEFAULT_TAG_EV)): NumberSelector(
@@ -600,7 +595,7 @@ def _settings_schema(defaults: dict[str, Any]) -> vol.Schema:
                 CONF_TEMP_ENTITY,
                 description={"suggested_value": defaults.get(CONF_TEMP_ENTITY)},
             ): EntitySelector(EntitySelectorConfig(domain=["sensor", "weather"])),
-            vol.Required(CONF_CO2_ENABLED, default=defaults.get(CONF_CO2_ENABLED, False)): BooleanSelector(),
+            vol.Required(CONF_CO2_ENABLED, default=defaults.get(CONF_CO2_ENABLED, True)): BooleanSelector(),
             vol.Optional(CONF_CO2_THERMAL_GKM, default=defaults.get(CONF_CO2_THERMAL_GKM, DEFAULT_CO2_THERMAL_GKM)): NumberSelector(
                 NumberSelectorConfig(min=50, max=300, step=5, unit_of_measurement="g/km", mode=NumberSelectorMode.BOX)),
             vol.Optional(CONF_CO2_GRID_GKWH, default=defaults.get(CONF_CO2_GRID_GKWH, DEFAULT_CO2_GRID_GKWH)): NumberSelector(

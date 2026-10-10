@@ -35,7 +35,7 @@
           "gse": {
             "name": "⚡ GSE-Pilotprojekt",
             "data": {
-              "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
+              "gse_enabled": "GSE-Experiment aktivieren", "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
               "gse_kw_ridotta": "Leistung außerhalb des Zeitfensters (kW)",
               "gse_start": "Beginn des erlaubten Zeitfensters",
               "gse_end": "Ende des erlaubten Zeitfensters",
@@ -95,11 +95,11 @@
             "name": "🎛️ Uconnect-Befehle",
             "data": {
               "charge_start_button": "Start-Button Laden (Uconnect)",
-              "ac_button_entity": "Start-Button A/C (Uconnect)",
+              "ac_button_entity": "Vorklimatisierung Start-Button (Uconnect)",
               "climate_entity": "Uconnect-Klimaentität",
-              "light_entity": "Außenbeleuchtung (light/switch/button)",
-              "horn_entity": "Hupe (button/switch)",
-              "charge_target_number": "Ladeziel-Nummer (für Stopp)"
+              "light_entity": "Außenbeleuchtung (light/switch/button) (optional)",
+              "horn_entity": "Hupe (button/switch) (optional)",
+              "charge_target_number": "Ladeziel-Nummer (für Stopp) (optional)"
             }
           },
           "uc_ricarica": {
@@ -202,7 +202,7 @@
           "gse": {
             "name": "⚡ GSE-Pilotprojekt",
             "data": {
-              "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
+              "gse_enabled": "GSE-Experiment aktivieren", "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
               "gse_kw_ridotta": "Leistung außerhalb des Zeitfensters (kW)",
               "gse_start": "Beginn des erlaubten Zeitfensters",
               "gse_end": "Ende des erlaubten Zeitfensters",
@@ -336,10 +336,10 @@
             "name": "🎛️ Uconnect-Befehle",
             "data": {
               "charge_start_button": "Start-Button Laden (Uconnect)",
-              "ac_button_entity": "Start-Button A/C (Uconnect)",
+              "ac_button_entity": "Vorklimatisierung Start-Button (Uconnect)",
               "climate_entity": "Uconnect-Klimaentität",
-              "light_entity": "Außenbeleuchtung (light/switch/button)",
-              "horn_entity": "Hupe (button/switch)"
+              "light_entity": "Außenbeleuchtung (light/switch/button) (optional)",
+              "horn_entity": "Hupe (button/switch) (optional)"
             }
           }
         }
@@ -374,11 +374,11 @@
             "name": "🎛️ Uconnect-Befehle",
             "data": {
               "charge_start_button": "Start-Button Laden (Uconnect)",
-              "ac_button_entity": "Start-Button A/C (Uconnect)",
+              "ac_button_entity": "Vorklimatisierung Start-Button (Uconnect)",
               "climate_entity": "Uconnect-Klimaentität",
-              "light_entity": "Außenbeleuchtung (light/switch/button)",
-              "horn_entity": "Hupe (button/switch)",
-              "charge_target_number": "Ladeziel-Nummer (für Stopp)"
+              "light_entity": "Außenbeleuchtung (light/switch/button) (optional)",
+              "horn_entity": "Hupe (button/switch) (optional)",
+              "charge_target_number": "Ladeziel-Nummer (für Stopp) (optional)"
             }
           },
           "uc_ricarica": {
@@ -481,7 +481,7 @@
           "gse": {
             "name": "⚡ GSE-Pilotprojekt",
             "data": {
-              "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
+              "gse_enabled": "GSE-Experiment aktivieren", "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
               "gse_kw_ridotta": "Leistung außerhalb des Zeitfensters (kW)",
               "gse_start": "Beginn des erlaubten Zeitfensters",
               "gse_end": "Ende des erlaubten Zeitfensters",

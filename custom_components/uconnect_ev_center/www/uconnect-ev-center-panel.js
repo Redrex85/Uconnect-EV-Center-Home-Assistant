@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.2";
+const REC_VER = "1.0.3";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -255,6 +255,7 @@ const I18N = {
     state_scollegata: "Unplugged",
     wb_attiva: "Wallbox active",
     st_available: "Ready",
+    st_free: "Free",
     st_charging: "Charging",
     st_preparing: "Preparing",
     st_suspended: "Paused",
@@ -501,6 +502,7 @@ const I18N = {
     state_scollegata: "Débranchée",
     wb_attiva: "Wallbox active",
     st_available: "Prête",
+    st_free: "Libre",
     st_charging: "En charge",
     st_preparing: "Préparation",
     st_suspended: "En pause",
@@ -755,6 +757,7 @@ const I18N = {
     state_scollegata: "Desenchufada",
     wb_attiva: "Wallbox activa",
     st_available: "Lista",
+    st_free: "Libre",
     st_charging: "Cargando",
     st_preparing: "Preparando",
     st_suspended: "En pausa",
@@ -1009,6 +1012,7 @@ const I18N = {
     state_scollegata: "Abgesteckt",
     wb_attiva: "Wallbox aktiv",
     st_available: "Bereit",
+    st_free: "Frei",
     st_charging: "Lädt",
     st_preparing: "Vorbereitung",
     st_suspended: "Pausiert",
@@ -3158,7 +3162,11 @@ class UconnectEvCenterPanel extends HTMLElement {
       case "topstop": return S._st(S._sid("viaggio_top_stop_del_mese"), S._sid("viaggio_top_stop"));
       // Extra p1/p10
       case "name": return S._cfg.name;
-      case "notify": return S._cfg.notify || "da configurare";
+      case "notify": {
+        const _pgN = S._sensorByPrefix("programmazione");
+        const _nN = (_pgN && _pgN.attributes && _pgN.attributes.notify) || S._cfg.notify || "";
+        return _nN || "da configurare";
+      }
       // Impostazioni (entità di configurazione)
       case "n_price_home": return S._nid("costo_energia_casa");
       case "n_price_public": return S._nid("costo_colonnina");
@@ -3486,7 +3494,19 @@ class UconnectEvCenterPanel extends HTMLElement {
     this.shadowRoot.querySelectorAll("input[data-ls]").forEach((inp) => {
       const saved = localStorage.getItem(inp.dataset.ls);
       if (saved !== null && saved !== "") inp.value = saved;
-      inp.addEventListener("change", () => { localStorage.setItem(inp.dataset.ls, inp.value); this._update(); });
+      else if (inp.dataset.ls === "rec_notify") {
+        // il servizio notify sta nella config dell'integrazione: mostralo anche qui
+        const v = this._field("notify");
+        if (v && v !== "da configurare") inp.value = v;
+      }
+      inp.addEventListener("change", () => {
+        localStorage.setItem(inp.dataset.ls, inp.value);
+        // il notify è l'UNICO che deve finire nella config dell'integrazione (non solo nel browser)
+        if (inp.dataset.ls === "rec_notify") {
+          this._call("uconnect_ev_center", "set_notify_service", { service: inp.value.trim() }, "🔔 Servizio notify salvato");
+        }
+        this._update();
+      });
     });
     // selettore lingua (p10): override in localStorage, vuoto = segui HA
     const langSel = this.shadowRoot.querySelector("select[data-lang]");
@@ -3539,7 +3559,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     if (!root.getElementById("p11")) return;
     const S = this;
     const set = (k, v) => root.querySelectorAll(`[data-wb="${k}"]`).forEach((el) => { el.textContent = v; });
-    const stMap = { available: _t("st_available", "Pronta"), charging: _t("st_charging", "In carica"), preparing: _t("st_preparing", "Preparazione"),
+    const stMap = { available: _t("st_available", "Pronta"), free: _t("st_free", "Disponibile"), charging: _t("st_charging", "In carica"), preparing: _t("st_preparing", "Preparazione"),
       suspended: _t("st_suspended", "Pausa"), finishing: _t("st_finishing", "Completamento"), faulted: _t("st_faulted", "Errore"), idle: _t("st_idle", "Inattiva"),
       connected: _t("st_connected", "Connesso"), disconnected: _t("st_disconnected", "Disconnesso"), completed: _t("st_completed", "Completa"),
       error: _t("st_error", "Errore"), need_auth: _t("st_need_auth", "Connesso, attesa"), paused: _t("st_paused", "Pausa"), locked: _t("st_locked", "Bloccata") };
@@ -3555,19 +3575,37 @@ class UconnectEvCenterPanel extends HTMLElement {
     }
 
     const stateEnt = S._st(S._ov("wallbox_state"), "sensor.wallbox_charger_state");
-    set("state", stateEnt ? (stMap[stateEnt.state] || stateEnt.state) : "—");
+    if (stateEnt) {
+      // stato grezzo ("charging", "free", "charger_free", ...): provo il match esatto poi parziale
+      const sk = S._slug(stateEnt.state);
+      const mk = stMap[sk] !== undefined ? sk : (Object.keys(stMap).find((k) => sk.includes(k)) || sk);
+      set("state", stMap[mk] || stateEnt.state);
+    } else {
+      set("state", "—");
+    }
 
-    const power = S._num(S._ov("wallbox_power"), S._sid("wallbox_potenza"), "sensor.wallbox_instant_power");
-    set("power", power === null ? "—" : S._fmt(power) + " kW");
-    const curEnt = S._st(S._ov("wallbox_current")) || S._findState("sensor", "wallbox", "current")
-      || S._findState("sensor", "wallbox", "amp") || S._findState("sensor", "current");
-    const cur = curEnt ? parseFloat(String(curEnt.state).replace(",", ".")) : null;
-    set("current", (cur === null || isNaN(cur)) ? "-" : S._fmt(cur, 1) + " A");
+    // potenza istantanea: il sensore può essere in W o in kW → normalizzo a kW
+    const powerEnt = S._st(S._ov("wallbox_power"), S._sid("wallbox_potenza"), "sensor.wallbox_instant_power", S._car("sensor", "battery_charger_power"));
+    let pkw = null;
+    if (powerEnt) {
+      const pv = parseFloat(String(powerEnt.state).replace(",", "."));
+      const pu = String((powerEnt.attributes && powerEnt.attributes.unit_of_measurement) || "").trim().toLowerCase();
+      if (!isNaN(pv)) pkw = (pu === "w" || pu === "watt" || pu === "wh") ? pv / 1000 : pv;
+    }
+    set("power", pkw === null ? "—" : S._fmt(pkw, 2) + " kW");
+
+    // tensione (serve anche a ricavare la corrente se manca un sensore dedicato)
     const voltEnt = S._st(S._ov("wallbox_voltage")) || S._findState("sensor", "wallbox", "volt")
       || S._findState("sensor", "wallbox", "tension") || S._findState("sensor", "voltage")
       || S._findState("sensor", "tensione");
     const volt = voltEnt ? parseFloat(String(voltEnt.state).replace(",", ".")) : null;
     set("voltage", (volt === null || isNaN(volt)) ? "—" : S._fmt(volt, 0) + " V");
+
+    // corrente: SOLO dal sensore mappato/della wallbox; altrimenti ricavata da potenza/tensione
+    const curEnt = S._st(S._ov("wallbox_current"), S._findState("sensor", "wallbox", "current"), S._findState("sensor", "wallbox", "amp"));
+    let cur = curEnt ? parseFloat(String(curEnt.state).replace(",", ".")) : null;
+    if ((cur === null || isNaN(cur)) && pkw !== null && volt && !isNaN(volt) && volt > 0) cur = (pkw * 1000) / volt;
+    set("current", (cur === null || isNaN(cur)) ? "—" : S._fmt(cur, 1) + " A");
     const tempEnt = S._st(S._ov("wallbox_temperature"))
       || S._findState("sensor", "wallbox", "temperature")
       || S._findState("sensor", "wallbox", "temp");
@@ -3664,8 +3702,16 @@ class UconnectEvCenterPanel extends HTMLElement {
         && /uconnect|wallbox|bilanc/i.test(s.entity_id + " " + (s.attributes.friendly_name || "")))
       .sort((a, b) => String(a.attributes.friendly_name || a.entity_id)
         .localeCompare(String(b.attributes.friendly_name || b.entity_id), "it"));
-    host.innerHTML = list.length
-      ? list.map((s) => `<div class="row"><span>🟢 ${s.attributes.friendly_name || s.entity_id}</span></div>`).join("")
+    // niente doppioni: due automazioni omonime vengono mostrate una volta sola
+    const seen = new Set();
+    const uniq = list.filter((s) => {
+      const n = s.attributes.friendly_name || s.entity_id;
+      if (seen.has(n)) return false;
+      seen.add(n);
+      return true;
+    });
+    host.innerHTML = uniq.length
+      ? uniq.map((s) => `<div class="row"><span>🟢 ${s.attributes.friendly_name || s.entity_id}</span></div>`).join("")
       : `<div style="color:var(--muted);font-size:12px">Nessuna automazione attiva (Uconnect/Wallbox/Bilanciamento).</div>`;
   }
   /** Toggle on/off delle automazioni create (pagina Automazioni). */
@@ -3693,26 +3739,40 @@ class UconnectEvCenterPanel extends HTMLElement {
         && /uconnect_ev_center|uconnect|wallbox|bilanc/i.test(s.entity_id + " " + (s.attributes.friendly_name || "")))
       .sort((a, b) => String(a.attributes.friendly_name || a.entity_id)
         .localeCompare(String(b.attributes.friendly_name || b.entity_id), "it"));
+    // raggruppo per NOME: due automazioni omonime (entity_id diversi) = una riga sola;
+    // il toggle agisce su tutte le entità del gruppo.
+    const groups = new Map();
+    list.forEach((s) => {
+      const nome = s.attributes.friendly_name || s.entity_id;
+      if (!groups.has(nome)) groups.set(nome, []);
+      groups.get(nome).push(s);
+    });
+    const names = [...groups.keys()];
+    const idsOf = (nome) => groups.get(nome).map((s) => s.entity_id).join(",");
     // ricostruisco la lista SOLO se è cambiata: così il refresh periodico non
     // ricrea i checkbox (niente flicker, niente stato "spento" transitorio)
-    const sig = list.map((s) => s.entity_id).join("|");
+    const sig = names.map((n) => n + "=" + idsOf(n) + ":" + groups.get(n).map((s) => s.state).join("")).join("|");
     if (host.dataset.sig !== sig) {
       host.dataset.sig = sig;
-      host.innerHTML = list.length
-        ? list.map((s) => {
-          const nome = s.attributes.friendly_name || s.entity_id;
-          return `<div class="row"><span>${S._autoIcon(nome + " " + s.entity_id)} ${nome}</span><label class="switch"><input type="checkbox" ${s.state === "on" ? "checked" : ""} data-auto="${s.entity_id}"><span></span></label></div>`;
+      host.innerHTML = names.length
+        ? names.map((nome) => {
+          const grp = groups.get(nome);
+          const on = grp.some((s) => s.state === "on");
+          const dup = grp.length > 1 ? ` <span style="color:var(--muted);font-size:11px">(${grp.length})</span>` : "";
+          return `<div class="row"><span>${S._autoIcon(nome + " " + grp[0].entity_id)} ${nome}${dup}</span><label class="switch"><input type="checkbox" ${on ? "checked" : ""} data-auto="${idsOf(nome)}"><span></span></label></div>`;
         }).join("")
         : `<div style="color:var(--muted);font-size:12px">Nessuna automazione Uconnect trovata. Usa "Crea automazioni consigliate" in Impostazioni.</div>`;
-      host.querySelectorAll("[data-auto]").forEach((el) => el.addEventListener("change", () =>
-        S._call("uconnect_ev_center", "set_auto_state",
-          { entity_id: el.dataset.auto, state: el.checked ? "on" : "off" },
-          el.checked ? "Automazione attivata" : "Automazione disattivata")));
+      host.querySelectorAll("[data-auto]").forEach((el) => el.addEventListener("change", () => {
+        const st = el.checked ? "on" : "off";
+        el.dataset.auto.split(",").forEach((id) => S._call("uconnect_ev_center", "set_auto_state",
+          { entity_id: id, state: st },
+          st === "on" ? "Automazione attivata" : "Automazione disattivata"));
+      }));
     }
     // stato sempre allineato a HA, senza toccare quello che l'utente sta cliccando
-    list.forEach((s) => {
-      const el = host.querySelector(`[data-auto="${s.entity_id}"]`);
-      if (el && el.getRootNode().activeElement !== el) el.checked = s.state === "on";
+    names.forEach((nome) => {
+      const el = host.querySelector(`[data-auto="${idsOf(nome)}"]`);
+      if (el && el.getRootNode().activeElement !== el) el.checked = groups.get(nome).some((s) => s.state === "on");
     });
   }
   _cmd(cmd, el) {
@@ -3887,6 +3947,13 @@ class UconnectEvCenterPanel extends HTMLElement {
       el.textContent = v === null ? (el.dataset.na || "—") : v;
       el.classList.toggle("clk", !!this._ucId(el.dataset.uc));
     });
+    // comandi Panoramica: nascondi clacson/lampeggia se non mappati in Configura
+    root.querySelectorAll('[data-cmd="horn"]').forEach((el) => {
+      el.style.display = this._cmdEnt(this._ov("horn"), this._ov("horn_button"), this._car("button", "sound_horn"), "button.uconnect_sound_horn") ? "" : "none";
+    });
+    root.querySelectorAll('[data-cmd="flash"]').forEach((el) => {
+      el.style.display = this._cmdEnt(this._ov("light"), this._ov("flash_button"), this._car("button", "flash_lights"), "button.uconnect_flash_lights") ? "" : "none";
+    });
     const mapSvg = root.querySelector("#evmap");
     if (mapSvg && (!this._mapTs || Date.now() - this._mapTs > 300000)) {
       this._mapTs = Date.now();
@@ -4058,12 +4125,12 @@ class UconnectEvCenterPanel extends HTMLElement {
       root.querySelectorAll('[data-gomme="prossimo"]').forEach((el) => {
         el.textContent = _gg ? `${_gg.data} · ${this._i(_gg.km)} km mancanti` : "—";
       });
-      for (const [tipo, attr] of [["tagliando", "tagliando_km"], ["gomme", "gomme_km"]]) {
-        const v = _sa[attr];
-        if (v === null || v === undefined) continue;
-        const el = root.querySelector(`input[data-mk="${tipo}"]:not([data-mdate])`);
-        if (el && el.getRootNode().activeElement !== el) el.value = v;
-      }
+      // solo il tagliando: il suo valore è l'OBIETTIVO in km.
+      // Per le gomme il campo è l'ULTIMO CAMBIO (l'utente lo mette, default 0):
+      // precompilarlo con l'obiettivo lo faceva crescere di un intervallo a ogni salvataggio.
+      const elTag = root.querySelector(`input[data-mk="tagliando"]:not([data-mdate])`);
+      const vTag = _sa["tagliando_km"];
+      if (vTag !== null && vTag !== undefined && elTag && elTag.getRootNode().activeElement !== elTag) elTag.value = vTag;
       for (const [tipo, attr] of [["tagliando", "tagliando_data"], ["gomme", "gomme_data"]]) {
         const v = _sa[attr];
         if (!v) continue;
@@ -4799,7 +4866,13 @@ class UconnectEvCenterPanel extends HTMLElement {
     }
   }
   _wb_state_txt() {
-    const p = this._num(this._sid("wallbox_potenza"), "sensor.wallbox_instant_power", this._car("sensor", "battery_charger_power"));
+    const pEnt = this._st(this._sid("wallbox_potenza"), "sensor.wallbox_instant_power", this._car("sensor", "battery_charger_power"));
+    let p = null;
+    if (pEnt) {
+      const pv = parseFloat(String(pEnt.state).replace(",", "."));
+      const pu = String((pEnt.attributes && pEnt.attributes.unit_of_measurement) || "").trim().toLowerCase();
+      if (!isNaN(pv)) p = (pu === "w" || pu === "watt" || pu === "wh") ? pv / 1000 : pv;
+    }
     if (p !== null) return p > 0 ? `${this._fmt(p, 2)} kW` : "Inattiva";
     const b = this._st(this._sid("wallbox"), `binary_sensor.wallbox_${this._cfg.car}`, this._car("binary_sensor", "wallbox"), this._car("binary_sensor", "charging"));
     if (!b) return "—";
@@ -5540,7 +5613,7 @@ const PAGES = () => ({
     <div class="card"><h3>${_t("h3_cambio_gomme", "🛞 Cambio gomme")}</h3>
       <div class="row"><span>${_t("lbl_ultimo_cambio_a", "Ultimo cambio a")}</span><b><span data-attr="prossima_scadenza|gomme_km">—</span> km</b></div>
       <div class="row"><span>${_t("lbl_prossimo_cambio", "Prossimo cambio")}</span><b><span data-gomme="prossimo">—</span></b></div>
-      <div class="inp"><span>${_t("lbl_ultimo_cambio_km", "Ultimo cambio (km)")}</span><input type="number" data-mk="gomme" placeholder="${_t("ph_es_60000", "es. 60000")}"><span class="u">km</span></div>
+      <div class="inp"><span>${_t("lbl_ultimo_cambio_km", "Ultimo cambio (km)")}</span><input type="number" data-mk="gomme" placeholder="0"><span class="u">km</span></div>
       <div class="inp"><span>${_t("lbl_scadenza_a_data_opz", "Scadenza a data (opz.)")}</span><input type="date" data-mk="gomme" data-mdate="1"><span class="u"></span></div>
       <div class="btn" data-cmd="maint_gomme" style="margin-top:8px">💾 Salva</div>
       <div style="color:var(--muted);font-size:11.5px;margin-top:8px">Inserisci i <b>km dell'ultimo cambio</b>:

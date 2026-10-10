@@ -35,7 +35,7 @@
           "gse": {
             "name": "⚡ GSE pilot scheme",
             "data": {
-              "gse_kw_max": "Allowed power inside the window (kW)",
+              "gse_enabled": "Enable GSE experiment", "gse_kw_max": "Allowed power inside the window (kW)",
               "gse_kw_ridotta": "Power outside the window (kW)",
               "gse_start": "Allowed window start",
               "gse_end": "Allowed window end",
@@ -95,11 +95,11 @@
             "name": "🎛️ Uconnect commands",
             "data": {
               "charge_start_button": "Start charge button (Uconnect)",
-              "ac_button_entity": "Start A/C button (Uconnect)",
+              "ac_button_entity": "Preconditioning start button (Uconnect)",
               "climate_entity": "Uconnect climate entity",
-              "light_entity": "Exterior lights (light/switch/button)",
-              "horn_entity": "Horn (button/switch)",
-              "charge_target_number": "Charge target number (for stop)"
+              "light_entity": "Exterior lights (light/switch/button) (optional)",
+              "horn_entity": "Horn (button/switch) (optional)",
+              "charge_target_number": "Charge target number (for stop) (optional)"
             }
           },
           "uc_ricarica": {
@@ -202,7 +202,7 @@
           "gse": {
             "name": "⚡ GSE pilot scheme",
             "data": {
-              "gse_kw_max": "Allowed power inside the window (kW)",
+              "gse_enabled": "Enable GSE experiment", "gse_kw_max": "Allowed power inside the window (kW)",
               "gse_kw_ridotta": "Power outside the window (kW)",
               "gse_start": "Allowed window start",
               "gse_end": "Allowed window end",
@@ -336,10 +336,10 @@
             "name": "🎛️ Uconnect commands",
             "data": {
               "charge_start_button": "Start charge button (Uconnect)",
-              "ac_button_entity": "Start A/C button (Uconnect)",
+              "ac_button_entity": "Preconditioning start button (Uconnect)",
               "climate_entity": "Uconnect climate entity",
-              "light_entity": "Exterior lights (light/switch/button)",
-              "horn_entity": "Horn (button/switch)"
+              "light_entity": "Exterior lights (light/switch/button) (optional)",
+              "horn_entity": "Horn (button/switch) (optional)"
             }
           }
         }
@@ -374,11 +374,11 @@
             "name": "🎛️ Uconnect commands",
             "data": {
               "charge_start_button": "Start charge button (Uconnect)",
-              "ac_button_entity": "Start A/C button (Uconnect)",
+              "ac_button_entity": "Preconditioning start button (Uconnect)",
               "climate_entity": "Uconnect climate entity",
-              "light_entity": "Exterior lights (light/switch/button)",
-              "horn_entity": "Horn (button/switch)",
-              "charge_target_number": "Charge target number (for stop)"
+              "light_entity": "Exterior lights (light/switch/button) (optional)",
+              "horn_entity": "Horn (button/switch) (optional)",
+              "charge_target_number": "Charge target number (for stop) (optional)"
             }
           },
           "uc_ricarica": {
@@ -481,7 +481,7 @@
           "gse": {
             "name": "⚡ GSE pilot scheme",
             "data": {
-              "gse_kw_max": "Allowed power inside the window (kW)",
+              "gse_enabled": "Enable GSE experiment", "gse_kw_max": "Allowed power inside the window (kW)",
               "gse_kw_ridotta": "Power outside the window (kW)",
               "gse_start": "Allowed window start",
               "gse_end": "Allowed window end",

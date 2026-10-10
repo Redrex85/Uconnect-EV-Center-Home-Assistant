@@ -30,6 +30,8 @@ From install to a fully working dashboard in **~10 minutes**.
 
 ## 2. Configure
 
+> 🔁 **After completing the first setup, restart Home Assistant.** Entities, sensors and the dashboard are created on first load: without the restart they may not all appear.
+
 Settings → Devices & Services → Add Integration → **Uconnect EV Center**:
 
 ### Step 0 — Installation profile (the very first screen)

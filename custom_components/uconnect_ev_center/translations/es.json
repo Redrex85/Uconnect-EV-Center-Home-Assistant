@@ -35,7 +35,7 @@
           "gse": {
             "name": "⚡ Plan piloto GSE",
             "data": {
-              "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
+              "gse_enabled": "Activar la experimentación GSE", "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
               "gse_kw_ridotta": "Potencia fuera de la franja (kW)",
               "gse_start": "Inicio de la franja permitida",
               "gse_end": "Fin de la franja permitida",
@@ -95,11 +95,11 @@
             "name": "🎛️ Comandos Uconnect",
             "data": {
               "charge_start_button": "Botón de inicio de recarga (Uconnect)",
-              "ac_button_entity": "Botón de inicio A/C (Uconnect)",
+              "ac_button_entity": "Botón de inicio preacondicionamiento (Uconnect)",
               "climate_entity": "Entidad de clima Uconnect",
-              "light_entity": "Luces exteriores (light/switch/button)",
-              "horn_entity": "Claxon (button/switch)",
-              "charge_target_number": "Número de objetivo de carga (para parar)"
+              "light_entity": "Luces exteriores (light/switch/button) (opcional)",
+              "horn_entity": "Claxon (button/switch) (opcional)",
+              "charge_target_number": "Número de objetivo de carga (para parar) (opcional)"
             }
           },
           "uc_ricarica": {
@@ -202,7 +202,7 @@
           "gse": {
             "name": "⚡ Plan piloto GSE",
             "data": {
-              "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
+              "gse_enabled": "Activar la experimentación GSE", "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
               "gse_kw_ridotta": "Potencia fuera de la franja (kW)",
               "gse_start": "Inicio de la franja permitida",
               "gse_end": "Fin de la franja permitida",
@@ -336,10 +336,10 @@
             "name": "🎛️ Comandos Uconnect",
             "data": {
               "charge_start_button": "Botón de inicio de recarga (Uconnect)",
-              "ac_button_entity": "Botón de inicio A/C (Uconnect)",
+              "ac_button_entity": "Botón de inicio preacondicionamiento (Uconnect)",
               "climate_entity": "Entidad de clima Uconnect",
-              "light_entity": "Luces exteriores (light/switch/button)",
-              "horn_entity": "Claxon (button/switch)"
+              "light_entity": "Luces exteriores (light/switch/button) (opcional)",
+              "horn_entity": "Claxon (button/switch) (opcional)"
             }
           }
         }
@@ -374,11 +374,11 @@
             "name": "🎛️ Comandos Uconnect",
             "data": {
               "charge_start_button": "Botón de inicio de recarga (Uconnect)",
-              "ac_button_entity": "Botón de inicio A/C (Uconnect)",
+              "ac_button_entity": "Botón de inicio preacondicionamiento (Uconnect)",
               "climate_entity": "Entidad de clima Uconnect",
-              "light_entity": "Luces exteriores (light/switch/button)",
-              "horn_entity": "Claxon (button/switch)",
-              "charge_target_number": "Número de objetivo de carga (para parar)"
+              "light_entity": "Luces exteriores (light/switch/button) (opcional)",
+              "horn_entity": "Claxon (button/switch) (opcional)",
+              "charge_target_number": "Número de objetivo de carga (para parar) (opcional)"
             }
           },
           "uc_ricarica": {
@@ -481,7 +481,7 @@
           "gse": {
             "name": "⚡ Plan piloto GSE",
             "data": {
-              "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
+              "gse_enabled": "Activar la experimentación GSE", "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
               "gse_kw_ridotta": "Potencia fuera de la franja (kW)",
               "gse_start": "Inicio de la franja permitida",
               "gse_end": "Fin de la franja permitida",

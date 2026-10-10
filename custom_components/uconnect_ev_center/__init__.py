@@ -60,6 +60,7 @@ SERVICE_SET_TAGLIANDO = "set_tagliando"
 SERVICE_CREATE_DASHBOARD = "create_dashboard"
 SERVICE_CREATE_AUTOMATIONS = "create_automations"
 SERVICE_SET_LOW_SOC_DAYS = "set_low_soc_days"
+SERVICE_SET_NOTIFY_SERVICE = "set_notify_service"
 
 RESET_SCOPES = ["km", "energia", "costi", "viaggi", "ricariche", "all"]
 
@@ -217,6 +218,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             giorni = coord.service_set_low_soc_days(list(call.data.get("giorni", []) or []))
             _LOGGER.info("Avviso batteria bassa — giorni: %s", giorni)
 
+    async def handle_set_notify_service(call: ServiceCall) -> None:
+        for coord in _targets(hass, call):
+            coord.service_set_notify_service(str(call.data.get("service", "") or ""))
+
     async def handle_create_automations(call: ServiceCall) -> None:
         for coord in _targets(hass, call):
             created = await coord.service_create_automations()
@@ -317,6 +322,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _register(SERVICE_SET_LOW_SOC_DAYS, handle_set_low_soc_days,
               vol.Schema({vol.Optional("entry_id"): str,
                           vol.Optional("giorni"): vol.All(list, [vol.In(WEEKDAYS)])}))
+    _register(SERVICE_SET_NOTIFY_SERVICE, handle_set_notify_service, schema=vol.Schema({
+        vol.Optional("entry_id"): str,
+        vol.Required("service"): str,
+    }))
     _register("set_schedule", handle_set_schedule, schema=vol.Schema({
         vol.Optional("entry_id"): str,
         vol.Required("tipo"): vol.In(["ricarica", "clima", "promemoria"]),
@@ -370,6 +379,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 SERVICE_DELETE_MAINTENANCE, SERVICE_RENEW_INSURANCE,
                 SERVICE_SET_SCADENZA, SERVICE_SET_TAGLIANDO, SERVICE_CREATE_DASHBOARD,
                 SERVICE_CREATE_AUTOMATIONS, SERVICE_SET_LOW_SOC_DAYS,
+                SERVICE_SET_NOTIFY_SERVICE,
                 "set_maintenance", "refresh_car", "set_auto_state", "set_schedule",
             ):
                 hass.services.async_remove(DOMAIN, name)

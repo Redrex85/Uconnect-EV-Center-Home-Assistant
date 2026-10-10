@@ -35,7 +35,7 @@
           "gse": {
             "name": "⚡ Expérimentation GSE",
             "data": {
-              "gse_kw_max": "Puissance autorisée dans la plage (kW)",
+              "gse_enabled": "Activer l'expérimentation GSE", "gse_kw_max": "Puissance autorisée dans la plage (kW)",
               "gse_kw_ridotta": "Puissance hors plage (kW)",
               "gse_start": "Début de la plage autorisée",
               "gse_end": "Fin de la plage autorisée",
@@ -95,11 +95,11 @@
             "name": "🎛️ Commandes Uconnect",
             "data": {
               "charge_start_button": "Bouton démarrer la charge (Uconnect)",
-              "ac_button_entity": "Bouton démarrer la clim (Uconnect)",
+              "ac_button_entity": "Bouton démarrer le préconditionnement (Uconnect)",
               "climate_entity": "Climatisation (climate) Uconnect",
-              "light_entity": "Feux extérieurs (light/switch/button)",
-              "horn_entity": "Klaxon (button/switch)",
-              "charge_target_number": "Number cible de charge (pour l'arrêt)"
+              "light_entity": "Feux extérieurs (light/switch/button) (facultatif)",
+              "horn_entity": "Klaxon (button/switch) (facultatif)",
+              "charge_target_number": "Number cible de charge (pour l'arrêt) (facultatif)"
             }
           },
           "uc_ricarica": {
@@ -202,7 +202,7 @@
           "gse": {
             "name": "⚡ Expérimentation GSE",
             "data": {
-              "gse_kw_max": "Puissance autorisée dans la plage (kW)",
+              "gse_enabled": "Activer l'expérimentation GSE", "gse_kw_max": "Puissance autorisée dans la plage (kW)",
               "gse_kw_ridotta": "Puissance hors plage (kW)",
               "gse_start": "Début de la plage autorisée",
               "gse_end": "Fin de la plage autorisée",
@@ -336,10 +336,10 @@
             "name": "🎛️ Commandes Uconnect",
             "data": {
               "charge_start_button": "Bouton démarrer la charge (Uconnect)",
-              "ac_button_entity": "Bouton démarrer la clim (Uconnect)",
+              "ac_button_entity": "Bouton démarrer le préconditionnement (Uconnect)",
               "climate_entity": "Climatisation (climate) Uconnect",
-              "light_entity": "Feux extérieurs (light/switch/button)",
-              "horn_entity": "Klaxon (button/switch)"
+              "light_entity": "Feux extérieurs (light/switch/button) (facultatif)",
+              "horn_entity": "Klaxon (button/switch) (facultatif)"
             }
           }
         }
@@ -374,11 +374,11 @@
             "name": "🎛️ Commandes Uconnect",
             "data": {
               "charge_start_button": "Bouton démarrer la charge (Uconnect)",
-              "ac_button_entity": "Bouton démarrer la clim (Uconnect)",
+              "ac_button_entity": "Bouton démarrer le préconditionnement (Uconnect)",
               "climate_entity": "Climatisation (climate) Uconnect",
-              "light_entity": "Feux extérieurs (light/switch/button)",
-              "horn_entity": "Klaxon (button/switch)",
-              "charge_target_number": "Number cible de charge (pour l'arrêt)"
+              "light_entity": "Feux extérieurs (light/switch/button) (facultatif)",
+              "horn_entity": "Klaxon (button/switch) (facultatif)",
+              "charge_target_number": "Number cible de charge (pour l'arrêt) (facultatif)"
             }
           },
           "uc_ricarica": {
@@ -481,7 +481,7 @@
           "gse": {
             "name": "⚡ Expérimentation GSE",
             "data": {
-              "gse_kw_max": "Puissance autorisée dans la plage (kW)",
+              "gse_enabled": "Activer l'expérimentation GSE", "gse_kw_max": "Puissance autorisée dans la plage (kW)",
               "gse_kw_ridotta": "Puissance hors plage (kW)",
               "gse_start": "Début de la plage autorisée",
               "gse_end": "Fin de la plage autorisée",
