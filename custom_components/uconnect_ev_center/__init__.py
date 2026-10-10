@@ -116,19 +116,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # ---------------------------------------------------------------- servizi
     # Handlers (definiti una sola volta, usano _all_coordinators per multi-entry)
     async def handle_close_trip(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             rec = coord.service_close_trip()
             if rec:
                 _LOGGER.info("Viaggio chiuso manualmente: %s km", rec.get("km"))
 
     async def handle_reset_counters(call: ServiceCall) -> None:
         scope = call.data.get("scope", "all")
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             coord.service_reset_counters(scope)
 
     async def handle_export_csv(call: ServiceCall) -> dict | None:
         paths = []
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             paths.append(await coord.service_export_csv())
         _LOGGER.info("Export CSV completato: %s", ", ".join(paths))
         return {"paths": paths} if call.return_response else None
@@ -141,28 +141,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         quando = dt_util.parse_datetime(quando_raw) if quando_raw else dt_util.now()
         if isinstance(quando, dt) and quando.tzinfo is None:
             quando = quando.replace(tzinfo=dt_util.UTC)
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             rec = coord.service_add_manual_charge(kwh, costo, tipo, quando,
                                                  str(call.data.get("descrizione", "") or ""))
             _LOGGER.info("Ricarica manuale aggiunta: %s kWh (%s)", rec["kwh"], rec["tipo"])
 
     async def handle_delete_trip(call: ServiceCall) -> None:
         trip_id = int(call.data["trip_id"])
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             coord.service_delete_trip(trip_id)
 
     async def handle_refresh_car(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             await coord.service_refresh_car()
 
     async def handle_set_auto_state(call: ServiceCall) -> None:
         entity_id = str(call.data["entity_id"])
         state = str(call.data.get("state", "on"))
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             await coord.service_set_auto_state(entity_id, state)
 
     async def handle_add_maintenance(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             rec = coord.service_add_maintenance(
                 str(call.data.get("data", "") or ""),
                 call.data.get("km"),
@@ -175,7 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("Manutenzione registrata: %s (%s km)", rec["data"], rec["km"])
 
     async def handle_set_maintenance(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             coord.service_set_maintenance(
                 str(call.data.get("tipo", "tagliando")),
                 call.data.get("km"),
@@ -185,45 +185,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def handle_delete_maintenance(call: ServiceCall) -> None:
         mid = int(call.data["maintenance_id"])
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             coord.service_delete_maintenance(mid)
             await coord.async_request_refresh()
 
     async def handle_renew_insurance(call: ServiceCall) -> None:
         mesi = int(call.data.get("mesi", 12))
         data = str(call.data.get("data", "") or "")
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             nuova = coord.service_renew_insurance(mesi, data)
             await coord.async_request_refresh()
             _LOGGER.info("Assicurazione rinnovata fino al %s", nuova)
 
     async def handle_set_scadenza(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             coord.service_set_scadenza(call.data["nome"], call.data["data"])
             await coord.async_request_refresh()
 
     async def handle_set_tagliando(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             coord.service_set_tagliando(call.data["mode"], str(call.data["valore"]))
             await coord.async_request_refresh()
 
     async def handle_create_dashboard(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             await async_setup_dashboard(hass, coord.entry, entry_name(coord.entry),
                                         getattr(coord, "version", ""))
 
     async def handle_set_low_soc_days(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             giorni = coord.service_set_low_soc_days(list(call.data.get("giorni", []) or []))
             _LOGGER.info("Avviso batteria bassa — giorni: %s", giorni)
 
     async def handle_create_automations(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             created = await coord.service_create_automations()
             _LOGGER.info("Automazioni Uconnect EV Center create: %s", created)
 
     async def handle_set_schedule(call: ServiceCall) -> None:
-        for coord in _all_coordinators(hass):
+        for coord in _targets(hass, call):
             made = await coord.service_set_schedule(
                 str(call.data.get("tipo", "ricarica")),
                 bool(call.data.get("attivo", True)),
@@ -246,13 +246,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             kwargs["supports_response"] = supports_response
         hass.services.async_register(DOMAIN, name, handler, **kwargs)
 
-    _register(SERVICE_CLOSE_TRIP, handle_close_trip)
+    _register(SERVICE_CLOSE_TRIP, handle_close_trip,
+              schema=vol.Schema({vol.Optional("entry_id"): str}))
     _register(SERVICE_RESET_COUNTERS, handle_reset_counters,
-              schema=vol.Schema({vol.Optional("scope", default="all"): vol.In(RESET_SCOPES)}))
+              schema=vol.Schema({vol.Optional("entry_id"): str,
+                                 vol.Optional("scope", default="all"): vol.In(RESET_SCOPES)}))
     _register(SERVICE_EXPORT_CSV, handle_export_csv,
+              schema=vol.Schema({vol.Optional("entry_id"): str}),
               supports_response=SupportsResponse.OPTIONAL)
     _register(SERVICE_ADD_CHARGE, handle_add_charge,
               schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
                   vol.Required("kwh"): cv.positive_float,
                   vol.Optional("costo", default=0.0): vol.Coerce(float),
                   vol.Optional("tipo", default="Pubblica"): str,
@@ -260,9 +264,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                   vol.Optional("quando"): str,
               }))
     _register(SERVICE_DELETE_TRIP, handle_delete_trip,
-              schema=vol.Schema({vol.Required("trip_id"): cv.positive_int}))
+              schema=vol.Schema({vol.Optional("entry_id"): str,
+                                 vol.Required("trip_id"): cv.positive_int}))
     _register(SERVICE_ADD_MAINTENANCE, handle_add_maintenance,
               schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
                   vol.Optional("data", default=""): str,
                   vol.Optional("km"): vol.Coerce(float),
                   vol.Optional("costo", default=0.0): vol.Coerce(float),
@@ -271,37 +277,48 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
               }))
     _register("set_maintenance", handle_set_maintenance,
               schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
                   vol.Required("tipo"): vol.In(["tagliando", "gomme"]),
                   vol.Optional("km"): vol.Coerce(float),
                   vol.Optional("data", default=""): str,
               }))
     _register(SERVICE_DELETE_MAINTENANCE, handle_delete_maintenance,
-              schema=vol.Schema({vol.Required("maintenance_id"): cv.positive_int}))
+              schema=vol.Schema({vol.Optional("entry_id"): str,
+                                 vol.Required("maintenance_id"): cv.positive_int}))
     _register(SERVICE_RENEW_INSURANCE, handle_renew_insurance,
               schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
                   vol.Optional("mesi", default=12): vol.All(vol.Coerce(int), vol.In([6, 12])),
                   vol.Optional("data", default=""): str,
               }))
     _register(SERVICE_SET_SCADENZA, handle_set_scadenza,
               schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
                   vol.Required("nome"): vol.In(["assicurazione", "bollo", "revisione", "tagliando_data"]),
                   vol.Required("data"): str,
               }))
     _register(SERVICE_SET_TAGLIANDO, handle_set_tagliando,
               schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
                   vol.Required("mode"): vol.In(["km", "data"]),
                   vol.Required("valore"): str,
               }))
-    _register(SERVICE_CREATE_DASHBOARD, handle_create_dashboard)
-    _register(SERVICE_CREATE_AUTOMATIONS, handle_create_automations)
-    _register("refresh_car", handle_refresh_car)
+    _register(SERVICE_CREATE_DASHBOARD, handle_create_dashboard,
+              schema=vol.Schema({vol.Optional("entry_id"): str}))
+    _register(SERVICE_CREATE_AUTOMATIONS, handle_create_automations,
+              schema=vol.Schema({vol.Optional("entry_id"): str}))
+    _register("refresh_car", handle_refresh_car,
+              schema=vol.Schema({vol.Optional("entry_id"): str}))
     _register("set_auto_state", handle_set_auto_state, schema=vol.Schema({
+        vol.Optional("entry_id"): str,
         vol.Required("entity_id"): str,
         vol.Required("state"): vol.In(["on", "off"]),
     }))
     _register(SERVICE_SET_LOW_SOC_DAYS, handle_set_low_soc_days,
-              vol.Schema({vol.Optional("giorni"): vol.All(list, [vol.In(WEEKDAYS)])}))
+              vol.Schema({vol.Optional("entry_id"): str,
+                          vol.Optional("giorni"): vol.All(list, [vol.In(WEEKDAYS)])}))
     _register("set_schedule", handle_set_schedule, schema=vol.Schema({
+        vol.Optional("entry_id"): str,
         vol.Required("tipo"): vol.In(["ricarica", "clima", "promemoria"]),
         vol.Optional("attivo", default=True): cv.boolean,
         vol.Optional("inizio", default="23:30"): str,
@@ -317,6 +334,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 def _all_coordinators(hass: HomeAssistant) -> list[UconnectMateCoordinator]:
     return list(hass.data.get(DOMAIN, {}).values())
+
+
+def _targets(hass: HomeAssistant, call: ServiceCall) -> list[UconnectMateCoordinator]:
+    """Coordinator interessati: tutti, oppure uno solo se il servizio passa `entry_id`."""
+    eid = call.data.get("entry_id") if call.data else None
+    if eid:
+        coord = hass.data.get(DOMAIN, {}).get(eid)
+        return [coord] if coord is not None else []
+    return _all_coordinators(hass)
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -344,6 +370,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 SERVICE_DELETE_MAINTENANCE, SERVICE_RENEW_INSURANCE,
                 SERVICE_SET_SCADENZA, SERVICE_SET_TAGLIANDO, SERVICE_CREATE_DASHBOARD,
                 SERVICE_CREATE_AUTOMATIONS, SERVICE_SET_LOW_SOC_DAYS,
+                "set_maintenance", "refresh_car", "set_auto_state", "set_schedule",
             ):
                 hass.services.async_remove(DOMAIN, name)
     return unload_ok

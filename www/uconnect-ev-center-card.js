@@ -18,11 +18,33 @@
  *   range_entity: sensor.battery_autonomy
  *   odometer_entity: sensor.mileage
  */
+const CARD_VER = "1.0.1";
+let _cardVerChecked = false;
+
 class UconnectEvCenterCard extends HTMLElement {
+  /** Se la risorsa servita ha una versione diversa, ricarica la pagina una volta. */
+  _checkVersion() {
+    if (_cardVerChecked) return;
+    _cardVerChecked = true;
+    try {
+      fetch(`/local/uconnect-ev-center/uconnect-ev-center-card.js?ts=${Date.now()}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.text() : ""))
+        .then((t) => {
+          const m = t && t.match(/const CARD_VER = "([^"]+)"/);
+          if (!m || m[1] === CARD_VER) return;
+          const key = "rec_card_ver_" + m[1];
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, "1");
+          location.reload();
+        })
+        .catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
   setConfig(config) {
     if (!config || !config.name) {
       throw new Error("uconnect-ev-center-card: serve il campo 'name' (prefisso entità)");
     }
+    this._checkVersion();
     this._config = Object.assign(
       {
         name: "Uconnect",
@@ -86,7 +108,7 @@ class UconnectEvCenterCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <ha-card style="border-radius:16px;padding:18px;background:var(--card-background-color,var(--ha-card-background));border:1px solid var(--divider-color)">
         <div style="position:relative;text-align:center">
-          <img src="${c.image}" alt="auto"
+          <img src="${c.image + (c.image.indexOf("?") < 0 ? "?v=" : "&v=") + CARD_VER}" alt="auto"
                style="max-width:100%;max-height:190px;border-radius:12px"
                onerror="this.style.display='none'"/>
           <div style="position:absolute;top:6px;left:10px">${chip(inCarica ? "⚡ In carica" : "🔌 Non in carica", inCarica ? "#4caf50" : "#9e9e9e")}</div>
@@ -160,4 +182,4 @@ try {
   /* ambiente non-HA (demo): ignora */
 }
 
-console.info("%c UCONNECT EV CENTER CARD %c v1.0.1 ", "background:#4d8dff;color:#fff", "background:#333;color:#fff");
+  console.info("%c UCONNECT EV CENTER CARD %c v1.0.1 " , "background:#4d8dff;color:#fff", "background:#333;color:#fff");

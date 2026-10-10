@@ -22,7 +22,6 @@ Un *companion* per le **auto elettriche (BEV) e ibride plug-in (PHEV) Stellantis
 Uconnect EV Center è un progetto gratuito e open source, portato avanti nel tempo libero. Se ti torna utile, puoi offrirmi un caffè per sostenere i prossimi aggiornamenti — grazie di cuore! ☕
 
 <p align="left">
-  <a href="https://www.paypal.me/lamortella"><img src="https://img.shields.io/badge/Dona-PayPal-00457C?logo=paypal" alt="PayPal"></a>
   <a href="https://www.buymeacoffee.com/redrex72v"><img src="https://img.shields.io/badge/Offrimi%20un%20caffè-BuyMeACoffee-FFDD00?logo=buy-me-a-coffee" alt="BuyMeACoffee"></a>
   <a href="https://t.me/redrex_domotica"><img src="https://img.shields.io/badge/Telegram-Uconnect%20EV%20Center-26A5E4?logo=telegram" alt="Telegram"></a>
 </p>
@@ -319,7 +318,6 @@ A companion for **electric (BEV) and plug-in hybrid (PHEV) Stellantis cars with 
 Uconnect EV Center is a free, open-source project kept alive in my spare time. If it saves you time, you can buy me a coffee to support the next updates — thank you so much! ☕
 
 <p align="left">
-  <a href="https://www.paypal.me/lamortella"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal" alt="PayPal"></a>
   <a href="https://www.buymeacoffee.com/redrex72v"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-BuyMeACoffee-FFDD00?logo=buy-me-a-coffee" alt="BuyMeACoffee"></a>
   <a href="https://t.me/redrex_domotica"><img src="https://img.shields.io/badge/Telegram-Uconnect%20EV%20Center-26A5E4?logo=telegram" alt="Telegram"></a>
 </p>
@@ -601,7 +599,6 @@ Un compagnon pour les **voitures électriques (BEV) et hybrides rechargeables (P
 Uconnect EV Center est un projet gratuit et open source, développé sur mon temps libre. S'il vous fait gagner du temps, vous pouvez m'offrir un café pour soutenir les prochaines mises à jour — merci beaucoup ! ☕
 
 <p align="left">
-  <a href="https://www.paypal.me/lamortella"><img src="https://img.shields.io/badge/Faire%20un%20don-PayPal-00457C?logo=paypal" alt="PayPal"></a>
   <a href="https://www.buymeacoffee.com/redrex72v"><img src="https://img.shields.io/badge/Offrez%20moi%20un%20caf%C3%A9-BuyMeACoffee-FFDD00?logo=buy-me-a-coffee" alt="BuyMeACoffee"></a>
   <a href="https://t.me/redrex_domotica"><img src="https://img.shields.io/badge/Telegram-Uconnect%20EV%20Center-26A5E4?logo=telegram" alt="Telegram"></a>
 </p>

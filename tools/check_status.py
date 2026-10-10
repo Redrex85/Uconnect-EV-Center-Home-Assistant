@@ -11,6 +11,11 @@ import re
 import sys
 import json
 
+try:  # console Windows cp1252: evita UnicodeEncodeError sui caratteri unicode
+    sys.stdout.reconfigure(encoding="utf-8")
+except (AttributeError, ValueError):
+    pass
+
 try:
     import yaml
 except ImportError:
@@ -57,7 +62,7 @@ attesi = [
     "custom_components/uconnect_ev_center/strings.json",
     "custom_components/uconnect_ev_center/translations/it.json",
     "custom_components/uconnect_ev_center/translations/en.json",
-    "hacs.json", "README.md", "LICENSE", "CHANGELOG.md", "agent.md",
+    "hacs.json", "README.md", "LICENSE", "CHANGELOG.md",
     "VERSION",
     "dashboards/01_panoramica.yaml",
     "dashboards/02_viaggi.yaml",
@@ -75,7 +80,6 @@ attesi = [
     "custom_components/uconnect_ev_center/dashboard.py",
     "custom_components/uconnect_ev_center/www/uconnect-ev-center-card.js",
     "www/uconnect-ev-center-card.js",
-    "preview/card_demo.html",
     "custom_components/uconnect_ev_center/switch.py",
     "custom_components/uconnect_ev_center/time.py",
     "dashboards/10_automazioni.yaml",
@@ -240,7 +244,8 @@ elif os.path.isfile(p_old):
     else:
         bad("preview/index.html non aggiornato alla versione corrente")
 else:
-    bad("preview/index.html mancante")
+    # file interni di sviluppo (non pubblicati nel repo): non è un errore
+    ok("preview/ non pubblicato (file interno) — saltato")
 
 # ---------------------------------------------------------------- todo da agent.md
 print("\n[6] Attività aperte (da agent.md sezione 3)")

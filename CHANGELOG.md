@@ -4,6 +4,16 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.1] - 2026-10-10
+
+### Corretto
+- Pannello: `REC_VER` allineata alla versione dell'integrazione (niente reload spurio, badge versione corretto).
+- Rimozione completa dei servizi all'unload (mancavano `set_maintenance`, `refresh_car`, `set_auto_state`, `set_schedule`).
+- Servizi: targeting opzionale per singola auto via `entry_id` (con più di un veicolo non agiscono più su tutti).
+- README: rimosso il link di donazione che puntava a un terzo.
+- Copia della card JS nella radice riallineata a quella del pacchetto.
+- `tools/check_status.py`: esecuzione affidabile su Windows (UTF-8) e file interni non più segnalati come errori.
+
 ## [1.0.0] - 2026-10-10
 
 ### Aggiunto
