@@ -1,0 +1,160 @@
+close_trip:
+  name: Chiudi viaggio ora
+  description: Forza la chiusura del viaggio in corso e lo salva nello storico.
+reset_counters:
+  name: Reset contatori
+  description: Azzera i contatori scelti (km, energia, costi, viaggi, ricariche o tutto).
+  fields:
+    scope:
+      name: Ambito
+      description: Quale contatore azzerare.
+      example: km
+export_trips_csv:
+  name: Esporta viaggi CSV
+  description: Scrive i CSV dei viaggi in config/uconnect_ev_center_export/.
+add_manual_charge:
+  name: Aggiungi ricarica manuale
+  description: Registra a mano una ricarica (utile per colonnine DC).
+  fields:
+    kwh:
+      name: kWh caricati
+      example: 22.5
+    costo:
+      name: Costo €
+      example: 11.25
+    tipo:
+      name: Tipo
+      example: Pubblica
+    descrizione:
+      name: Descrizione
+      description: Nota libera (es. "Colonnina DC autostrada").
+      example: Colonnina DC autostrada
+    quando:
+      name: Data/ora
+      description: Formato ISO opzionale (2026-08-22T14:30:00).
+delete_trip:
+  name: Elimina viaggio
+  description: Cancella un viaggio dallo storico per ID.
+  fields:
+    trip_id:
+      name: ID viaggio
+      example: 1755864000
+add_maintenance:
+  name: Aggiungi tagliando
+  description: Registra un tagliando o una manutenzione effettuata sull'auto.
+  fields:
+    data:
+      name: Data
+      example: "2026-08-20"
+    km:
+      name: Km all'auto
+      example: 68718
+    costo:
+      name: Costo €
+      example: 85.0
+    tipo:
+      name: Tipo
+      example: Tagliando annuale
+    note:
+      name: Note
+      example: Gomme incluse
+delete_maintenance:
+  name: Elimina tagliando
+  description: Cancella una manutenzione dal registro per ID.
+  fields:
+    maintenance_id:
+      name: ID manutenzione
+      example: 1755864000
+set_maintenance:
+  name: Imposta scadenza manutenzione
+  description: Imposta la prossima scadenza (tagliando o gomme) per km e/o data.
+  fields:
+    tipo:
+      name: Tipo
+      description: "tagliando oppure gomme"
+      example: gomme
+    km:
+      name: Km
+      example: 75000
+    data:
+      name: Data
+      example: "2027-03-01"
+renew_insurance:
+  name: Rinnova assicurazione
+  description: Imposta la nuova scadenza dell'assicurazione (6 o 12 mesi da oggi, oppure data precisa).
+  fields:
+    mesi:
+      name: Mesi
+      description: 6 o 12 mesi da oggi (ignorato se compili "data").
+      example: 12
+    data:
+      name: Data
+      description: Scadenza precisa in formato YYYY-MM-DD (opzionale).
+      example: "2027-08-24"
+set_scadenza:
+  name: Imposta scadenza
+  description: Imposta manualmente una scadenza (assicurazione, bollo, revisione o tagliando_data).
+  fields:
+    nome:
+      name: Nome
+      example: bollo
+    data:
+      name: Data
+      example: "2026-10-12"
+set_tagliando:
+  name: Imposta tagliando
+  description: Scegli se il prossimo tagliando scade per km (valore = km assoluti) o per data.
+  fields:
+    mode:
+      name: Modalità
+      example: km
+    valore:
+      name: Valore
+      description: km assoluti (mode=km) oppure data YYYY-MM-DD (mode=data).
+      example: "71218"
+
+create_automations:
+  name: Crea automazioni consigliate
+  description: Crea o aggiorna in Home Assistant le 3 automazioni consigliate
+    (ricarica completata, batteria bassa fuori casa, riassunto giornaliero).
+create_dashboard:
+  name: Crea dashboard
+  description: (Ri)crea la dashboard laterale "«Nome» EV Center" con tutte le viste.
+set_low_soc_days:
+  name: Giorni avviso batteria bassa
+  description: Imposta in quali giorni della settimana inviare l'avviso di batteria bassa.
+  fields:
+    giorni:
+      name: Giorni
+      description: "Elenco: mon, tue, wed, thu, fri, sat, sun"
+      example: '["mon", "tue", "wed", "thu", "fri"]'
+set_schedule:
+  name: Imposta schedulazione
+  description: Crea/aggiorna l'automazione di ricarica o clima programmato (orario + giorni).
+  fields:
+    tipo:
+      name: Tipo
+      description: "ricarica oppure clima"
+      example: ricarica
+    attivo:
+      name: Attivo
+      example: true
+    inizio:
+      name: Orario
+      example: "23:30"
+    fine:
+      name: Fine (ricarica)
+      example: "07:00"
+    soc:
+      name: SoC obiettivo %
+      example: 80
+    modo:
+      name: Modo clima
+      example: cool
+    temperatura:
+      name: Temperatura °C
+      example: 21
+    giorni:
+      name: Giorni
+      description: "Lista mon,tue,wed,thu,fri,sat,sun (vuoto = tutti i giorni)"
+      example: "['mon','tue','wed','thu','fri']"

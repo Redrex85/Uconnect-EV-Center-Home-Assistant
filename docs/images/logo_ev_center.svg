@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="180" viewBox="0 0 680 180">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6aa8ff"/>
+      <stop offset="1" stop-color="#2f6bd9"/>
+    </linearGradient>
+  </defs>
+  <rect width="680" height="180" rx="26" fill="#0d1522"/>
+  <g transform="translate(96,90) scale(0.30) translate(-256,-256)">
+    <path d="M150 150 a150 150 0 0 0 0 212" fill="none" stroke="url(#ring)" stroke-width="46" stroke-linecap="round"/>
+    <path d="M362 150 a150 150 0 0 1 0 212" fill="none" stroke="url(#ring)" stroke-width="46" stroke-linecap="round"/>
+    <path d="M150 150 q40 -32 106 -32 t106 32" fill="none" stroke="url(#ring)" stroke-width="46" stroke-linecap="round"/>
+    <path d="M272 168 L198 288 h50 l-20 84 116 -138 h-54 z" fill="#ffffff"/>
+  </g>
+  <text x="175" y="82" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-size="38" font-weight="bold" fill="#eaf1fb">Uconnect EV Center</text>
+  <text x="176" y="116" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-size="16" fill="#8fa3bd">Viaggi · Consumi · Costi · Ricariche — Home Assistant</text>
+</svg>

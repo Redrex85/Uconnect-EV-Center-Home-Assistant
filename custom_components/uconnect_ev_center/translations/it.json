@@ -1,0 +1,771 @@
+{
+  "title": "Uconnect EV Center",
+  "config": {
+    "step": {
+      "user": {
+        "title": "🧩 Profilo di installazione",
+        "description": "Scegli il profilo:\n- **Base** — solo auto\n- **Pro** — auto + wallbox\n- **Enterprise** — auto + wallbox + fotovoltaico\n\nIl profilo decide quali sezioni vedrai nella configurazione e quali pagine compariranno nella dashboard (es. Base non ha la pagina Wallbox).",
+        "data": {
+          "profile": "Profilo di installazione"
+        }
+      },
+      "wallbox": {
+        "title": "Uconnect EV Center — Wallbox",
+        "description": "Mappa i sensori della tua wallbox (Wallbox, go-e, Easee, OCPP…). Puoi lasciare vuoti i campi che non hai.",
+        "data": {
+          "geocode_enabled": "Via e paese nei viaggi (geocoding OpenStreetMap)",
+          "avg_speed_kmh": "Velocità media stimata nei viaggi (per l'orario di partenza)"
+        },
+        "sections": {
+          "wallbox": {
+            "name": "🔌 Wallbox",
+            "data": {
+              "wallbox_enabled": "Ho una wallbox in Home Assistant",
+              "wallbox_power_entity": "Potenza istantanea di carica (W o kW)",
+              "wallbox_state_entity": "Stato della wallbox (es. charging)",
+              "wallbox_session_energy_entity": "Contatore energia sessione (kWh)",
+              "wallbox_total_energy_entity": "Contatore energia totale (kWh) — usato se manca quello di sessione",
+              "wallbox_max_current_entity": "Numero corrente massima di carica (opzionale)",
+              "wallbox_session_time_entity": "Tempo sessione wallbox (s/min/h) — opzionale, altrimenti contatore interno",
+              "wb_charge_switch": "Avvio carica wallbox (switch o button) — usato da «Avvia carica» e dall'automazione",
+              "wb_stop_switch": "Stop carica wallbox (switch o button) — usato da «Ferma carica»",
+              "wallbox_temp_entity": "Sensore temperatura wallbox (opzionale)"
+            }
+          },
+          "gse": {
+            "name": "⚡ Sperimentazione GSE",
+            "data": {
+              "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_kw_ridotta": "Potenza fuori fascia (kW)",
+              "gse_start": "Inizio fascia consentita",
+              "gse_end": "Fine fascia consentita",
+              "gse_domenica": "Domenica: tutto il giorno a potenza piena",
+              "gse_holiday_entity": "Sensore festivi (binary_sensor, opzionale)",
+              "gse_wpa": "Watt per ampere della wallbox (230 monofase, 690 trifase)"
+            }
+          },
+          "home": {
+            "name": "🏠 Bilanciamento casa",
+            "data": {
+              "home_power_sensor": "Sensore consumo casa (W o kW)",
+              "home_meter_kw": "Contatore di casa: 3 · 4.5 · 6 · 10 (superiore) kW",
+              "home_max_amps": "Ampere wallbox a carico basso (ripristino)",
+              "home_reduce_amps": "Ampere wallbox a carico alto (riduzione)"
+            }
+          },
+          "solar": {
+            "name": "☀️ Fotovoltaico e bilanciamento",
+            "data": {
+              "has_pv": "Ho il fotovoltaico (profilo Enterprise)",
+              "balance_grid_sensor": "Sensore potenza scambiata/prelevata dalla rete (W)",
+              "balance_battery_sensor": "Sensore potenza batteria (W, opzionale)",
+              "balance_invert_grid": "Inverti il segno del sensore rete",
+              "balance_include_battery": "Includi la scarica batteria nel surplus",
+              "balance_watts_per_amp": "Watt per ampere (230V mono ≈ 690)",
+              "balance_battery_soc_sensor": "Sensore SoC batteria casa (%) — per la priorità",
+              "battery_priority_min": "SoC minimo batteria casa prima di dare surplus all'auto (%)"
+            }
+          }
+        }
+      },
+      "settings": {
+        "title": "🧩 Configurazione",
+        "description": "Scegli le entità e le impostazioni. Le sezioni sono **chiuse**: aprì quelle che ti servono. Il profilo scelto decide quali compaiono.",
+        "data": {
+          "charge_start_button": "Pulsante avvio carica (Uconnect)",
+          "model": "Modello dell'auto — 1ª scelta: imposta la foto",
+          "create_dashboard": "Crea automaticamente la dashboard nella barra laterale"
+        },
+        "sections": {
+          "car": {
+            "name": "🚗 L'auto",
+            "data": {
+              "name": "Nome dell'auto",
+              "odometer_entity": "Sensore odometro/chilometraggio",
+              "battery_level_entity": "Sensore livello batteria (%)",
+              "range_entity": "Sensore autonomia residua",
+              "charging_entity": "Sensore/binary sensor in carica",
+              "plug_entity": "Stato spina collegata (opzionale)",
+              "location_entity": "Tracker GPS posizione auto (opzionale)",
+              "install_odo": "Chilometri all'attivazione (km, 0 = rilevato al primo avvio)",
+              "powertrain": "Tipo (BEV / PHEV)"
+            }
+          },
+          "commands": {
+            "name": "🎛️ Comandi Uconnect",
+            "data": {
+              "charge_start_button": "Pulsante avvio carica (Uconnect)",
+              "ac_button_entity": "Pulsante Avvia A/C (Uconnect)",
+              "climate_entity": "Climatizzatore (climate) Uconnect",
+              "light_entity": "Luci esterne (light/switch/button)",
+              "horn_entity": "Clacson (button/switch)",
+              "charge_target_number": "Number target di carica (per lo stop)"
+            }
+          },
+          "uc_ricarica": {
+            "name": "🔌 Ricarica (Uconnect)",
+            "data": {
+              "charger_type_entity": "Tipo di colonnina",
+              "charging_rate_entity": "Velocità di ricarica (%/h)",
+              "extrapolated_battery_entity": "Batteria stimata (%)",
+              "charge_schedule_entity": "Sensore programmazioni di ricarica",
+              "battery_12v_entity": "Batteria 12V (V)",
+              "time_to_charge_l1_entity": "Tempo di ricarica L1",
+              "time_to_charge_l2_entity": "Tempo di ricarica L2",
+              "time_to_charge_l3_entity": "Tempo di ricarica L3"
+            }
+          },
+          "uc_stato": {
+            "name": "🚗 Stato veicolo",
+            "data": {
+              "ignition_entity": "Accensione",
+              "ev_running_entity": "EV in movimento",
+              "door_driver_entity": "Serratura guidatore",
+              "door_passenger_entity": "Serratura passeggero",
+              "door_rear_left_entity": "Serratura posteriore SX",
+              "door_rear_right_entity": "Serratura posteriore DX",
+              "trunk_entity": "Baule",
+              "window_driver_entity": "Finestrino guidatore",
+              "window_passenger_entity": "Finestrino passeggero",
+              "tire_pressure_fl_entity": "Pressione ant. SX",
+              "tire_pressure_fr_entity": "Pressione ant. DX",
+              "tire_pressure_rl_entity": "Pressione post. SX",
+              "tire_pressure_rr_entity": "Pressione post. DX",
+              "tire_warning_fl_entity": "Avviso pressione ant. SX",
+              "tire_warning_fr_entity": "Avviso pressione ant. DX",
+              "tire_warning_rl_entity": "Avviso pressione post. SX",
+              "tire_warning_rr_entity": "Avviso pressione post. DX",
+              "heated_seat_entity": "Sedile riscaldato",
+              "cabin_conditioning_entity": "Climatizzazione abitacolo",
+              "stolen_vehicle_entity": "Stato antifurto (SVLA)"
+            }
+          },
+          "uc_termico": {
+            "name": "⛽ Termico",
+            "data": {
+              "fuel_amount_entity": "Carburante",
+              "fuel_type_entity": "Tipo carburante",
+              "low_fuel_entity": "Carburante basso",
+              "range_gas_entity": "Autonomia termico",
+              "range_total_entity": "Autonomia totale",
+              "oil_level_entity": "Olio motore"
+            }
+          },
+          "uc_service": {
+            "name": "🛠️ Diagnostica & service",
+            "data": {
+              "distance_to_service_entity": "Km al tagliando",
+              "days_to_service_entity": "Giorni al tagliando",
+              "vhr_entity": "Health report (data)",
+              "maintenance_history_entity": "Storico interventi"
+            }
+          },
+          "uc_comandi": {
+            "name": "🎛️ Comandi rapidi (Uconnect)",
+            "data": {
+              "switch_charging_entity": "Switch Carica",
+              "switch_engine_entity": "Switch Motore",
+              "switch_precondition_entity": "Switch Precondizionamento",
+              "switch_hvac_entity": "Switch HVAC",
+              "switch_comfort_entity": "Switch Comfort",
+              "switch_trunk_entity": "Switch Baule",
+              "lock_doors_entity": "Lock Porte",
+              "button_charge_entity": "Pulsante avvia ricarica",
+              "button_deep_refresh_entity": "Pulsante Deep Refresh",
+              "button_refresh_location_entity": "Pulsante aggiorna posizione",
+              "button_lights_entity": "Pulsante Luci",
+              "button_lights_horn_entity": "Pulsante Luci + clacson",
+              "select_charging_level_entity": "Select livello di ricarica"
+            }
+          },
+          "uc_immagine": {
+            "name": "🖼️ Immagine veicolo",
+            "data": {
+              "image_entity": "Entità immagine del veicolo (Uconnect)"
+            }
+          },
+          "wallbox": {
+            "name": "🔌 Wallbox",
+            "data": {
+              "wallbox_enabled": "Ho una wallbox in Home Assistant",
+              "wallbox_power_entity": "Potenza istantanea di carica (W o kW)",
+              "wallbox_state_entity": "Stato della wallbox (es. charging)",
+              "wallbox_session_energy_entity": "Contatore energia sessione (kWh)",
+              "wallbox_total_energy_entity": "Contatore energia totale (kWh) — usato se manca quello di sessione",
+              "wallbox_max_current_entity": "Numero corrente massima di carica (opzionale)",
+              "wallbox_session_time_entity": "Tempo sessione wallbox (s/min/h) — opzionale, altrimenti contatore interno",
+              "wb_charge_switch": "Avvio carica wallbox (switch o button) — usato da «Avvia carica» e dall'automazione",
+              "wb_stop_switch": "Stop carica wallbox (switch o button) — usato da «Ferma carica»",
+              "wallbox_temp_entity": "Sensore temperatura wallbox (opzionale)"
+            }
+          },
+          "gse": {
+            "name": "⚡ Sperimentazione GSE",
+            "data": {
+              "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_kw_ridotta": "Potenza fuori fascia (kW)",
+              "gse_start": "Inizio fascia consentita",
+              "gse_end": "Fine fascia consentita",
+              "gse_domenica": "Domenica: tutto il giorno a potenza piena",
+              "gse_holiday_entity": "Sensore festivi (binary_sensor, opzionale)",
+              "gse_wpa": "Watt per ampere della wallbox (230 monofase, 690 trifase)"
+            }
+          },
+          "home": {
+            "name": "🏠 Bilanciamento casa",
+            "data": {
+              "home_power_sensor": "Sensore consumo casa (W o kW)",
+              "home_meter_kw": "Contatore di casa: 3 · 4.5 · 6 · 10 (superiore) kW",
+              "home_max_amps": "Ampere wallbox a carico basso (ripristino)",
+              "home_reduce_amps": "Ampere wallbox a carico alto (riduzione)"
+            }
+          },
+          "solar": {
+            "name": "☀️ Fotovoltaico e bilanciamento",
+            "data": {
+              "has_pv": "Ho il fotovoltaico (profilo Enterprise)",
+              "balance_grid_sensor": "Sensore potenza scambiata/prelevata dalla rete (W)",
+              "balance_battery_sensor": "Sensore potenza batteria (W, opzionale)",
+              "balance_invert_grid": "Inverti il segno del sensore rete",
+              "balance_include_battery": "Includi la scarica batteria nel surplus",
+              "balance_watts_per_amp": "Watt per ampere (230V mono ≈ 690)",
+              "balance_battery_soc_sensor": "Sensore SoC batteria casa (%) — per la priorità",
+              "battery_priority_min": "SoC minimo batteria casa prima di dare surplus all'auto (%)"
+            }
+          },
+          "battery": {
+            "name": "🔋 Batteria",
+            "data": {
+              "battery_capacity": "Capacità utile batteria",
+              "target_soc": "Obiettivo Ricarica (% per le stime di fine carica)",
+              "charging_efficiency": "Rendimento di carica AC→batteria"
+            }
+          },
+          "prices": {
+            "name": "💶 Prezzi energia",
+            "data": {
+              "price_home": "Prezzo energia a casa",
+              "price_public": "Prezzo colonnine pubbliche",
+              "price_solar": "Costo fotovoltaico (0 = gratis)",
+              "solar_zone": "Nome della zona fotovoltaico/BEB (vuoto = nessuna)",
+              "pre_kwh": "kWh caricati PRIMA di usare l'integrazione (per il calcolo dei risparmi)",
+              "pre_eur": "€ già spesi in ricariche prima dell'integrazione (ha priorità sui kWh)"
+            }
+          },
+          "fuel": {
+            "name": "⛽ Confronto carburante",
+            "data": {
+              "fuel_comparison": "Confronto risparmio con auto termica",
+              "fuel_label": "Nome carburante (Diesel, Benzina…)",
+              "fuel_consumption": "Consumo auto termica equivalente",
+              "fuel_price": "Prezzo carburante",
+              "diesel_price_entity": "Sensore prezzo diesel €/l (opzionale)"
+            }
+          },
+          "maint": {
+            "name": "🔧 Manutenzione e bollo",
+            "data": {
+              "maint_comparison": "Confronto costi manutenzione termico vs EV",
+              "service_cost_thermal": "Costo tagliando termico (€/anno)",
+              "service_cost_ev": "Costo tagliando EV (€)",
+              "service_interval_km": "Intervallo tagliando (km)",
+              "tyre_interval_km": "Intervallo cambio gomme (km)",
+              "purchase_date": "Data consegna/acquisto auto (per il tagliando annuale)",
+              "road_tax_thermal": "Bollo termico (€/anno)",
+              "road_tax_ev": "Bollo EV (€/anno)",
+              "assicurazione_costo": "Costo annuo assicurazione",
+              "assicurazione_data": "Scadenza assicurazione (YYYY-MM-DD)"
+            }
+          },
+          "notify": {
+            "name": "🔔 Notifiche",
+            "data": {
+              "notify_service": "Servizio notifiche (es. notify.michele)",
+              "notify_days": "Giorni di preavviso scadenze",
+              "notify_charge_start": "Notifica avvio ricarica",
+              "notify_charge_end": "Notifica fine ricarica",
+              "low_soc_enabled": "Promemoria batteria bassa (a casa)",
+              "low_soc_threshold": "% minima promemoria",
+              "low_soc_start": "Inizio fascia oraria",
+              "low_soc_end": "Fine fascia oraria",
+              "low_soc_days": "Giorni della settimana"
+            }
+          },
+          "advanced": {
+            "name": "⚙️ Avanzate",
+            "data": {
+              "poll_interval": "Intervallo di aggiornamento",
+              "trip_timeout": "Minuti di odometro fermo prima di chiudere un viaggio",
+              "temp_entity": "Sensore temperatura esterna (per CO2/meteo)",
+              "co2_comparison": "Calcola confronto CO2 termico vs EV",
+              "co2_thermal_gkm": "CO2 termico (g/km)",
+              "co2_grid_gkwh": "CO2 rete (g/kWh)",
+              "geocode_enabled": "Via e paese nei viaggi (geocoding OpenStreetMap)",
+              "avg_speed_kmh": "Velocità media stimata nei viaggi (per l'orario di partenza)",
+              "scadenze_enabled": "Abilita promemoria scadenze",
+              "scadenza_bollo": "Scadenza bollo (YYYY-MM-DD)",
+              "scadenza_revisione": "Scadenza revisione (YYYY-MM-DD)",
+              "scadenza_assicurazione": "Scadenza assicurazione (YYYY-MM-DD)",
+              "tagliando_mode": "Tagliando: scadenza per km o data",
+              "tagliando_data": "Data tagliando (se modalità data)"
+            }
+          }
+        }
+      },
+      "car": {
+        "title": "🚗 Uconnect EV Center — L'auto",
+        "description": "**Benvenuto!** Seleziona le entità della tua Uconnect elettrica (integrazione Uconnect ufficiale).\n\n- Dai all'auto un **nome breve** (es. `Uconnect`): sarà il prefisso di tutte le nuove entità.\n- Il **modello** sceglie la foto dell'auto.\n- Puoi far creare la **dashboard** nella barra laterale.",
+        "data": {
+          "model": "Modello dell'auto - 1ª scelta: imposta la foto",
+          "create_dashboard": "Crea automaticamente la dashboard nella barra laterale"
+        },
+        "sections": {
+          "car": {
+            "name": "🚗 L'auto",
+            "data": {
+              "name": "Nome dell'auto",
+              "odometer_entity": "Sensore odometro/chilometraggio",
+              "battery_level_entity": "Sensore livello batteria (%)",
+              "range_entity": "Sensore autonomia residua",
+              "charging_entity": "Sensore/binary sensor in carica",
+              "plug_entity": "Stato spina collegata (opzionale)",
+              "location_entity": "Tracker GPS posizione auto (opzionale)"
+            }
+          },
+          "commands": {
+            "name": "🎛️ Comandi Uconnect",
+            "data": {
+              "charge_start_button": "Pulsante Avvia carica (Uconnect)",
+              "ac_button_entity": "Pulsante Avvia A/C (Uconnect)",
+              "climate_entity": "Climatizzatore (climate) Uconnect",
+              "light_entity": "Luci esterne (light/switch/button)",
+              "horn_entity": "Clacson (button/switch)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Uconnect EV Center — Opzioni",
+        "description": "Modifica entità mappate e impostazioni.",
+        "data": {
+          "model": "Modello dell'auto — 1ª scelta: imposta la foto",
+          "create_dashboard": "Crea automaticamente la dashboard nella barra laterale"
+        },
+        "sections": {
+          "car": {
+            "name": "🚗 L'auto",
+            "data": {
+              "name": "Nome dell'auto",
+              "odometer_entity": "Sensore odometro/chilometraggio",
+              "battery_level_entity": "Sensore livello batteria (%)",
+              "range_entity": "Sensore autonomia residua",
+              "charging_entity": "Sensore/binary sensor in carica",
+              "plug_entity": "Stato spina collegata (opzionale)",
+              "location_entity": "Tracker GPS posizione auto (opzionale)",
+              "install_odo": "Chilometri all'attivazione (km, 0 = rilevato al primo avvio)",
+              "powertrain": "Tipo (BEV / PHEV)"
+            }
+          },
+          "commands": {
+            "name": "🎛️ Comandi Uconnect",
+            "data": {
+              "charge_start_button": "Pulsante avvio carica (Uconnect)",
+              "ac_button_entity": "Pulsante Avvia A/C (Uconnect)",
+              "climate_entity": "Climatizzatore (climate) Uconnect",
+              "light_entity": "Luci esterne (light/switch/button)",
+              "horn_entity": "Clacson (button/switch)",
+              "charge_target_number": "Number target di carica (per lo stop)"
+            }
+          },
+          "uc_ricarica": {
+            "name": "🔌 Ricarica (Uconnect)",
+            "data": {
+              "charger_type_entity": "Tipo di colonnina",
+              "charging_rate_entity": "Velocità di ricarica (%/h)",
+              "extrapolated_battery_entity": "Batteria stimata (%)",
+              "charge_schedule_entity": "Sensore programmazioni di ricarica",
+              "battery_12v_entity": "Batteria 12V (V)",
+              "time_to_charge_l1_entity": "Tempo di ricarica L1",
+              "time_to_charge_l2_entity": "Tempo di ricarica L2",
+              "time_to_charge_l3_entity": "Tempo di ricarica L3"
+            }
+          },
+          "uc_stato": {
+            "name": "🚗 Stato veicolo",
+            "data": {
+              "ignition_entity": "Accensione",
+              "ev_running_entity": "EV in movimento",
+              "door_driver_entity": "Serratura guidatore",
+              "door_passenger_entity": "Serratura passeggero",
+              "door_rear_left_entity": "Serratura posteriore SX",
+              "door_rear_right_entity": "Serratura posteriore DX",
+              "trunk_entity": "Baule",
+              "window_driver_entity": "Finestrino guidatore",
+              "window_passenger_entity": "Finestrino passeggero",
+              "tire_pressure_fl_entity": "Pressione ant. SX",
+              "tire_pressure_fr_entity": "Pressione ant. DX",
+              "tire_pressure_rl_entity": "Pressione post. SX",
+              "tire_pressure_rr_entity": "Pressione post. DX",
+              "tire_warning_fl_entity": "Avviso pressione ant. SX",
+              "tire_warning_fr_entity": "Avviso pressione ant. DX",
+              "tire_warning_rl_entity": "Avviso pressione post. SX",
+              "tire_warning_rr_entity": "Avviso pressione post. DX",
+              "heated_seat_entity": "Sedile riscaldato",
+              "cabin_conditioning_entity": "Climatizzazione abitacolo",
+              "stolen_vehicle_entity": "Stato antifurto (SVLA)"
+            }
+          },
+          "uc_termico": {
+            "name": "⛽ Termico",
+            "data": {
+              "fuel_amount_entity": "Carburante",
+              "fuel_type_entity": "Tipo carburante",
+              "low_fuel_entity": "Carburante basso",
+              "range_gas_entity": "Autonomia termico",
+              "range_total_entity": "Autonomia totale",
+              "oil_level_entity": "Olio motore"
+            }
+          },
+          "uc_service": {
+            "name": "🛠️ Diagnostica & service",
+            "data": {
+              "distance_to_service_entity": "Km al tagliando",
+              "days_to_service_entity": "Giorni al tagliando",
+              "vhr_entity": "Health report (data)",
+              "maintenance_history_entity": "Storico interventi"
+            }
+          },
+          "uc_comandi": {
+            "name": "🎛️ Comandi rapidi (Uconnect)",
+            "data": {
+              "switch_charging_entity": "Switch Carica",
+              "switch_engine_entity": "Switch Motore",
+              "switch_precondition_entity": "Switch Precondizionamento",
+              "switch_hvac_entity": "Switch HVAC",
+              "switch_comfort_entity": "Switch Comfort",
+              "switch_trunk_entity": "Switch Baule",
+              "lock_doors_entity": "Lock Porte",
+              "button_charge_entity": "Pulsante avvia ricarica",
+              "button_deep_refresh_entity": "Pulsante Deep Refresh",
+              "button_refresh_location_entity": "Pulsante aggiorna posizione",
+              "button_lights_entity": "Pulsante Luci",
+              "button_lights_horn_entity": "Pulsante Luci + clacson",
+              "select_charging_level_entity": "Select livello di ricarica"
+            }
+          },
+          "uc_immagine": {
+            "name": "🖼️ Immagine veicolo",
+            "data": {
+              "image_entity": "Entità immagine del veicolo (Uconnect)"
+            }
+          },
+          "wallbox": {
+            "name": "🔌 Wallbox",
+            "data": {
+              "wallbox_enabled": "Ho una wallbox in Home Assistant",
+              "wallbox_power_entity": "Potenza istantanea di carica (W o kW)",
+              "wallbox_state_entity": "Stato della wallbox (es. charging)",
+              "wallbox_session_energy_entity": "Contatore energia sessione (kWh)",
+              "wallbox_total_energy_entity": "Contatore energia totale (kWh) — usato se manca quello di sessione",
+              "wallbox_max_current_entity": "Numero corrente massima di carica (opzionale)",
+              "wallbox_session_time_entity": "Tempo sessione wallbox (s/min/h) — opzionale, altrimenti contatore interno",
+              "wb_charge_switch": "Avvio carica wallbox (switch o button) — usato da «Avvia carica» e dall'automazione",
+              "wb_stop_switch": "Stop carica wallbox (switch o button) — usato da «Ferma carica»",
+              "wallbox_temp_entity": "Sensore temperatura wallbox (opzionale)"
+            }
+          },
+          "gse": {
+            "name": "⚡ Sperimentazione GSE",
+            "data": {
+              "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_kw_ridotta": "Potenza fuori fascia (kW)",
+              "gse_start": "Inizio fascia consentita",
+              "gse_end": "Fine fascia consentita",
+              "gse_domenica": "Domenica: tutto il giorno a potenza piena",
+              "gse_holiday_entity": "Sensore festivi (binary_sensor, opzionale)",
+              "gse_wpa": "Watt per ampere della wallbox (230 monofase, 690 trifase)"
+            }
+          },
+          "home": {
+            "name": "🏠 Bilanciamento casa",
+            "data": {
+              "home_power_sensor": "Sensore consumo casa (W o kW)",
+              "home_meter_kw": "Contatore di casa: 3 · 4.5 · 6 · 10 (superiore) kW",
+              "home_max_amps": "Ampere wallbox a carico basso (ripristino)",
+              "home_reduce_amps": "Ampere wallbox a carico alto (riduzione)"
+            }
+          },
+          "solar": {
+            "name": "☀️ Fotovoltaico e bilanciamento",
+            "data": {
+              "has_pv": "Ho il fotovoltaico (profilo Enterprise)",
+              "balance_grid_sensor": "Sensore potenza scambiata/prelevata dalla rete (W)",
+              "balance_battery_sensor": "Sensore potenza batteria (W, opzionale)",
+              "balance_invert_grid": "Inverti il segno del sensore rete",
+              "balance_include_battery": "Includi la scarica batteria nel surplus",
+              "balance_watts_per_amp": "Watt per ampere (230V mono ≈ 690)",
+              "balance_battery_soc_sensor": "Sensore SoC batteria casa (%) — per la priorità",
+              "battery_priority_min": "SoC minimo batteria casa prima di dare surplus all'auto (%)"
+            }
+          },
+          "battery": {
+            "name": "🔋 Batteria",
+            "data": {
+              "battery_capacity": "Capacità utile batteria",
+              "target_soc": "Obiettivo Ricarica (% per le stime di fine carica)",
+              "charging_efficiency": "Rendimento di carica AC→batteria"
+            }
+          },
+          "prices": {
+            "name": "💶 Prezzi energia",
+            "data": {
+              "price_home": "Prezzo energia a casa",
+              "price_public": "Prezzo colonnine pubbliche",
+              "price_solar": "Costo fotovoltaico (0 = gratis)",
+              "solar_zone": "Nome della zona fotovoltaico/BEB (vuoto = nessuna)",
+              "pre_kwh": "kWh caricati PRIMA di usare l'integrazione (per il calcolo dei risparmi)",
+              "pre_eur": "€ già spesi in ricariche prima dell'integrazione (ha priorità sui kWh)"
+            }
+          },
+          "fuel": {
+            "name": "⛽ Confronto carburante",
+            "data": {
+              "fuel_comparison": "Confronto risparmio con auto termica",
+              "fuel_label": "Nome carburante (Diesel, Benzina…)",
+              "fuel_consumption": "Consumo auto termica equivalente",
+              "fuel_price": "Prezzo carburante",
+              "diesel_price_entity": "Sensore prezzo diesel €/l (opzionale)"
+            }
+          },
+          "maint": {
+            "name": "🔧 Manutenzione e bollo",
+            "data": {
+              "maint_comparison": "Confronto costi manutenzione termico vs EV",
+              "service_cost_thermal": "Costo tagliando termico (€/anno)",
+              "service_cost_ev": "Costo tagliando EV (€)",
+              "service_interval_km": "Intervallo tagliando (km)",
+              "tyre_interval_km": "Intervallo cambio gomme (km)",
+              "purchase_date": "Data consegna/acquisto auto (per il tagliando annuale)",
+              "road_tax_thermal": "Bollo termico (€/anno)",
+              "road_tax_ev": "Bollo EV (€/anno)",
+              "assicurazione_costo": "Costo annuo assicurazione",
+              "assicurazione_data": "Scadenza assicurazione (YYYY-MM-DD)"
+            }
+          },
+          "notify": {
+            "name": "🔔 Notifiche",
+            "data": {
+              "notify_service": "Servizio notifiche (es. notify.michele)",
+              "notify_days": "Giorni di preavviso scadenze",
+              "notify_charge_start": "Notifica avvio ricarica",
+              "notify_charge_end": "Notifica fine ricarica",
+              "low_soc_enabled": "Promemoria batteria bassa (a casa)",
+              "low_soc_threshold": "% minima promemoria",
+              "low_soc_start": "Inizio fascia oraria",
+              "low_soc_end": "Fine fascia oraria",
+              "low_soc_days": "Giorni della settimana"
+            }
+          },
+          "advanced": {
+            "name": "⚙️ Avanzate",
+            "data": {
+              "poll_interval": "Intervallo di aggiornamento",
+              "trip_timeout": "Minuti di odometro fermo prima di chiudere un viaggio",
+              "temp_entity": "Sensore temperatura esterna (per CO2/meteo)",
+              "co2_comparison": "Calcola confronto CO2 termico vs EV",
+              "co2_thermal_gkm": "CO2 termico (g/km)",
+              "co2_grid_gkwh": "CO2 rete (g/kWh)",
+              "geocode_enabled": "Via e paese nei viaggi (geocoding OpenStreetMap)",
+              "avg_speed_kmh": "Velocità media stimata nei viaggi (per l'orario di partenza)",
+              "scadenze_enabled": "Abilita promemoria scadenze",
+              "scadenza_bollo": "Scadenza bollo (YYYY-MM-DD)",
+              "scadenza_revisione": "Scadenza revisione (YYYY-MM-DD)",
+              "scadenza_assicurazione": "Scadenza assicurazione (YYYY-MM-DD)",
+              "tagliando_mode": "Tagliando: scadenza per km o data",
+              "tagliando_data": "Data tagliando (se modalità data)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "close_trip": {
+      "name": "Chiudi viaggio ora",
+      "description": "Forza la chiusura del viaggio in corso."
+    },
+    "reset_counters": {
+      "name": "Reset contatori",
+      "description": "Azzera i contatori scelti.",
+      "fields": {
+        "scope": {
+          "name": "Ambito",
+          "description": "km, energia, costi, viaggi, ricariche o all"
+        }
+      }
+    },
+    "export_trips_csv": {
+      "name": "Esporta viaggi CSV",
+      "description": "Scrive i CSV dei viaggi nella cartella config/uconnect_ev_center_export."
+    },
+    "add_manual_charge": {
+      "name": "Aggiungi ricarica manuale",
+      "description": "Registra a mano una ricarica (utile per colonnine DC non misurate dalla wallbox).",
+      "fields": {
+        "kwh": {
+          "name": "kWh caricati"
+        },
+        "costo": {
+          "name": "Costo €"
+        },
+        "tipo": {
+          "name": "Tipo"
+        },
+        "quando": {
+          "name": "Data/ora (ISO, opzionale)"
+        }
+      }
+    },
+    "delete_trip": {
+      "name": "Elimina viaggio",
+      "description": "Cancella un viaggio dallo storico.",
+      "fields": {
+        "trip_id": {
+          "name": "ID viaggio"
+        }
+      }
+    },
+    "add_maintenance": {
+      "name": "Aggiungi tagliando",
+      "description": "Registra un tagliando o una manutenzione.",
+      "fields": {
+        "data": {
+          "name": "Data"
+        },
+        "km": {
+          "name": "Km"
+        },
+        "costo": {
+          "name": "Costo €"
+        },
+        "tipo": {
+          "name": "Tipo"
+        },
+        "note": {
+          "name": "Note"
+        }
+      }
+    },
+    "delete_maintenance": {
+      "name": "Elimina tagliando",
+      "description": "Cancella una manutenzione dal registro.",
+      "fields": {
+        "maintenance_id": {
+          "name": "ID manutenzione"
+        }
+      }
+    },
+    "renew_insurance": {
+      "name": "Rinnova assicurazione",
+      "description": "Imposta la nuova scadenza assicurazione (6/12 mesi o data precisa).",
+      "fields": {
+        "mesi": {
+          "name": "Mesi"
+        },
+        "data": {
+          "name": "Data"
+        }
+      }
+    },
+    "set_scadenza": {
+      "name": "Imposta scadenza",
+      "description": "Imposta manualmente una scadenza (assicurazione, bollo, revisione, tagliando_data).",
+      "fields": {
+        "nome": {
+          "name": "Nome"
+        },
+        "data": {
+          "name": "Data"
+        }
+      }
+    },
+    "set_tagliando": {
+      "name": "Imposta tagliando",
+      "description": "Scegli se il prossimo tagliando scade per km o per data.",
+      "fields": {
+        "mode": {
+          "name": "Modalità"
+        },
+        "valore": {
+          "name": "Valore"
+        }
+      }
+    },
+    "create_dashboard": {
+      "name": "Crea dashboard",
+      "description": "(Ri)crea la dashboard laterale con tutte le viste."
+    },
+    "create_automations": {
+      "name": "Crea automazioni consigliate",
+      "description": "Crea in Home Assistant le 3 automazioni consigliate."
+    },
+    "set_maintenance": {
+      "name": "Imposta scadenza manutenzione",
+      "description": "Imposta la prossima scadenza (tagliando/gomme) per km e/o data.",
+      "fields": {
+        "tipo": {
+          "name": "Tipo"
+        },
+        "km": {
+          "name": "Km"
+        },
+        "data": {
+          "name": "Data"
+        }
+      }
+    },
+    "set_schedule": {
+      "name": "Imposta schedulazione",
+      "description": "Crea/aggiorna l'automazione di ricarica o clima programmato.",
+      "fields": {
+        "tipo": {
+          "name": "Tipo"
+        },
+        "attivo": {
+          "name": "Attivo"
+        },
+        "inizio": {
+          "name": "Orario"
+        },
+        "fine": {
+          "name": "Fine (ricarica)"
+        },
+        "soc": {
+          "name": "SoC obiettivo %"
+        },
+        "modo": {
+          "name": "Modo clima"
+        },
+        "temperatura": {
+          "name": "Temperatura °C"
+        },
+        "giorni": {
+          "name": "Giorni"
+        }
+      }
+    }
+  },
+  "selector": {
+    "profile": {
+      "options": {
+        "base": "Base — solo auto",
+        "pro": "Pro — auto + wallbox",
+        "enterprise": "Enterprise — auto + wallbox + fotovoltaico"
+      }
+    }
+  }
+}

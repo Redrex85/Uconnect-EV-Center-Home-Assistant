@@ -1,0 +1,381 @@
+"""Uconnect EV Center: statistiche viaggi/ricariche per Uconnect elettriche via entità esistenti."""
+from __future__ import annotations
+
+import json
+import logging
+import os
+import shutil
+from datetime import datetime as dt
+
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
+from homeassistant.util import dt as dt_util
+
+from .const import CONF_CREATE_DASHBOARD, DOMAIN, PLATFORMS, WEEKDAYS
+from .coordinator import UconnectMateCoordinator
+from .dashboard import (
+    async_remove_dashboard,
+    async_setup_dashboard,
+    entry_name,
+    register_card_resource,
+    setup_card_js,
+    setup_car_image,
+    slugify,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _read_manifest_version() -> str:
+    """Lettura bloccante del manifest: va eseguita in executor, MAI nell'event loop."""
+    try:
+        path = os.path.join(os.path.dirname(__file__), "manifest.json")
+        with open(path, encoding="utf-8") as fh:
+            return str(json.load(fh).get("version") or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+async def _integration_version(hass: HomeAssistant) -> str:
+    """Versione dell'integrazione, letta fuori dall'event loop."""
+    try:
+        return await hass.async_add_executor_job(_read_manifest_version)
+    except Exception:  # noqa: BLE001
+        return ""
+
+SERVICE_CLOSE_TRIP = "close_trip"
+SERVICE_RESET_COUNTERS = "reset_counters"
+SERVICE_EXPORT_CSV = "export_trips_csv"
+SERVICE_ADD_CHARGE = "add_manual_charge"
+SERVICE_DELETE_TRIP = "delete_trip"
+SERVICE_ADD_MAINTENANCE = "add_maintenance"
+SERVICE_DELETE_MAINTENANCE = "delete_maintenance"
+SERVICE_RENEW_INSURANCE = "renew_insurance"
+SERVICE_SET_SCADENZA = "set_scadenza"
+SERVICE_SET_TAGLIANDO = "set_tagliando"
+SERVICE_CREATE_DASHBOARD = "create_dashboard"
+SERVICE_CREATE_AUTOMATIONS = "create_automations"
+SERVICE_SET_LOW_SOC_DAYS = "set_low_soc_days"
+
+RESET_SCOPES = ["km", "energia", "costi", "viaggi", "ricariche", "all"]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Configura l'entry: crea il coordinator e le piattaforme."""
+    hass.data.setdefault(DOMAIN, {})
+    coordinator = UconnectMateCoordinator(hass, entry)
+    opts = {**entry.data, **entry.options}
+    try:
+        await coordinator.async_load_store()
+    except Exception as err:  # noqa: BLE001
+        raise ConfigEntryNotReady(f"Impossibile leggere lo storage: {err}") from err
+
+    # recupera l'orario della carica programmata dall'automazione: non si perde agli update
+    try:
+        await coordinator.async_sync_schedule_from_automation()
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Sync orario carica programmata fallita: %s", err)
+
+    # rimuove le automazioni legacy (es. 'batteria bassa fuori casa'): la notifica è nativa
+    await coordinator.async_cleanup_automations()
+
+    await coordinator.async_config_entry_first_refresh()
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # versione letta UNA volta, in executor: mai I/O nell'event loop
+    coordinator.version = await _integration_version(hass)
+
+    # reattività: refresh immediato al cambio delle entità sorgente
+    entry.async_on_unload(coordinator.start_source_listeners())
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # foto del modello + dashboard automatica nella barra laterale
+    if opts.get(CONF_CREATE_DASHBOARD, True):
+        try:
+            await async_setup_dashboard(hass, entry, entry_name(entry),
+                                        coordinator.version)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Dashboard automatica non creata: %s", err)
+    try:
+        await hass.async_add_executor_job(setup_car_image, hass, entry)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Immagine auto non copiata: %s", err)
+    try:
+        await hass.async_add_executor_job(setup_card_js, hass)
+        await register_card_resource(hass)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Card non copiata/registrata: %s", err)
+
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+
+    # ---------------------------------------------------------------- servizi
+    # Handlers (definiti una sola volta, usano _all_coordinators per multi-entry)
+    async def handle_close_trip(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            rec = coord.service_close_trip()
+            if rec:
+                _LOGGER.info("Viaggio chiuso manualmente: %s km", rec.get("km"))
+
+    async def handle_reset_counters(call: ServiceCall) -> None:
+        scope = call.data.get("scope", "all")
+        for coord in _all_coordinators(hass):
+            coord.service_reset_counters(scope)
+
+    async def handle_export_csv(call: ServiceCall) -> dict | None:
+        paths = []
+        for coord in _all_coordinators(hass):
+            paths.append(await coord.service_export_csv())
+        _LOGGER.info("Export CSV completato: %s", ", ".join(paths))
+        return {"paths": paths} if call.return_response else None
+
+    async def handle_add_charge(call: ServiceCall) -> None:
+        kwh = float(call.data["kwh"])
+        costo = float(call.data.get("costo", 0))
+        tipo = call.data.get("tipo", "Pubblica")
+        quando_raw = call.data.get("quando")
+        quando = dt_util.parse_datetime(quando_raw) if quando_raw else dt_util.now()
+        if isinstance(quando, dt) and quando.tzinfo is None:
+            quando = quando.replace(tzinfo=dt_util.UTC)
+        for coord in _all_coordinators(hass):
+            rec = coord.service_add_manual_charge(kwh, costo, tipo, quando,
+                                                 str(call.data.get("descrizione", "") or ""))
+            _LOGGER.info("Ricarica manuale aggiunta: %s kWh (%s)", rec["kwh"], rec["tipo"])
+
+    async def handle_delete_trip(call: ServiceCall) -> None:
+        trip_id = int(call.data["trip_id"])
+        for coord in _all_coordinators(hass):
+            coord.service_delete_trip(trip_id)
+
+    async def handle_refresh_car(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            await coord.service_refresh_car()
+
+    async def handle_set_auto_state(call: ServiceCall) -> None:
+        entity_id = str(call.data["entity_id"])
+        state = str(call.data.get("state", "on"))
+        for coord in _all_coordinators(hass):
+            await coord.service_set_auto_state(entity_id, state)
+
+    async def handle_add_maintenance(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            rec = coord.service_add_maintenance(
+                str(call.data.get("data", "") or ""),
+                call.data.get("km"),
+                float(call.data.get("costo", 0) or 0),
+                call.data.get("tipo", "Tagliando"),
+                call.data.get("note", ""),
+            )
+            # refresh SUBITO: il pannello deve mostrare la riga, non fra 2 minuti (eco poll)
+            await coord.async_request_refresh()
+            _LOGGER.info("Manutenzione registrata: %s (%s km)", rec["data"], rec["km"])
+
+    async def handle_set_maintenance(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            coord.service_set_maintenance(
+                str(call.data.get("tipo", "tagliando")),
+                call.data.get("km"),
+                str(call.data.get("data", "") or ""),
+            )
+            await coord.async_request_refresh()
+
+    async def handle_delete_maintenance(call: ServiceCall) -> None:
+        mid = int(call.data["maintenance_id"])
+        for coord in _all_coordinators(hass):
+            coord.service_delete_maintenance(mid)
+            await coord.async_request_refresh()
+
+    async def handle_renew_insurance(call: ServiceCall) -> None:
+        mesi = int(call.data.get("mesi", 12))
+        data = str(call.data.get("data", "") or "")
+        for coord in _all_coordinators(hass):
+            nuova = coord.service_renew_insurance(mesi, data)
+            await coord.async_request_refresh()
+            _LOGGER.info("Assicurazione rinnovata fino al %s", nuova)
+
+    async def handle_set_scadenza(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            coord.service_set_scadenza(call.data["nome"], call.data["data"])
+            await coord.async_request_refresh()
+
+    async def handle_set_tagliando(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            coord.service_set_tagliando(call.data["mode"], str(call.data["valore"]))
+            await coord.async_request_refresh()
+
+    async def handle_create_dashboard(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            await async_setup_dashboard(hass, coord.entry, entry_name(coord.entry),
+                                        getattr(coord, "version", ""))
+
+    async def handle_set_low_soc_days(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            giorni = coord.service_set_low_soc_days(list(call.data.get("giorni", []) or []))
+            _LOGGER.info("Avviso batteria bassa — giorni: %s", giorni)
+
+    async def handle_create_automations(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            created = await coord.service_create_automations()
+            _LOGGER.info("Automazioni Uconnect EV Center create: %s", created)
+
+    async def handle_set_schedule(call: ServiceCall) -> None:
+        for coord in _all_coordinators(hass):
+            made = await coord.service_set_schedule(
+                str(call.data.get("tipo", "ricarica")),
+                bool(call.data.get("attivo", True)),
+                str(call.data.get("inizio", "23:30")),
+                str(call.data.get("fine", "07:00")),
+                int(call.data.get("soc", 80) or 0),
+                str(call.data.get("modo", "cool")),
+                int(call.data.get("temperatura", 21) or 21),
+                list(call.data.get("giorni", []) or []),
+            )
+            _LOGGER.info("Schedulazione %s: %s", call.data.get("tipo"), made)
+
+    def _register(name, handler, schema=None, supports_response=None):
+        if hass.services.has_service(DOMAIN, name):
+            return
+        kwargs: dict = {}
+        if schema is not None:
+            kwargs["schema"] = schema
+        if supports_response is not None:
+            kwargs["supports_response"] = supports_response
+        hass.services.async_register(DOMAIN, name, handler, **kwargs)
+
+    _register(SERVICE_CLOSE_TRIP, handle_close_trip)
+    _register(SERVICE_RESET_COUNTERS, handle_reset_counters,
+              schema=vol.Schema({vol.Optional("scope", default="all"): vol.In(RESET_SCOPES)}))
+    _register(SERVICE_EXPORT_CSV, handle_export_csv,
+              supports_response=SupportsResponse.OPTIONAL)
+    _register(SERVICE_ADD_CHARGE, handle_add_charge,
+              schema=vol.Schema({
+                  vol.Required("kwh"): cv.positive_float,
+                  vol.Optional("costo", default=0.0): vol.Coerce(float),
+                  vol.Optional("tipo", default="Pubblica"): str,
+                  vol.Optional("descrizione", default=""): str,
+                  vol.Optional("quando"): str,
+              }))
+    _register(SERVICE_DELETE_TRIP, handle_delete_trip,
+              schema=vol.Schema({vol.Required("trip_id"): cv.positive_int}))
+    _register(SERVICE_ADD_MAINTENANCE, handle_add_maintenance,
+              schema=vol.Schema({
+                  vol.Optional("data", default=""): str,
+                  vol.Optional("km"): vol.Coerce(float),
+                  vol.Optional("costo", default=0.0): vol.Coerce(float),
+                  vol.Optional("tipo", default="Tagliando"): str,
+                  vol.Optional("note", default=""): str,
+              }))
+    _register("set_maintenance", handle_set_maintenance,
+              schema=vol.Schema({
+                  vol.Required("tipo"): vol.In(["tagliando", "gomme"]),
+                  vol.Optional("km"): vol.Coerce(float),
+                  vol.Optional("data", default=""): str,
+              }))
+    _register(SERVICE_DELETE_MAINTENANCE, handle_delete_maintenance,
+              schema=vol.Schema({vol.Required("maintenance_id"): cv.positive_int}))
+    _register(SERVICE_RENEW_INSURANCE, handle_renew_insurance,
+              schema=vol.Schema({
+                  vol.Optional("mesi", default=12): vol.All(vol.Coerce(int), vol.In([6, 12])),
+                  vol.Optional("data", default=""): str,
+              }))
+    _register(SERVICE_SET_SCADENZA, handle_set_scadenza,
+              schema=vol.Schema({
+                  vol.Required("nome"): vol.In(["assicurazione", "bollo", "revisione", "tagliando_data"]),
+                  vol.Required("data"): str,
+              }))
+    _register(SERVICE_SET_TAGLIANDO, handle_set_tagliando,
+              schema=vol.Schema({
+                  vol.Required("mode"): vol.In(["km", "data"]),
+                  vol.Required("valore"): str,
+              }))
+    _register(SERVICE_CREATE_DASHBOARD, handle_create_dashboard)
+    _register(SERVICE_CREATE_AUTOMATIONS, handle_create_automations)
+    _register("refresh_car", handle_refresh_car)
+    _register("set_auto_state", handle_set_auto_state, schema=vol.Schema({
+        vol.Required("entity_id"): str,
+        vol.Required("state"): vol.In(["on", "off"]),
+    }))
+    _register(SERVICE_SET_LOW_SOC_DAYS, handle_set_low_soc_days,
+              vol.Schema({vol.Optional("giorni"): vol.All(list, [vol.In(WEEKDAYS)])}))
+    _register("set_schedule", handle_set_schedule, schema=vol.Schema({
+        vol.Required("tipo"): vol.In(["ricarica", "clima", "promemoria"]),
+        vol.Optional("attivo", default=True): cv.boolean,
+        vol.Optional("inizio", default="23:30"): str,
+        vol.Optional("fine", default="07:00"): str,
+        vol.Optional("soc", default=80): vol.Coerce(int),
+        vol.Optional("modo", default="cool"): str,
+        vol.Optional("temperatura", default=21): vol.Coerce(int),
+        vol.Optional("giorni", default=[]): [str],
+    }))
+
+    return True
+
+
+def _all_coordinators(hass: HomeAssistant) -> list[UconnectMateCoordinator]:
+    return list(hass.data.get(DOMAIN, {}).values())
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # persisti PRIMA di buttare il coordinator: un reload (aggiornamento HACS)
+    # non passa per EVENT_HOMEASSISTANT_STOP, senza questo i contatori
+    # accumulati dall'ultimo persist() periodico venivano persi.
+    coord = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if coord is not None:
+        try:
+            coord.persist(force=True)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Persist all'unload fallito: %s", err)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        # nessun altro entry → rimuovi i servizi
+        if not hass.data[DOMAIN]:
+            for name in (
+                SERVICE_CLOSE_TRIP, SERVICE_RESET_COUNTERS, SERVICE_EXPORT_CSV,
+                SERVICE_ADD_CHARGE, SERVICE_DELETE_TRIP, SERVICE_ADD_MAINTENANCE,
+                SERVICE_DELETE_MAINTENANCE, SERVICE_RENEW_INSURANCE,
+                SERVICE_SET_SCADENZA, SERVICE_SET_TAGLIANDO, SERVICE_CREATE_DASHBOARD,
+                SERVICE_CREATE_AUTOMATIONS, SERVICE_SET_LOW_SOC_DAYS,
+            ):
+                hass.services.async_remove(DOMAIN, name)
+    return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Rimozione integrazione: pulizia di dashboard, file, storage e notifiche."""
+    name = entry_name(entry)
+
+    # 1) dashboard laterale creata dall'integrazione
+    await async_remove_dashboard(hass, name)
+
+    # 2) notifiche persistenti create dall'integrazione
+    for nid in (f"uconnect_ev_center_dashboard_{slugify(name)}",):
+        await hass.services.async_call(
+            "persistent_notification", "dismiss",
+            {"notification_id": nid}, blocking=False,
+        )
+
+    # 3) file copiati in /config/www/uconnect-ev-center/, YAML fallback e storage
+    def _cleanup_files() -> None:
+        www = hass.config.path("www", "uconnect-ev-center")
+        if os.path.isdir(www):
+            shutil.rmtree(www, ignore_errors=True)
+        storage_file = hass.config.path(".storage", f"uconnect_ev_center.{entry.entry_id}")
+        for leftover in (
+            hass.config.path(f"uconnect-ev-center_{slugify(name)}_dashboard.yaml"),
+            storage_file,
+        ):
+            try:
+                os.remove(leftover)
+            except OSError:
+                pass
+
+    await hass.async_add_executor_job(_cleanup_files)

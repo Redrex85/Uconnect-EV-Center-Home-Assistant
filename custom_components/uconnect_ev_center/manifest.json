@@ -1,0 +1,18 @@
+{
+  "domain": "uconnect_ev_center",
+  "name": "Uconnect EV Center",
+  "after_dependencies": [
+    "lovelace"
+  ],
+  "codeowners": [
+    "@Redrex85"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Redrex85/Uconnect-EV-Center-Home-Assistant",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/Redrex85/Uconnect-EV-Center-Home-Assistant/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.hass/
+*.egg-info/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- lavoro interno: NON pubblicare su GitHub ----
+agent.md
+preview/
+RELAZIONE_INTEGRAZIONE.md
+REVIEW.md
+Auto img/
+Lavoro interno/
+docs/HACS_DEFAULT_PR.md

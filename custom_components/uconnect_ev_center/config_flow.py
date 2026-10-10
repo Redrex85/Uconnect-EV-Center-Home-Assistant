@@ -1,0 +1,739 @@
+"""Config flow Uconnect EV Center: selezione guidata delle entità."""
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from typing import Any
+
+import voluptuous as vol
+
+from homeassistant import config_entries
+from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
+from homeassistant.util import slugify
+from homeassistant.helpers.selector import (
+    BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectOptionDict,
+    TextSelector,
+    TimeSelector,
+    DateSelector,
+)
+
+from .const import (
+    CONF_BATTERY_LEVEL,
+    CONF_BOLLO_EV,
+    CONF_BOLLO_TERMICO,
+    CONF_CAPACITY,
+    CONF_CHARGING_EFFICIENCY,
+    CONF_CHARGING_ENTITY,
+    CONF_CHARGE_SCHED_ENABLED,
+    CONF_CHARGE_SCHED_MODE,
+    CONF_CHARGE_START_TIME,
+    CONF_CHARGE_STOP_TIME,
+    CONF_CHARGE_START_SOC,
+    CONF_CHARGE_STOP_SOC,
+    CONF_CHARGE_START_BUTTON,
+    CONF_AC_BUTTON,
+    CONF_CLIMATE_ENTITY,
+    CONF_CHARGE_TARGET_NUMBER,
+    CONF_CREATE_DASHBOARD,
+    CONF_WB_CHARGE_SWITCH,
+    CONF_WB_STOP_SWITCH,
+    CONF_LIGHT_ENTITY,
+    CONF_HORN_ENTITY,
+    CONF_HAS_PV,
+    CONF_PROFILE,
+    PROFILES,
+    PROFILE_BASE,
+    PROFILE_PRO,
+    PROFILE_ENTERPRISE,
+    DEFAULT_PROFILE,
+    CONF_BALANCE_GRID_SENSOR,
+    CONF_BALANCE_BATTERY_SENSOR,
+    CONF_BALANCE_INVERT_GRID,
+    CONF_BALANCE_INCLUDE_BATTERY,
+    CONF_BALANCE_WPA,
+    CONF_BALANCE_BATTERY_SOC_SENSOR,
+    CONF_BATTERY_PRIORITY_MIN,
+    CONF_LOW_SOC_ENABLED,
+    CONF_LOW_SOC_THRESHOLD,
+    CONF_LOW_SOC_START,
+    CONF_LOW_SOC_END,
+    CONF_LOW_SOC_DAYS,
+    DEFAULT_LOW_SOC_DAYS,
+    WEEKDAYS as WEEKDAY_KEYS,
+    CONF_MODEL,
+    MODELS,
+    CONF_CO2_ENABLED,
+    CONF_GEOCODE_ENABLED,
+    CONF_AVG_KMH,
+    CONF_CO2_GRID_GKWH,
+    CONF_CO2_THERMAL_GKM,
+    CONF_DIESEL_PRICE_ENTITY,
+    CONF_FUEL_CONSUMPTION,
+    CONF_FUEL_ENABLED,
+    CONF_FUEL_LABEL,
+    CONF_FUEL_PRICE,
+    CONF_LOCATION_ENTITY,
+    CONF_MAINT_ENABLED,
+    CONF_ASSICURAZIONE_COSTO,
+    CONF_ASSICURAZIONE_DATA,
+    CONF_NOTIFY_CHARGE_END,
+    CONF_NOTIFY_CHARGE_START,
+    CONF_NOTIFY_DAYS,
+    CONF_NOTIFY_SERVICE,
+    CONF_TAGLIANDO_DATA,
+    CONF_TAGLIANDO_MODE,
+    CONF_NAME,
+    CONF_ODOMETER,
+    CONF_PLUG_ENTITY,
+    CONF_POLL_INTERVAL,
+    CONF_PRICE_HOME,
+    CONF_PRICE_PUBLIC,
+    CONF_PRICE_SOLAR,
+    CONF_PRE_KWH,
+    CONF_PRE_EUR,
+    CONF_INSTALL_ODO,
+    CONF_RANGE,
+    CONF_SCAD_ASSICURAZIONE,
+    CONF_SCAD_BOLLO,
+    CONF_SCAD_REVISIONE,
+    CONF_SCADENZE_ENABLED,
+    CONF_SOLAR_ZONE,
+    CONF_TAG_EV,
+    CONF_TAG_TERMICO,
+    CONF_TAGLIANDO_INTERVALLO,
+    CONF_TYRE_INTERVAL,
+    CONF_PURCHASE_DATE,
+    CONF_TARGET_SOC,
+    CONF_TEMP_ENTITY,
+    CONF_TRIP_TIMEOUT,
+    CONF_WALLBOX_ENABLED,
+    CONF_WB_MAX_CURRENT,
+    CONF_GSE_WPA,
+    CONF_GSE_KW_MAX,
+    CONF_GSE_KW_RIDOTTA,
+    CONF_GSE_START,
+    CONF_GSE_END,
+    CONF_GSE_DOMENICA,
+    CONF_GSE_HOLIDAY,
+    CONF_HOME_POWER_SENSOR,
+    CONF_HOME_METER_KW,
+    CONF_HOME_MAX_AMPS,
+    CONF_HOME_REDUCE_AMPS,
+    DEFAULT_HOME_METER_KW,
+    DEFAULT_HOME_MAX_AMPS,
+    DEFAULT_HOME_REDUCE_AMPS,
+    HOME_METER_OPTIONS,
+    DEFAULT_GSE_WPA,
+    DEFAULT_GSE_KW_MAX,
+    DEFAULT_GSE_KW_RIDOTTA,
+    DEFAULT_GSE_START,
+    DEFAULT_GSE_END,
+    CONF_WB_POWER,
+    CONF_WB_SESSION_ENERGY,
+    CONF_WB_SESSION_TIME,
+    CONF_WB_STATE,
+    CONF_WB_TOTAL_ENERGY,
+    DEFAULT_BOLLO_EV,
+    DEFAULT_BOLLO_TERMICO,
+    DEFAULT_CAPACITY,
+    MODEL_CAPACITY,
+    DEFAULT_CO2_GRID_GKWH,
+    DEFAULT_CO2_THERMAL_GKM,
+    DEFAULT_EFFICIENCY,
+    DEFAULT_FUEL_CONSUMPTION,
+    DEFAULT_FUEL_LABEL,
+    DEFAULT_FUEL_PRICE,
+    DEFAULT_NAME,
+    DEFAULT_LOW_SOC_THRESHOLD,
+    DEFAULT_MAX_AMPS,
+    DEFAULT_MIN_AMPS,
+    DEFAULT_BATTERY_PRIORITY,
+    DEFAULT_WPA,
+    DEFAULT_LOW_SOC_START,
+    DEFAULT_LOW_SOC_END,
+    DEFAULT_NOTIFY_DAYS,
+    DEFAULT_POLL_INTERVAL,
+    DEFAULT_PRICE_HOME,
+    DEFAULT_PRICE_PUBLIC,
+    DEFAULT_PRICE_SOLAR,
+    DEFAULT_SOLAR_ZONE,
+    DEFAULT_TAG_EV,
+    DEFAULT_TAG_TERMICO,
+    DEFAULT_TAGLIANDO_INTERVALLO,
+    DEFAULT_TYRE_INTERVAL,
+    DEFAULT_ASSICURAZIONE_COSTO,
+    DEFAULT_TARGET_SOC,
+    DEFAULT_TRIP_TIMEOUT,
+    DOMAIN,
+)
+
+# Mappatura entità Uconnect (sezione "Veicolo"): entità aggiuntive esposte
+# dall'integrazione Uconnect, con nome sempre configurabile.
+from .const import (  # noqa: E402
+    CONF_CHARGER_TYPE, CONF_TIME_TO_CHARGE_L1, CONF_TIME_TO_CHARGE_L2,
+    CONF_TIME_TO_CHARGE_L3, CONF_CHARGING_RATE, CONF_EXTRAPOLATED_BATTERY,
+    CONF_CHARGE_SCHEDULE, CONF_12V_BATTERY, CONF_IGNITION, CONF_EV_RUNNING,
+    CONF_DOOR_DRIVER, CONF_DOOR_PASSENGER, CONF_DOOR_REAR_LEFT, CONF_DOOR_REAR_RIGHT,
+    CONF_TRUNK, CONF_WINDOW_DRIVER, CONF_WINDOW_PASSENGER, CONF_TIRE_FL, CONF_TIRE_FR,
+    CONF_TIRE_RL, CONF_TIRE_RR, CONF_TIRE_FL_WARN, CONF_TIRE_FR_WARN, CONF_TIRE_RL_WARN,
+    CONF_TIRE_RR_WARN, CONF_HEATED_SEAT, CONF_CABIN_COND, CONF_SVLA, CONF_FUEL_AMOUNT,
+    CONF_FUEL_TYPE, CONF_LOW_FUEL, CONF_RANGE_GAS, CONF_RANGE_TOTAL, CONF_OIL_LEVEL,
+    CONF_DISTANCE_TO_SERVICE, CONF_DAYS_TO_SERVICE, CONF_VHR, CONF_MAINTENANCE_HISTORY,
+    CONF_SWITCH_CHARGING, CONF_SWITCH_ENGINE, CONF_SWITCH_PRECONDITION, CONF_SWITCH_HVAC,
+    CONF_SWITCH_COMFORT, CONF_SWITCH_TRUNK, CONF_LOCK_DOORS, CONF_BUTTON_CHARGE,
+    CONF_BUTTON_DEEP_REFRESH, CONF_BUTTON_REFRESH_LOCATION, CONF_BUTTON_LIGHTS,
+    CONF_BUTTON_LIGHTS_HORN, CONF_SELECT_CHARGING_LEVEL, CONF_IMAGE,
+    CONF_POWERTRAIN, MODEL_POWERTRAIN, DEFAULT_POWERTRAIN,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+PERCENT_SENSOR = EntitySelectorConfig(domain="sensor", device_class="battery")
+ENERGY_SENSOR = EntitySelectorConfig(domain="sensor", device_class=["energy", "energy_storage"])
+
+WEEKDAY_LABELS = {
+    "mon": "Lunedì", "tue": "Martedì", "wed": "Mercoledì", "thu": "Giovedì",
+    "fri": "Venerdì", "sat": "Sabato", "sun": "Domenica",
+}
+WEEKDAY_OPTIONS = [SelectOptionDict(value=k, label=v) for k, v in WEEKDAY_LABELS.items()]
+
+
+def _flat(data: dict[str, Any]) -> dict[str, Any]:
+    """Appiattisce i campi dentro le sezioni (config flow con section())."""
+    out: dict[str, Any] = {}
+    for k, v in data.items():
+        if isinstance(v, dict):
+            out.update(v)
+        else:
+            out[k] = v
+    return out
+
+
+def _meter_opt(v: Any) -> str:
+    """Contatore come opzione valida ('3' · '4.5' · '6' · '10'): niente '.0' finale."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return "6"
+    return str(int(f)) if f == int(f) else str(f)
+
+
+def _norm_date(v: Any) -> str:
+    """Riporta al formato ISO YYYY-MM-DD, l'unico che il DateSelector di HA accetta.
+
+    Un valore vuoto o non interpretabile diventa "": il campo resta vuoto invece
+    di far saltare la validazione con «Could not parse date at 'sezione.campo'».
+    """
+    s = str(v or "").strip()
+    if not s:
+        return ""
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y%m%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    _LOGGER.warning("Data non valida nel modulo Configura (%r): campo azzerato", v)
+    return ""
+
+
+def _sugg_date(v: Any) -> dict:
+    """suggested_value per DateSelector: SOLO una data ISO valida (altrimento errore di parsing)."""
+    s = _norm_date(v)
+    return {"description": {"suggested_value": s}} if s else {}
+
+
+def _car_schema(defaults: dict[str, Any]) -> vol.Schema:    return vol.Schema({
+        vol.Required("car"): section(vol.Schema({
+            # PRIMO campo: il modello decide la foto dell'auto (e la dashboard)
+            vol.Required(CONF_MODEL, default=defaults.get(CONF_MODEL, MODELS[0])): SelectSelector(
+                SelectSelectorConfig(options=MODELS)),
+            vol.Optional(CONF_POWERTRAIN, default=defaults.get(
+                CONF_POWERTRAIN,
+                MODEL_POWERTRAIN.get(str(defaults.get(CONF_MODEL) or ""), DEFAULT_POWERTRAIN),
+            )): SelectSelector(SelectSelectorConfig(options=["BEV", "PHEV"])),
+            vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): str,
+            vol.Required(
+                CONF_ODOMETER, description={"suggested_value": defaults.get(CONF_ODOMETER)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor", device_class="distance")),
+            vol.Required(
+                CONF_BATTERY_LEVEL, description={"suggested_value": defaults.get(CONF_BATTERY_LEVEL)}
+            ): EntitySelector(PERCENT_SENSOR),
+            vol.Required(
+                CONF_RANGE, description={"suggested_value": defaults.get(CONF_RANGE)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor", device_class="distance")),
+            vol.Required(
+                CONF_CHARGING_ENTITY, description={"suggested_value": defaults.get(CONF_CHARGING_ENTITY)}
+            ): EntitySelector(EntitySelectorConfig(domain=["binary_sensor", "sensor"])),
+            vol.Optional(
+                CONF_PLUG_ENTITY, description={"suggested_value": defaults.get(CONF_PLUG_ENTITY)}
+            ): EntitySelector(EntitySelectorConfig(domain=["binary_sensor", "sensor"])),
+            vol.Optional(
+                CONF_LOCATION_ENTITY, description={"suggested_value": defaults.get(CONF_LOCATION_ENTITY)}
+            ): EntitySelector(EntitySelectorConfig(domain=["device_tracker", "sensor"])),
+            # baseline del confronto "da installazione": 0 = catturata al primo avvio
+            vol.Optional(CONF_INSTALL_ODO, default=defaults.get(CONF_INSTALL_ODO, 0.0)): NumberSelector(
+                NumberSelectorConfig(min=0, max=1000000, step=1, unit_of_measurement="km",
+                                     mode=NumberSelectorMode.BOX)),
+        }), {"collapsed": True}),
+        vol.Required("commands"): section(vol.Schema({
+            vol.Optional(
+                CONF_CHARGE_START_BUTTON, description={"suggested_value": defaults.get(CONF_CHARGE_START_BUTTON)}
+            ): EntitySelector(EntitySelectorConfig(domain=["button", "switch"])),
+            vol.Optional(
+                CONF_AC_BUTTON, description={"suggested_value": defaults.get(CONF_AC_BUTTON)}
+            ): EntitySelector(EntitySelectorConfig(domain=["button", "switch"])),
+            vol.Optional(
+                CONF_CLIMATE_ENTITY, description={"suggested_value": defaults.get(CONF_CLIMATE_ENTITY)}
+            ): EntitySelector(EntitySelectorConfig(domain="climate")),
+            vol.Optional(
+                CONF_LIGHT_ENTITY, description={"suggested_value": defaults.get(CONF_LIGHT_ENTITY)}
+            ): EntitySelector(EntitySelectorConfig(domain=["light", "switch", "button"])),
+            vol.Optional(
+                CONF_HORN_ENTITY, description={"suggested_value": defaults.get(CONF_HORN_ENTITY)}
+            ): EntitySelector(EntitySelectorConfig(domain=["button", "switch"])),
+            # Target di carica Uconnect: usato dall'automazione «Programma ricarica» (vista Automazioni)
+            vol.Optional(
+                CONF_CHARGE_TARGET_NUMBER,
+                description={"suggested_value": defaults.get(CONF_CHARGE_TARGET_NUMBER)},
+            ): EntitySelector(EntitySelectorConfig(domain="number")),
+        }), {"collapsed": True}),
+    })
+
+
+def _wallbox_schema(defaults: dict[str, Any], profile: str = DEFAULT_PROFILE) -> vol.Schema:
+    """Sezioni wallbox + GSE + (solo enterprise) fotovoltaico."""
+    schema: dict[Any, Any] = {}
+    # Wallbox (+ Bilanciamento casa + GSE): solo con una wallbox (pro/enterprise).
+    # In Base NON compare la sezione Wallbox.
+    if profile != PROFILE_BASE:
+        schema[vol.Required("wallbox")] = section(vol.Schema({
+            vol.Required(CONF_WALLBOX_ENABLED, default=defaults.get(CONF_WALLBOX_ENABLED, True)): BooleanSelector(),
+            # OBBLIGATORI in Pro/Enterprise: senza potenza e stato la pagina Wallbox
+            # e' vuota e il bilanciamento non ha nulla da leggere.
+            # Avvio/stop OBBLIGATORI pure loro (Pro/Enterprise): senza comandi la
+            # pagina Wallbox non puo' avviare ne' fermare la ricarica.
+            vol.Required(
+                CONF_WB_POWER, description={"suggested_value": defaults.get(CONF_WB_POWER)}
+            ): EntitySelector(EntitySelectorConfig(domain=["sensor", "number"])),
+            vol.Required(
+                CONF_WB_STATE, description={"suggested_value": defaults.get(CONF_WB_STATE)}
+            ): EntitySelector(EntitySelectorConfig(domain=["sensor", "binary_sensor"])),
+            vol.Optional(
+                CONF_WB_SESSION_ENERGY, description={"suggested_value": defaults.get(CONF_WB_SESSION_ENERGY)}
+            ): EntitySelector(ENERGY_SENSOR),
+            vol.Optional(
+                CONF_WB_TOTAL_ENERGY, description={"suggested_value": defaults.get(CONF_WB_TOTAL_ENERGY)}
+            ): EntitySelector(ENERGY_SENSOR),
+            vol.Optional(
+                CONF_WB_MAX_CURRENT, description={"suggested_value": defaults.get(CONF_WB_MAX_CURRENT)}
+            ): EntitySelector(EntitySelectorConfig(domain=["number"])),
+            vol.Optional(
+                CONF_WB_SESSION_TIME, description={"suggested_value": defaults.get(CONF_WB_SESSION_TIME)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Required(
+                CONF_WB_CHARGE_SWITCH, description={"suggested_value": defaults.get(CONF_WB_CHARGE_SWITCH)}
+            ): EntitySelector(EntitySelectorConfig(domain=["switch", "button"])),
+            vol.Required(
+                CONF_WB_STOP_SWITCH, description={"suggested_value": defaults.get(CONF_WB_STOP_SWITCH)}
+            ): EntitySelector(EntitySelectorConfig(domain=["switch", "button"])),
+            # temperatura wallbox: senza questa entita' mappata la pagina Wallbox
+            # mostrava 0,0 C (il fallback cercava solo *wallbox*temperature*)
+            vol.Optional(
+                "wallbox_temp_entity", description={"suggested_value": defaults.get("wallbox_temp_entity", "")}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+        }), {"collapsed": True})
+        schema[vol.Required("home")] = section(vol.Schema({
+            vol.Optional(
+                CONF_HOME_POWER_SENSOR, description={"suggested_value": defaults.get(CONF_HOME_POWER_SENSOR)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Optional(CONF_HOME_METER_KW, default=_meter_opt(defaults.get(CONF_HOME_METER_KW, DEFAULT_HOME_METER_KW))): SelectSelector(
+                SelectSelectorConfig(options=HOME_METER_OPTIONS)),
+            vol.Optional(CONF_HOME_MAX_AMPS, default=defaults.get(CONF_HOME_MAX_AMPS, DEFAULT_HOME_MAX_AMPS)): NumberSelector(
+                NumberSelectorConfig(min=6, max=32, step=1, unit_of_measurement="A", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_HOME_REDUCE_AMPS, default=defaults.get(CONF_HOME_REDUCE_AMPS, DEFAULT_HOME_REDUCE_AMPS)): NumberSelector(
+                NumberSelectorConfig(min=6, max=32, step=1, unit_of_measurement="A", mode=NumberSelectorMode.BOX)),
+        }), {"collapsed": True})
+        schema[vol.Required("gse")] = section(vol.Schema({
+            vol.Optional(CONF_GSE_KW_MAX, default=defaults.get(CONF_GSE_KW_MAX, DEFAULT_GSE_KW_MAX)): NumberSelector(
+                NumberSelectorConfig(min=1, max=50, step=0.1, unit_of_measurement="kW",
+                                     mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_GSE_KW_RIDOTTA, default=defaults.get(CONF_GSE_KW_RIDOTTA, DEFAULT_GSE_KW_RIDOTTA)): NumberSelector(
+                NumberSelectorConfig(min=1, max=50, step=0.1, unit_of_measurement="kW",
+                                     mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_GSE_START, default=defaults.get(CONF_GSE_START, DEFAULT_GSE_START)): TimeSelector(),
+            vol.Optional(CONF_GSE_END, default=defaults.get(CONF_GSE_END, DEFAULT_GSE_END)): TimeSelector(),
+            vol.Optional(CONF_GSE_DOMENICA, default=defaults.get(CONF_GSE_DOMENICA, True)): BooleanSelector(),
+            vol.Optional(CONF_GSE_HOLIDAY, description={"suggested_value": defaults.get(CONF_GSE_HOLIDAY)}): EntitySelector(
+                EntitySelectorConfig(domain=["binary_sensor", "input_boolean"])),
+            vol.Optional(CONF_GSE_WPA, default=defaults.get(CONF_GSE_WPA, DEFAULT_GSE_WPA)): NumberSelector(
+                NumberSelectorConfig(min=100, max=800, step=10, unit_of_measurement="W/A",
+                                     mode=NumberSelectorMode.BOX)),
+        }), {"collapsed": True})
+    # fotovoltaico: SOLO enterprise
+    if profile == PROFILE_ENTERPRISE:
+        schema[vol.Required("solar")] = section(vol.Schema({
+            vol.Required(CONF_HAS_PV, default=defaults.get(CONF_HAS_PV, False)): BooleanSelector(),
+            vol.Optional(
+                CONF_BALANCE_GRID_SENSOR, description={"suggested_value": defaults.get(CONF_BALANCE_GRID_SENSOR)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Optional(
+                CONF_BALANCE_BATTERY_SENSOR, description={"suggested_value": defaults.get(CONF_BALANCE_BATTERY_SENSOR)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Optional(CONF_BALANCE_INVERT_GRID, default=defaults.get(CONF_BALANCE_INVERT_GRID, False)): BooleanSelector(),
+            vol.Optional(CONF_BALANCE_INCLUDE_BATTERY, default=defaults.get(CONF_BALANCE_INCLUDE_BATTERY, False)): BooleanSelector(),
+            vol.Optional(CONF_BALANCE_WPA, default=defaults.get(CONF_BALANCE_WPA, DEFAULT_WPA)): NumberSelector(
+                NumberSelectorConfig(min=100, max=1500, step=10, unit_of_measurement="W/A", mode=NumberSelectorMode.BOX)),
+            vol.Optional(
+                CONF_BALANCE_BATTERY_SOC_SENSOR, description={"suggested_value": defaults.get(CONF_BALANCE_BATTERY_SOC_SENSOR)}
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Optional(CONF_BATTERY_PRIORITY_MIN, default=defaults.get(CONF_BATTERY_PRIORITY_MIN, DEFAULT_BATTERY_PRIORITY)): NumberSelector(
+                NumberSelectorConfig(min=0, max=100, step=5, unit_of_measurement="%")),
+        }), {"collapsed": True})
+    return vol.Schema(schema)
+
+
+def _uconnect_schema(defaults: dict[str, Any]) -> vol.Schema:
+    """Entità aggiuntive Uconnect (sezione «Veicolo» + ricarica/manutenzione).
+
+    Tutte opzionali: l'integrazione Uconnect espone queste entità solo per i
+    modelli che le supportano, e i loro entity_id sono liberamente rinominabili
+    dall'utente → vanno sempre mappate esplicitamente.
+    """
+    def opt(key: str, config: EntitySelectorConfig):
+        return (vol.Optional(key, description={"suggested_value": defaults.get(key)}),
+                EntitySelector(config))
+
+    sensor = EntitySelectorConfig(domain="sensor")
+    binary = EntitySelectorConfig(domain="binary_sensor")
+    dist = EntitySelectorConfig(domain="sensor", device_class="distance")
+    press = EntitySelectorConfig(domain="sensor", device_class="pressure")
+    return vol.Schema({
+        vol.Required("uc_ricarica"): section(vol.Schema(dict([
+            opt(CONF_CHARGER_TYPE, sensor),
+            opt(CONF_CHARGING_RATE, sensor),
+            opt(CONF_EXTRAPOLATED_BATTERY, EntitySelectorConfig(domain="sensor", device_class="battery")),
+            opt(CONF_CHARGE_SCHEDULE, sensor),
+            opt(CONF_12V_BATTERY, EntitySelectorConfig(domain="sensor", device_class="voltage")),
+            opt(CONF_TIME_TO_CHARGE_L1, EntitySelectorConfig(domain="sensor", device_class="duration")),
+            opt(CONF_TIME_TO_CHARGE_L2, EntitySelectorConfig(domain="sensor", device_class="duration")),
+            opt(CONF_TIME_TO_CHARGE_L3, EntitySelectorConfig(domain="sensor", device_class="duration")),
+        ])), {"collapsed": True}),
+        vol.Required("uc_stato"): section(vol.Schema(dict([
+            opt(CONF_IGNITION, binary),
+            opt(CONF_EV_RUNNING, binary),
+            opt(CONF_DOOR_DRIVER, binary),
+            opt(CONF_DOOR_PASSENGER, binary),
+            opt(CONF_DOOR_REAR_LEFT, binary),
+            opt(CONF_DOOR_REAR_RIGHT, binary),
+            opt(CONF_TRUNK, binary),
+            opt(CONF_WINDOW_DRIVER, binary),
+            opt(CONF_WINDOW_PASSENGER, binary),
+            opt(CONF_TIRE_FL, press),
+            opt(CONF_TIRE_FR, press),
+            opt(CONF_TIRE_RL, press),
+            opt(CONF_TIRE_RR, press),
+            opt(CONF_TIRE_FL_WARN, binary),
+            opt(CONF_TIRE_FR_WARN, binary),
+            opt(CONF_TIRE_RL_WARN, binary),
+            opt(CONF_TIRE_RR_WARN, binary),
+            opt(CONF_HEATED_SEAT, binary),
+            opt(CONF_CABIN_COND, binary),
+            opt(CONF_SVLA, binary),
+        ])), {"collapsed": True}),
+        vol.Required("uc_termico"): section(vol.Schema(dict([
+            opt(CONF_FUEL_AMOUNT, EntitySelectorConfig(domain="sensor", device_class="volume_storage")),
+            opt(CONF_FUEL_TYPE, sensor),
+            opt(CONF_LOW_FUEL, binary),
+            opt(CONF_RANGE_GAS, dist),
+            opt(CONF_RANGE_TOTAL, dist),
+            opt(CONF_OIL_LEVEL, sensor),
+        ])), {"collapsed": True}),
+        vol.Required("uc_service"): section(vol.Schema(dict([
+            opt(CONF_DISTANCE_TO_SERVICE, dist),
+            opt(CONF_DAYS_TO_SERVICE, sensor),
+            opt(CONF_VHR, sensor),
+            opt(CONF_MAINTENANCE_HISTORY, sensor),
+        ])), {"collapsed": True}),
+        vol.Required("uc_comandi"): section(vol.Schema(dict([
+            opt(CONF_SWITCH_CHARGING, EntitySelectorConfig(domain="switch")),
+            opt(CONF_SWITCH_ENGINE, EntitySelectorConfig(domain="switch")),
+            opt(CONF_SWITCH_PRECONDITION, EntitySelectorConfig(domain="switch")),
+            opt(CONF_SWITCH_HVAC, EntitySelectorConfig(domain="switch")),
+            opt(CONF_SWITCH_COMFORT, EntitySelectorConfig(domain="switch")),
+            opt(CONF_SWITCH_TRUNK, EntitySelectorConfig(domain="switch")),
+            opt(CONF_LOCK_DOORS, EntitySelectorConfig(domain="lock")),
+            opt(CONF_BUTTON_CHARGE, EntitySelectorConfig(domain="button")),
+            opt(CONF_BUTTON_DEEP_REFRESH, EntitySelectorConfig(domain="button")),
+            opt(CONF_BUTTON_REFRESH_LOCATION, EntitySelectorConfig(domain="button")),
+            opt(CONF_BUTTON_LIGHTS, EntitySelectorConfig(domain="button")),
+            opt(CONF_BUTTON_LIGHTS_HORN, EntitySelectorConfig(domain="button")),
+            opt(CONF_SELECT_CHARGING_LEVEL, EntitySelectorConfig(domain="select")),
+        ])), {"collapsed": True}),
+        vol.Required("uc_immagine"): section(vol.Schema(dict([
+            opt(CONF_IMAGE, EntitySelectorConfig(domain="image")),
+        ])), {"collapsed": True}),
+    })
+
+
+def _slug_name(v: Any) -> str:
+    """Prefisso come lo genererebbe HA per gli entity_id.
+
+    Il unique_id vecchio usava `.lower()` grezzo: "Uconnect " e "Uconnect" avevano
+    unique_id diversi ma slug identico → due entry, entità col suffisso `_2`.
+    """
+    return slugify(str(v or ""))
+
+
+def _entry_name(e: "config_entries.ConfigEntry") -> str:
+    """Stessa risoluzione del nome usata dalle piattaforme (vedi dashboard.entry_name)."""
+    return str(e.data.get("name") or e.title or "Uconnect")
+
+
+def _capacity_for_model(user_input: dict[str, Any]) -> None:
+    """Se la capacità è ancora il default 60 e il modello ha una nota, usala."""
+    real = MODEL_CAPACITY.get(str(user_input.get(CONF_MODEL) or ""))
+    if not real or float(real) == float(DEFAULT_CAPACITY):
+        return
+    cap = user_input.get(CONF_CAPACITY)
+    if cap is None or float(cap) == float(DEFAULT_CAPACITY):
+        user_input[CONF_CAPACITY] = real
+
+
+def _powertrain_for_model(user_input: dict[str, Any]) -> None:
+    """Tipo trazione: se mancante, derivato dal modello (BEV di default)."""
+    if not user_input.get(CONF_POWERTRAIN):
+        user_input[CONF_POWERTRAIN] = MODEL_POWERTRAIN.get(
+            str(user_input.get(CONF_MODEL) or ""), DEFAULT_POWERTRAIN)
+
+
+def _settings_schema(defaults: dict[str, Any]) -> vol.Schema:
+    return vol.Schema({
+        vol.Required("battery"): section(vol.Schema({
+            vol.Required(CONF_CAPACITY, default=defaults.get(
+                CONF_CAPACITY,
+                MODEL_CAPACITY.get(str(defaults.get(CONF_MODEL) or ""), DEFAULT_CAPACITY),
+            )): NumberSelector(
+                NumberSelectorConfig(min=20, max=150, step=0.5, unit_of_measurement="kWh", mode=NumberSelectorMode.BOX)),
+            vol.Required(CONF_TARGET_SOC, default=defaults.get(CONF_TARGET_SOC, DEFAULT_TARGET_SOC)): NumberSelector(
+                NumberSelectorConfig(min=50, max=100, step=1, unit_of_measurement="%")),
+            vol.Required(CONF_CHARGING_EFFICIENCY, default=defaults.get(CONF_CHARGING_EFFICIENCY, DEFAULT_EFFICIENCY * 100)): NumberSelector(
+                NumberSelectorConfig(min=50, max=100, step=1, unit_of_measurement="%")),
+        }), {"collapsed": True}),
+        vol.Required("prices"): section(vol.Schema({
+            vol.Required(CONF_PRICE_HOME, default=defaults.get(CONF_PRICE_HOME, DEFAULT_PRICE_HOME)): NumberSelector(
+                NumberSelectorConfig(min=0, max=10, step=0.001, unit_of_measurement="€/kWh", mode=NumberSelectorMode.BOX)),
+            vol.Required(CONF_PRICE_PUBLIC, default=defaults.get(CONF_PRICE_PUBLIC, DEFAULT_PRICE_PUBLIC)): NumberSelector(
+                NumberSelectorConfig(min=0, max=10, step=0.001, unit_of_measurement="€/kWh", mode=NumberSelectorMode.BOX)),
+            vol.Required(CONF_PRICE_SOLAR, default=defaults.get(CONF_PRICE_SOLAR, DEFAULT_PRICE_SOLAR)): NumberSelector(
+                NumberSelectorConfig(min=0, max=10, step=0.001, unit_of_measurement="€/kWh", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_SOLAR_ZONE, default=defaults.get(CONF_SOLAR_ZONE, DEFAULT_SOLAR_ZONE)): TextSelector(),
+            vol.Optional(CONF_PRE_KWH, default=defaults.get(CONF_PRE_KWH, 0.0)): NumberSelector(
+                NumberSelectorConfig(min=0, max=200000, step=0.1, unit_of_measurement="kWh",
+                                     mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_PRE_EUR, default=defaults.get(CONF_PRE_EUR, 0.0)): NumberSelector(
+                NumberSelectorConfig(min=0, max=200000, step=1, unit_of_measurement="?",
+                                     mode=NumberSelectorMode.BOX)),
+        }), {"collapsed": True}),
+        vol.Required("fuel"): section(vol.Schema({
+            vol.Required(CONF_FUEL_ENABLED, default=defaults.get(CONF_FUEL_ENABLED, False)): BooleanSelector(),
+            vol.Optional(CONF_FUEL_LABEL, default=defaults.get(CONF_FUEL_LABEL, DEFAULT_FUEL_LABEL)): TextSelector(),
+            vol.Optional(CONF_FUEL_CONSUMPTION, default=defaults.get(CONF_FUEL_CONSUMPTION, DEFAULT_FUEL_CONSUMPTION)): NumberSelector(
+                NumberSelectorConfig(min=1, max=20, step=0.1, unit_of_measurement="l/100km", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_FUEL_PRICE, default=defaults.get(CONF_FUEL_PRICE, DEFAULT_FUEL_PRICE)): NumberSelector(
+                NumberSelectorConfig(min=0.5, max=5, step=0.01, unit_of_measurement="€/l", mode=NumberSelectorMode.BOX)),
+            vol.Optional(
+                CONF_DIESEL_PRICE_ENTITY,
+                description={"suggested_value": defaults.get(CONF_DIESEL_PRICE_ENTITY)},
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+        }), {"collapsed": True}),
+        vol.Required("maint"): section(vol.Schema({
+            vol.Required(CONF_MAINT_ENABLED, default=defaults.get(CONF_MAINT_ENABLED, False)): BooleanSelector(),
+            vol.Optional(CONF_TAG_TERMICO, default=defaults.get(CONF_TAG_TERMICO, DEFAULT_TAG_TERMICO)): NumberSelector(
+                NumberSelectorConfig(min=0, max=1000, step=5, unit_of_measurement="€/anno", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_TAG_EV, default=defaults.get(CONF_TAG_EV, DEFAULT_TAG_EV)): NumberSelector(
+                NumberSelectorConfig(min=0, max=1000, step=5, unit_of_measurement="€", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_BOLLO_TERMICO, default=defaults.get(CONF_BOLLO_TERMICO, DEFAULT_BOLLO_TERMICO)): NumberSelector(
+                NumberSelectorConfig(min=0, max=2000, step=5, unit_of_measurement="€/anno", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_BOLLO_EV, default=defaults.get(CONF_BOLLO_EV, DEFAULT_BOLLO_EV)): NumberSelector(
+                NumberSelectorConfig(min=0, max=2000, step=5, unit_of_measurement="€/anno", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_TAGLIANDO_INTERVALLO, default=defaults.get(CONF_TAGLIANDO_INTERVALLO, DEFAULT_TAGLIANDO_INTERVALLO)): NumberSelector(
+                NumberSelectorConfig(min=5000, max=50000, step=1000, unit_of_measurement="km", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_TYRE_INTERVAL, default=defaults.get(CONF_TYRE_INTERVAL, DEFAULT_TYRE_INTERVAL)): NumberSelector(
+                NumberSelectorConfig(min=5000, max=150000, step=1000, unit_of_measurement="km", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_PURCHASE_DATE, **_sugg_date(defaults.get(CONF_PURCHASE_DATE))): DateSelector(),
+            vol.Optional(CONF_ASSICURAZIONE_COSTO, default=defaults.get(CONF_ASSICURAZIONE_COSTO, DEFAULT_ASSICURAZIONE_COSTO)): NumberSelector(
+                NumberSelectorConfig(min=0, max=3000, step=10, unit_of_measurement="€/anno", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_ASSICURAZIONE_DATA, **_sugg_date(defaults.get(CONF_ASSICURAZIONE_DATA))): DateSelector(),
+        }), {"collapsed": True}),
+        vol.Required("notify"): section(vol.Schema({
+            vol.Optional(CONF_NOTIFY_SERVICE, description={"suggested_value": defaults.get(CONF_NOTIFY_SERVICE, "")}): TextSelector(),
+            vol.Optional(CONF_NOTIFY_DAYS, default=defaults.get(CONF_NOTIFY_DAYS, DEFAULT_NOTIFY_DAYS)): NumberSelector(
+                NumberSelectorConfig(min=1, max=90, step=1, unit_of_measurement="gg")),
+            vol.Required(CONF_NOTIFY_CHARGE_START, default=defaults.get(CONF_NOTIFY_CHARGE_START, True)): BooleanSelector(),
+            vol.Required(CONF_NOTIFY_CHARGE_END, default=defaults.get(CONF_NOTIFY_CHARGE_END, True)): BooleanSelector(),
+            vol.Required(CONF_LOW_SOC_ENABLED, default=defaults.get(CONF_LOW_SOC_ENABLED, True)): BooleanSelector(),
+            vol.Optional(CONF_LOW_SOC_THRESHOLD, default=defaults.get(CONF_LOW_SOC_THRESHOLD, DEFAULT_LOW_SOC_THRESHOLD)): NumberSelector(
+                NumberSelectorConfig(min=5, max=80, step=1, unit_of_measurement="%")),
+            vol.Optional(CONF_LOW_SOC_START, default=defaults.get(CONF_LOW_SOC_START, DEFAULT_LOW_SOC_START)): TimeSelector(),
+            vol.Optional(CONF_LOW_SOC_END, default=defaults.get(CONF_LOW_SOC_END, DEFAULT_LOW_SOC_END)): TimeSelector(),
+            vol.Optional(CONF_LOW_SOC_DAYS, default=defaults.get(CONF_LOW_SOC_DAYS, DEFAULT_LOW_SOC_DAYS)): SelectSelector(
+                SelectSelectorConfig(options=WEEKDAY_OPTIONS, multiple=True)),
+        }), {"collapsed": True}),
+        vol.Required("advanced"): section(vol.Schema({
+            vol.Required(CONF_POLL_INTERVAL, default=defaults.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)): NumberSelector(
+                NumberSelectorConfig(min=10, max=300, step=5, unit_of_measurement="s")),
+            vol.Required(CONF_TRIP_TIMEOUT, default=defaults.get(CONF_TRIP_TIMEOUT, DEFAULT_TRIP_TIMEOUT)): NumberSelector(
+                NumberSelectorConfig(min=5, max=60, step=1, unit_of_measurement="min")),
+            vol.Optional(CONF_TAGLIANDO_MODE, default=defaults.get(CONF_TAGLIANDO_MODE, "km")): SelectSelector(
+                SelectSelectorConfig(options=["km", "data"])),
+            vol.Optional(CONF_TAGLIANDO_DATA, **_sugg_date(defaults.get(CONF_TAGLIANDO_DATA))): DateSelector(),
+            vol.Optional(
+                CONF_TEMP_ENTITY,
+                description={"suggested_value": defaults.get(CONF_TEMP_ENTITY)},
+            ): EntitySelector(EntitySelectorConfig(domain=["sensor", "weather"])),
+            vol.Required(CONF_CO2_ENABLED, default=defaults.get(CONF_CO2_ENABLED, False)): BooleanSelector(),
+            vol.Optional(CONF_CO2_THERMAL_GKM, default=defaults.get(CONF_CO2_THERMAL_GKM, DEFAULT_CO2_THERMAL_GKM)): NumberSelector(
+                NumberSelectorConfig(min=50, max=300, step=5, unit_of_measurement="g/km", mode=NumberSelectorMode.BOX)),
+            vol.Optional(CONF_CO2_GRID_GKWH, default=defaults.get(CONF_CO2_GRID_GKWH, DEFAULT_CO2_GRID_GKWH)): NumberSelector(
+                NumberSelectorConfig(min=0, max=800, step=10, unit_of_measurement="g/kWh", mode=NumberSelectorMode.BOX)),
+            vol.Required(CONF_GEOCODE_ENABLED, default=defaults.get(CONF_GEOCODE_ENABLED, True)): BooleanSelector(),
+            vol.Required(CONF_AVG_KMH, default=defaults.get(CONF_AVG_KMH, 30.0)): NumberSelector(
+                NumberSelectorConfig(min=10, max=120, step=1, unit_of_measurement="km/h", mode=NumberSelectorMode.BOX)),
+            vol.Required(CONF_SCADENZE_ENABLED, default=defaults.get(CONF_SCADENZE_ENABLED, False)): BooleanSelector(),
+            vol.Optional(CONF_SCAD_BOLLO, **_sugg_date(defaults.get(CONF_SCAD_BOLLO))): DateSelector(),
+            vol.Optional(CONF_SCAD_REVISIONE, **_sugg_date(defaults.get(CONF_SCAD_REVISIONE))): DateSelector(),
+            vol.Optional(CONF_SCAD_ASSICURAZIONE, **_sugg_date(defaults.get(CONF_SCAD_ASSICURAZIONE))): DateSelector(),
+        }), {"collapsed": True}),
+    })
+
+
+class UconnectMateConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Wizard in tre passi."""
+
+    VERSION = 1
+
+    def __init__(self) -> None:
+        self._data: dict[str, Any] = {}
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
+        """PRIMO passo: profilo di installazione."""
+        if user_input is not None:
+            self._data[CONF_PROFILE] = str(user_input.get(CONF_PROFILE, DEFAULT_PROFILE))
+            return await self.async_step_settings()
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({
+                vol.Required(CONF_PROFILE, default=DEFAULT_PROFILE): SelectSelector(
+                    SelectSelectorConfig(options=PROFILES, translation_key="profile")),
+            }),
+        )
+
+    def _profile(self) -> str:
+        return str(self._data.get(CONF_PROFILE) or DEFAULT_PROFILE)
+
+    async def async_step_settings(self, user_input: dict[str, Any] | None = None):
+        """Schermata UNICA di configurazione: tutte le sezioni (come le Opzioni)."""
+        if user_input is not None:
+            user_input = _flat(user_input)
+            # rifiuta la seconda entry che produrrebbe lo STESSO prefisso
+            # (→ entità col suffisso `_2`, dashboard che punta a quelle vecchie)
+            nuovo = _slug_name(user_input.get(CONF_NAME))
+            for e in self.hass.config_entries.async_entries(DOMAIN):
+                if _slug_name(_entry_name(e)) == nuovo:
+                    return self.async_abort(reason="already_configured")
+            await self.async_set_unique_id(f"{DOMAIN}_{nuovo}")
+            self._abort_if_unique_id_configured()
+            _capacity_for_model(user_input)
+            _powertrain_for_model(user_input)
+            prof = self._profile()
+            user_input[CONF_WALLBOX_ENABLED] = prof != PROFILE_BASE
+            user_input[CONF_HAS_PV] = prof == PROFILE_ENTERPRISE
+            eff = float(user_input.get(CONF_CHARGING_EFFICIENCY, DEFAULT_EFFICIENCY * 100))
+            user_input[CONF_CHARGING_EFFICIENCY] = eff
+            # I valori INSERITI dall'utente NON si buttano mai, anche se la feature
+            # corrispondente e' spenta: prima venivano rimossi con un pop() incondizionato
+            # e l'utente li ritrovava azzerati ("non mantiene tagliando e bollo").
+            # Si rimuove solo cio' che e' davvero vuoto (None o stringa vuota).
+            def _pop_vuoti(keys: tuple[str, ...]) -> None:
+                for k in keys:
+                    if user_input.get(k) in (None, ""):
+                        user_input.pop(k, None)
+
+            if not user_input.get(CONF_FUEL_ENABLED):
+                _pop_vuoti((CONF_FUEL_LABEL, CONF_FUEL_CONSUMPTION,
+                            CONF_FUEL_PRICE, CONF_DIESEL_PRICE_ENTITY))
+            if not user_input.get(CONF_MAINT_ENABLED):
+                _pop_vuoti((CONF_TAG_TERMICO, CONF_TAG_EV, CONF_BOLLO_TERMICO,
+                            CONF_BOLLO_EV, CONF_TAGLIANDO_INTERVALLO,
+                            CONF_TAGLIANDO_MODE, CONF_TAGLIANDO_DATA,
+                            CONF_ASSICURAZIONE_COSTO, CONF_ASSICURAZIONE_DATA))
+            if not user_input.get(CONF_CO2_ENABLED):
+                _pop_vuoti((CONF_CO2_THERMAL_GKM, CONF_CO2_GRID_GKWH))
+            if not user_input.get(CONF_SCADENZE_ENABLED):
+                _pop_vuoti((CONF_SCAD_BOLLO, CONF_SCAD_REVISIONE, CONF_SCAD_ASSICURAZIONE))
+            if not user_input.get(CONF_LOW_SOC_ENABLED):
+                _pop_vuoti((CONF_LOW_SOC_THRESHOLD, CONF_LOW_SOC_START,
+                            CONF_LOW_SOC_END, CONF_LOW_SOC_DAYS))
+            # notify_* NON dipendono dalla manutenzione: mai rimossi (erano nel blocco
+            # sbagliato per un copia-incolla)
+            self._data.update(user_input)
+            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+        # schermata unica: auto + comandi + wallbox (dal profilo) + tutte le impostazioni
+        prof = self._profile()
+        schema: dict[Any, Any] = {
+            **_car_schema({}).schema,
+            **_uconnect_schema({}).schema,
+            **_wallbox_schema({}, prof).schema,
+            **_settings_schema({}).schema,
+            vol.Required(CONF_CREATE_DASHBOARD, default=True): BooleanSelector(),
+        }
+        return self.async_show_form(step_id="settings", data_schema=vol.Schema(schema))
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
+        return UconnectMateOptionsFlow()
+
+
+class UconnectMateOptionsFlow(config_entries.OptionsFlow):
+    """Modifica entità e impostazioni dopo l'installazione."""
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        base = {**self.config_entry.data, **self.config_entry.options}
+        # date salvate in un formato che il frontend non sa leggere (campo testo nelle
+        # vecchie versioni): normalizzate qui, sennò restano in entry.options e il
+        # modulo «Configura» non si apre più.
+        for _k in (CONF_PURCHASE_DATE, CONF_ASSICURAZIONE_DATA, CONF_TAGLIANDO_DATA,
+                   CONF_SCAD_BOLLO, CONF_SCAD_REVISIONE, CONF_SCAD_ASSICURAZIONE):
+            if _k in base:
+                base[_k] = _norm_date(base[_k])
+        if user_input is not None:
+            data = _flat(user_input)
+            _capacity_for_model(data)
+            _powertrain_for_model(data)
+            # I campi dentro una sezione collapsed possono NON essere riusati dal
+            # form: async_create_entry(data=...) SOSTITUISCE entry.options, quindi
+            # una chiave non inviata spariva del tutto e al riaprire tornava a 0
+            # (es. "Chilometri all'attivazione"). Preserva i valori gia' salvati;
+            # un valore esplicitamente vuoto (None/"") resta vuoto.
+            for k, v in base.items():
+                data.setdefault(k, v)
+            return self.async_create_entry(title="", data=data)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                **_car_schema(base).schema,
+                **_uconnect_schema(base).schema,
+                **_wallbox_schema(base, str(base.get(CONF_PROFILE) or DEFAULT_PROFILE)).schema,
+                **_settings_schema(base).schema,
+            }),
+        )

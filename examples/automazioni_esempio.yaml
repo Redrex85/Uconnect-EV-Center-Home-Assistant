@@ -1,0 +1,98 @@
+# ============================================================
+#  UCONNECT EV CENTER — AUTOMAZIONI D'EXAMPLE
+# ============================================================
+# Copia nel tuo configuration.yaml o in un package solo ciò che ti serve.
+# Adatta il servizio di notifica al tuo dispositivo (qui notify.mobile_app).
+# ============================================================
+
+automation:
+
+  # Notifica quando la ricarica è completata (usa l'evento del coordinator)
+  - alias: "Uconnect Mate - Ricarica completata"
+    id: uconnect_mate_ricarica_completata
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.uconnect_wallbox_in_carica
+        from: "on"
+        to: "off"
+        for: "00:03:00"
+    condition:
+      - condition: template
+        value_template: >
+          {{ state_attr('sensor.uconnect_ultima_ricarica', 'data') == now().strftime('%Y-%m-%d') }}
+    action:
+      - service: notify.persistent_notification
+        data:
+          title: "🔋 Ricarica completata"
+          message: >
+            ⚡ Energia: {{ states('sensor.uconnect_ultima_ricarica') }} kWh
+
+            🔋 Batteria: {{ state_attr('sensor.uconnect_ultima_ricarica','soc_start') }}% → {{ state_attr('sensor.uconnect_ultima_ricarica','soc_end') }}%
+
+            💰 Costo: {{ state_attr('sensor.uconnect_ultima_ricarica','costo') }} €
+
+            📊 Costo medio: {{ states('sensor.uconnect_costo_per_km') }} €/km
+
+  # Avviso batteria bassa e auto non collegata a casa
+  - alias: "Uconnect Mate - Batteria bassa"
+    id: uconnect_mate_batteria_bassa
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.battery_level
+        below: 25
+    condition:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.location
+            state: home
+      - condition: time
+        after: "07:00:00"
+        before: "22:00:00"
+    action:
+      - service: notify.persistent_notification
+        data:
+          title: "🚗 Batteria Uconnect bassa"
+          message: >
+            Batteria al {{ states('sensor.battery_level') }}% ({{ states('sensor.battery_autonomy') }} km).
+            Ricorda di caricare!
+
+  # Riassunto serale dei viaggi della giornata
+  - alias: "Uconnect Mate - Riassunto giornaliero"
+    id: uconnect_mate_riassunto_giornaliero
+    trigger:
+      - platform: time
+        at: "21:30:00"
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.uconnect_km_giornalieri
+        above: 0.5
+    action:
+      - service: notify.persistent_notification
+        data:
+          title: "📊 Oggi con la tua Uconnect"
+          message: >
+            🚗 Km percorsi: {{ states('sensor.uconnect_km_giornalieri') }}
+
+            ⚡ Consumati: {{ states('sensor.uconnect_energia_batteria_mensile') }} kWh questo mese
+
+            📈 Media: {{ states('sensor.uconnect_kwh_per_100km') }} kWh/100km
+
+            💸 Costo/km: {{ states('sensor.uconnect_costo_per_km') }} €
+
+  # Notifica all'avvio della ricarica.
+  # IMPORTANTE: usa il sensore di stato della WALLBOX registrato in configurazione
+  # (Uconnect EV Center -> Configura -> Wallbox -> Stato). Qui l'esempio col Lektrico.
+  - alias: "Uconnect EV Center - Notifica avvio ricarica"
+    id: uconnect_ev_center_avvio_ricarica
+    trigger:
+      - platform: state
+        entity_id: sensor.wallbox_charger_state   # ← entità wallbox da configurazione
+        to: charging
+    condition: []
+    mode: single
+    action:
+      - action: notify.michele                     # ← servizio notify configurato
+        data:
+          message: |
+            🔋 La ricarica è iniziata alle {{ now().strftime('%Y-%m-%d %H:%M:%S') }}

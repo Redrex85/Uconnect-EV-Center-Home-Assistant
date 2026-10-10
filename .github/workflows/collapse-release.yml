@@ -1,0 +1,78 @@
+name: Collapse release series
+
+# Accorpa una serie di patch in UN solo tag/release.
+# Esempio: quando si passa a 1.0.6, lancia con series=1.0.5
+# -> elimina i tag/release 1.0.5.* e crea un unico tag 1.0.5 all'ultimo commit della serie.
+on:
+  workflow_dispatch:
+    inputs:
+      series:
+        description: "Serie da accorpare, separate da virgola (es. 1.0.5,1.0.6)"
+        required: true
+        default: "1.0.5,1.0.6"
+
+permissions:
+  contents: write
+
+jobs:
+  collapse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collapse series into one tag + release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          RAW="${{ github.event.inputs.series }}"
+          echo "Serie da accorpare: $RAW"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --tags --force origin >/dev/null 2>&1 || true
+
+          # lista di serie separate da virgola (accetta anche spazi)
+          SERIES="$(echo "$RAW" | tr ',' '\n' | tr -d ' ' | grep -v '^$')"
+
+          # tag finale: il piu' alto in ordine di versione tra tutti i candidati
+          CANDS=""
+          for S in $SERIES; do
+            CANDS="$CANDS $(git tag -l "${S}*" | tr '\n' ' ')"
+          done
+          TARGET="$(echo $CANDS | tr ' ' '\n' | grep -v '^$' | sort -V | tail -n1)"
+          if [ -z "$TARGET" ]; then
+            echo "Nessun tag da accorpare."
+            exit 0
+          fi
+          SHA="$(git rev-list -n1 "$TARGET")"
+          echo "Tag piu' recente della serie: $TARGET -> $SHA"
+
+          # 1) rimuovi release + tag remoti di TUTTE le serie richieste
+          for S in $SERIES; do
+            for t in $(git ls-remote --tags origin "refs/tags/${S}*" | sed 's#.*refs/tags/##' | grep -v '\^{}'); do
+              echo "rimuovo $t"
+              gh release delete "$t" --yes --cleanup-tag 2>/dev/null || git push origin --delete "$t" || true
+            done
+          done
+
+          # 2) rimuovi i tag locali
+          for S in $SERIES; do
+            git tag -l "${S}*" | xargs -r git tag -d || true
+          done
+
+          # 3) crea/sposta il tag unico (prima serie indicata) all'ultimo commit della serie
+          UNIQUE="$(echo "$SERIES" | head -n1)"
+          echo "Creo tag unico: $UNIQUE -> $SHA"
+          git tag -f "$UNIQUE" "$SHA"
+          git push -f origin "$UNIQUE"
+
+          # 4) release unica (se manca)
+          if gh release view "$UNIQUE" >/dev/null 2>&1; then
+            gh release edit "$UNIQUE" --target "$SHA" || true
+          else
+            gh release create "$UNIQUE" --title "$UNIQUE" --target "$SHA" --generate-notes
+          fi
+          echo "Accorpate le serie [$SERIES] nell'unico tag $UNIQUE."

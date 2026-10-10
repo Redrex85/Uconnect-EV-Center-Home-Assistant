@@ -1,0 +1,178 @@
+# Installation guide — Uconnect EV Center
+
+From install to a fully working dashboard in **~10 minutes**.
+
+## Prerequisites
+
+- Home Assistant **2025.11+**
+- The official **Uconnect integration** configured with your vehicle
+- *(Optional)* A wallbox integrated into HA (Wallbox, go-e, Easee, OCPP, Shelly EM…)
+
+> ⚠️ **Strongly recommended: at least the Home zone.** In HA go to **Settings → Zones**
+> and make sure a `Home` zone exists (correct latitude/longitude) with the **car GPS
+> tracker** inside it. Without the `home` zone the integration **cannot tell a home
+> charge from a public charger**: everything is logged as *Public* and the home/solar
+> prices never apply.
+
+> ⚠️ **Some values only populate after driving**: trips, kWh/100km, per-zone efficiency,
+> departure time, real range and monthly history stay empty until the car has covered
+> **a few tens of km**. Seeing `—` right after install is normal.
+
+## 1. Install
+
+**HACS:** HACS → ⋮ → Custom repositories → add `https://github.com/Redrex85/Uconnect-EV-Center-Home-Assistant` (category: Integration) → **then search "Uconnect EV Center" in HACS → open it → Download** → **restart Home Assistant** → **Settings → Devices & Services → Add Integration → "Uconnect EV Center"** → run the setup wizard.
+
+> Short version: **repo → search in HACS → download → restart → add the integration → configure**.
+> The restart is required: HA only loads new integrations at startup, so before it "Uconnect EV
+> Center" won't appear in the integration search.
+
+**Manual:** copy `custom_components/uconnect_ev_center/` into `<config>/custom_components/`, restart HA.
+
+## 2. Configure
+
+Settings → Devices & Services → Add Integration → **Uconnect EV Center**:
+
+### Step 0 — Installation profile (the very first screen)
+The **first thing** you're asked is the **profile**: it decides **which screens** you see during
+setup and **which pages** appear in the dashboard.
+
+| Profile | Includes | You won't see |
+|---|---|---|
+| **Base** — car only | car, trips, costs, charges, savings, maintenance | **no wallbox**, **no solar**, and the **Wallbox page is hidden** in the panel |
+| **Pro** — car + wallbox | Base **+ wallbox** (start/stop, power, session, GSE) | no solar |
+| **Enterprise** — everything | Pro **+ solar** and solar balancing | — |
+
+> Pick **Base** if you have no wallbox in Home Assistant (public charging only): shorter setup,
+> cleaner panel. You can change it later from *Settings → Integrations → Uconnect EV Center → ⋮ →
+> Configure*.
+
+### Step 1 — Car
+Pick a short lowercase name (`Uconnect`) — it becomes the entity prefix — then select:
+odometer (`sensor.mileage`), battery level (`sensor.battery_level`), range (`sensor.battery_autonomy`),
+charging (`binary_sensor.charging` or `sensor.charge_state`), optional plug status and GPS tracker.
+Also choose the **model** (first field: it sets the car picture).
+
+### Step 2 — Wallbox *(skipped in Base profile)*
+Enable the toggle and map: instant power (W or kW, auto-converted), charger state, session energy counter and/or total energy counter.
+Also here: **charge start / stop** entities and the **GSE pilot scheme** section.
+
+No wallbox? Pick the **Base** profile — public charges can be logged manually via the `add_manual_charge` service.
+
+### Step 3 — Settings
+Battery capacity (e.g. 50.8 kWh), target SoC, home/public/solar prices per kWh,
+solar zone name, poll interval, trip timeout, optional fuel comparison.
+If the car was **already driven** before you installed the integration, also fill
+**"kWh charged before"** and/or **"€ spent before"** (see §4.2 — otherwise savings look inflated).
+
+Everything can be changed later from the integration's Configure dialog.
+
+## 3. Dashboards
+
+With "Create dashboard" enabled, the sidebar panel is created automatically (custom 3D
+panel with all 11 views). If you disabled it, or it got removed, run the
+`uconnect_ev_center.create_dashboard` service (Developer Tools → Actions): it rebuilds
+the panel **with the right entity prefix** — no manual YAML involved.
+
+> ⚠️ The YAML files in [`dashboards/`](../dashboards/) are **legacy**. They hardcode the
+> `sensor.uconnect_` prefix, so they break on every car that isn't literally named
+> `Uconnect`. Don't import them — the auto-created panel already covers everything.
+
+## 4. Services
+
+```yaml
+uconnect_ev_center.close_trip            # force-close the active trip
+uconnect_ev_center.reset_counters        # scope: km | energia | costi | viaggi | ricariche | all
+uconnect_ev_center.add_manual_charge     # kwh, costo, tipo
+uconnect_ev_center.export_trips_csv      # writes CSVs to config/uconnect_ev_center_export/
+uconnect_ev_center.create_dashboard      # (re)create the sidebar dashboard
+uconnect_ev_center.create_automations    # create the 3 recommended automations
+uconnect_ev_center.add_maintenance       # data, km, costo, tipo, note
+uconnect_ev_center.renew_insurance       # mesi (6|12) or data
+uconnect_ev_center.set_scadenza          # nome, data
+uconnect_ev_center.set_tagliando         # mode (km|data), valore
+```
+
+## 4.1 Privacy and addresses (geocoding)
+
+On the **Trips** page the integration can show the **street and country** of departure/arrival,
+derived from the GPS coordinates via **OpenStreetMap (Nominatim)**.
+
+- **On by default.** To **turn it off** (no external calls, no addresses):
+  *Settings → Devices & Services → Uconnect EV Center → **Configure** → Settings → "Street and
+  country in trips"* (clear the checkbox).
+- Coordinates are **rounded** and cached locally: geocoding runs once per location and only when
+  a trip closes.
+- **"Average speed estimate for trip departure time"** (default 30 km/h): used only to estimate
+  the departure time when the car has been parked for a long time (the Uconnect cloud updates
+  odometer/GPS on ignition off). Raise it if your trips are faster.
+
+## 4.2 Savings on an **already-driven** car (important)
+
+The saving compares **what you would have spent on petrol/diesel** with **what you spent charging**.
+The catch: kilometres come from the **odometer** (so they count **all** of them, including the
+40.000 done before), but charges are recorded **only since you installed the integration**. Without
+a correction the saving would be **inflated**.
+
+There are **two comparisons**, and the panel (Savings → *🎯 Confronto affidabilità*) shows both:
+
+### A) Since installation — the most reliable ✅
+Both sides come from **real data**:
+- **km driven since you installed** (today's odometer − the odometer at first start, saved automatically);
+- **charges recorded** from then on.
+
+Nothing to type, no estimates. This is the number to trust if you want the "mathematical" truth.
+
+### B) All time — needs declared values
+Uses the **whole odometer** against **recorded charges + the ones you declare**.
+Go to *Configure → Prices* and fill **at least one** of the two fields:
+
+| Field | When to use it |
+|---|---|
+| **€ spent before** | if you already know how much you spent charging (it takes **priority** over kWh) |
+| **kWh charged before** | if you know the kWh (e.g. the **wallbox total**); converted to € using *Home energy price* |
+
+Example: the car has 40.000 km and the wallbox reads **8,326.4 kWh** → put `8326.4` in
+*kWh charged before*.
+
+**What changes when you fill them in** — it is not just the "Confronto affidabilità" box: the declared
+values feed **every** number on the Savings page:
+- the **"🕘 Ricariche prima (dichiarate)"** row in the thermal vs electric table;
+- the **electric total**, the per-row **Difference** and the **★ NETTO**;
+- the **"Confronto costi" bar chart** (green bar);
+- the **`Risparmio Totale vs Diesel`** sensor → therefore also the **Risparmio netto** card on *Panoramica*.
+
+In short: **fill those two fields and the Savings page becomes complete and trustworthy** over the
+car's whole life — not only inside the comparison box. Leave them empty and "all time" stays
+**inflated** (⚠️ warning) and you should look at comparison **A**.
+
+> Declared values apply to the **"all time" total**. **Month** and **year** stay computed from that
+> period's real data: by definition smaller — not an error.
+
+### Which one to pick?
+| Goal | Use |
+|---|---|
+| A saving that is **verifiable** (no estimates) | **A) Since installation** |
+| Saving **since you own the car** | **B) All time**, with declared values |
+
+**You don't have to choose anything up front**: the panel always computes and shows **both**.
+- **A** works on its own from the first start, no configuration.
+- **B** comes alive when you fill the fields above. As long as they stay `0` and the car already
+  had mileage, the panel shows a **warning** (`⚠️ Mancano i kWh/€ caricati prima…`): it means the
+  "all time" comparison is not usable yet.
+
+> If you fill the declared values and then look at comparison **A**, the two numbers differ by
+> definition: A covers only the period after installation, B covers the car's whole life.
+> It is not an error: they answer two different questions.
+
+## 5. Troubleshooting
+
+| Issue | Fix |
+|---|---|
+| Not showing in HACS | Added with category "Integration"? Restarted HA? |
+| Entities unavailable | Uconnect cloud updates slowly; wait or reload the Uconnect integration |
+| Daily km stays 0 | Wrong odometer entity selected |
+| Costs stay 0 | Set prices; without wallbox use manual charges |
+| Trips never close | Lower the trip timeout option |
+| Dashboard "entity not found" | Wrong prefix: run `uconnect_ev_center.create_dashboard` (rebuilds the panel with the right prefix). The YAML files in `dashboards/` are legacy — don't import them |
+
+Data lives in `<config>/.storage/uconnect_ev_center.<entry_id>` — include `.storage` in backups.
