@@ -80,7 +80,8 @@ durante la configurazione e **quali pagine** compariranno nella dashboard.
 
 | Campo | Cosa scegliere | Tipicamente |
 |---|---|---|
-| Modello | Imposta in automatico la **foto dell'auto** | Jeep Avenger |
+| Modello | Imposta in automatico la **foto dell'auto** | Jeep Avenger (BEV) / Jeep Compass 4xe (PHEV) |
+| Tipo (BEV/PHEV) | Derivato dal **modello**, modificabile | BEV |
 | Nome dell'auto | Nome breve, minuscolo | `Uconnect` |
 | Crea dashboard | Plancia laterale con tutte le viste, creata da sola | ✅ |
 | Odometro | Sensore chilometraggio | `sensor.mileage` |

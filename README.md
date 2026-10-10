@@ -142,6 +142,7 @@ Dai un nome breve all'auto (es. `Uconnect`) — diventa il prefisso di tutte le 
 | Campo | Entità tipica dell'integrazione Uconnect |
 |---|---|
 | Modello | Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale → imposta la **foto dell'auto** |
+| Tipo (BEV/PHEV) | Derivato dal **modello**, modificabile (BEV o PHEV) |
 | Crea dashboard | Crea da sola la plancia laterale con tutte le viste |
 | Odometro | `sensor.mileage` |
 | Batteria (%) | `sensor.battery_level` |
@@ -435,6 +436,7 @@ Give the car a short name (e.g. `Uconnect`) — it becomes the prefix of every c
 | Field | Typical Uconnect integration entity |
 |---|---|
 | Model | Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale → sets the **car photo** |
+| Type (BEV/PHEV) | Derived from the **model**, editable (BEV or PHEV) |
 | Create dashboard | Builds the sidebar dashboard with all views |
 | Odometer | `sensor.mileage` |
 | Battery (%) | `sensor.battery_level` |
@@ -717,6 +719,7 @@ Donnez un nom court à la voiture (ex. `Uconnect`) — il devient le préfixe de
 | Champ | Entité typique de l'intégration Uconnect |
 |---|---|
 | Modèle | Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale → définit la **photo de la voiture** |
+| Type (BEV/PHEV) | Dérivé du **modèle**, modifiable (BEV ou PHEV) |
 | Créer le tableau de bord | Crée seul la plance latérale avec toutes les vues |
 | Odomètre | `sensor.mileage` |
 | Batterie (%) | `sensor.battery_level` |
