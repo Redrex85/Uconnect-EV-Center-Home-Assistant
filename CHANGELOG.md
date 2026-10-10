@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.2] - 2026-10-10
+
+### Modificato
+- Statistiche: la colonna della batteria fotovoltaica è ora etichettata **"Batteria FV"** (storico mensile e percorrenza).
+
 ## [1.0.1] - 2026-10-10
 
 ### Corretto
