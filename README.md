@@ -11,7 +11,7 @@
 
 **Viaggi, consumi, costi e ricariche per le tue auto elettriche Uconnect — direttamente in Home Assistant.**
 
-Un *companion* per le **auto 100% elettriche di Stellantis con Uconnect** — Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale — costruito sopra l'integrazione **[Uconnect (hass-uconnect)](https://github.com/hass-uconnect/hass-uconnect)**: nessun account extra, nessuna riga di codice. Installi da HACS, scegli le entità dalla lista, e via.
+Un *companion* per le **auto elettriche (BEV) e ibride plug-in (PHEV) Stellantis con app Uconnect** — Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale — costruito sopra l'integrazione **[Uconnect (hass-uconnect)](https://github.com/hass-uconnect/hass-uconnect)**: nessun account extra, nessuna riga di codice. Installi da HACS, scegli le entità dalla lista, e via.
 
 > Uconnect EV Center legge le entità esposte da **hass-uconnect** e non parla mai col cloud: raccoglie solo i dati che l'integrazione Uconnect già mette a disposizione in Home Assistant.
 >
@@ -141,7 +141,7 @@ Dai un nome breve all'auto (es. `Uconnect`) — diventa il prefisso di tutte le 
 
 | Campo | Entità tipica dell'integrazione Uconnect |
 |---|---|
-| Modello | Jeep Avenger, Fiat 500e, Alfa Romeo Junior, Lancia Ypsilon, Abarth 600e, Maserati Grecale Folgore → imposta la **foto dell'auto** |
+| Modello | Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale → imposta la **foto dell'auto** |
 | Crea dashboard | Crea da sola la plancia laterale con tutte le viste |
 | Odometro | `sensor.mileage` |
 | Batteria (%) | `sensor.battery_level` |
@@ -309,7 +309,7 @@ Licenza: **MIT** — vedi [LICENSE](LICENSE).
 
 **Trips, consumption, costs and charging for your Uconnect EVs — fully inside Home Assistant.**
 
-A companion for **100% electric Stellantis cars with Uconnect** — Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale — built on top of the **[Uconnect (hass-uconnect)](https://github.com/hass-uconnect/hass-uconnect)** integration. No extra accounts, no cloud, no code: install from HACS, pick your entities from dropdowns, done.
+A companion for **electric (BEV) and plug-in hybrid (PHEV) Stellantis cars with the Uconnect app** — Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale — built on top of the **[Uconnect (hass-uconnect)](https://github.com/hass-uconnect/hass-uconnect)** integration. No extra accounts, no cloud, no code: install from HACS, pick your entities from dropdowns, done.
 
 > 🔌 **Only brands using the Uconnect app**: Abarth, Alfa Romeo, Chrysler, Dodge, Fiat, Jeep, Lancia, Maserati, Ram. Peugeot, Citroën, Opel and DS use other apps → **not supported**.
 
@@ -434,7 +434,7 @@ Give the car a short name (e.g. `Uconnect`) — it becomes the prefix of every c
 
 | Field | Typical Uconnect integration entity |
 |---|---|
-| Model | Jeep Avenger, Fiat 500e, Alfa Romeo Junior, Lancia Ypsilon, Abarth 600e, Maserati Grecale Folgore → sets the **car photo** |
+| Model | Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale → sets the **car photo** |
 | Create dashboard | Builds the sidebar dashboard with all views |
 | Odometer | `sensor.mileage` |
 | Battery (%) | `sensor.battery_level` |
@@ -589,7 +589,7 @@ License: **MIT** — see [LICENSE](LICENSE).
 
 **Trajets, consommation, coûts et recharges de vos Uconnect électriques — entièrement dans Home Assistant.**
 
-Un compagnon pour les **voitures 100% électriques Stellantis avec Uconnect** — Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale — construit au-dessus de l'intégration **[Uconnect (hass-uconnect)](https://github.com/hass-uconnect/hass-uconnect)**. Aucun compte supplémentaire, aucun cloud, aucun code : installez depuis HACS, choisissez vos entités dans des listes, c'est tout.
+Un compagnon pour les **voitures électriques (BEV) et hybrides rechargeables (PHEV) Stellantis avec l'app Uconnect** — Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale — construit au-dessus de l'intégration **[Uconnect (hass-uconnect)](https://github.com/hass-uconnect/hass-uconnect)**. Aucun compte supplémentaire, aucun cloud, aucun code : installez depuis HACS, choisissez vos entités dans des listes, c'est tout.
 
 > 🔌 **Uniquement les marques avec l'app Uconnect** : Abarth, Alfa Romeo, Chrysler, Dodge, Fiat, Jeep, Lancia, Maserati, Ram. Peugeot, Citroën, Opel et DS utilisent d'autres apps → **non supportées**.
 
@@ -716,7 +716,7 @@ Donnez un nom court à la voiture (ex. `Uconnect`) — il devient le préfixe de
 
 | Champ | Entité typique de l'intégration Uconnect |
 |---|---|
-| Modèle | Jeep Avenger, Fiat 500e, Alfa Romeo Junior, Lancia Ypsilon, Abarth 600e, Maserati Grecale Folgore → définit la **photo de la voiture** |
+| Modèle | Jeep Avenger, Fiat 500e/600e, Abarth 600e, Alfa Romeo Junior, Lancia Ypsilon, Maserati Grecale Folgore, RAM 1500 REV, Dodge Charger Daytona, Jeep Renegade/Compass/Grand Cherokee/Wrangler 4xe, Alfa Romeo Tonale → définit la **photo de la voiture** |
 | Créer le tableau de bord | Crée seul la plance latérale avec toutes les vues |
 | Odomètre | `sensor.mileage` |
 | Batterie (%) | `sensor.battery_level` |
