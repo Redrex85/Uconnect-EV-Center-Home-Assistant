@@ -39,6 +39,50 @@ add_manual_charge:
     quando:
       name: Data/ora
       description: Formato ISO opzionale (2026-08-22T14:30:00).
+    durata_min:
+      name: Durata (min)
+      description: Durata opzionale della ricarica, in minuti.
+      example: 45
+delete_charge:
+  name: Elimina ricarica
+  description: Cancella una ricarica registrata a mano per ID.
+  fields:
+    charge_id:
+      name: ID ricarica
+      example: 1791709864
+update_charge:
+  name: Modifica ricarica
+  description: Modifica una ricarica registrata a mano (solo i campi indicati).
+  fields:
+    charge_id:
+      name: ID ricarica
+      example: 1791709864
+    kwh:
+      name: kWh caricati
+      example: 22.5
+    costo:
+      name: Costo
+      example: 11.25
+    tipo:
+      name: Tipo
+      example: Pubblica
+    durata_min:
+      name: Durata (min)
+      example: 45
+    descrizione:
+      name: Descrizione
+      example: Colonnina DC autostrada
+    quando:
+      name: Data/ora
+      description: Formato ISO opzionale (2026-08-22T14:30:00).
+separate_charge:
+  name: Separa ricarica
+  description: Annulla la fusione automatica di una ricarica frammentata, ripristinando i frammenti originali.
+  fields:
+    charge_id:
+      name: ID ricarica
+      description: ID della ricarica fusa. Se omesso, usa l'ultima ricarica.
+      example: 1791709864
 delete_trip:
   name: Elimina viaggio
   description: Cancella un viaggio dallo storico per ID.

@@ -128,7 +128,7 @@ DEFAULT_TYRE_INTERVAL = 40000
 DEFAULT_TAG_TERMICO = 450.0
 DEFAULT_TAG_EV = 100.0
 DEFAULT_BOLLO_TERMICO = 350.0
-DEFAULT_BOLLO_EV = 150.0
+DEFAULT_BOLLO_EV = 0.0
 DEFAULT_TAGLIANDO_INTERVALLO = 15000
 
 # notifiche scadenze
@@ -228,6 +228,7 @@ DEFAULT_AVG_KMH = 30.0  # velocità media stimata per l'orario di partenza dei v
 CONF_TEMP_ENTITY = "temp_entity"
 CONF_CO2_ENABLED = "co2_comparison"
 CONF_GEOCODE_ENABLED = "geocode_enabled"
+CONF_MERGE_CHARGES = "merge_charges"
 CONF_AVG_KMH = "avg_speed_kmh"
 CONF_CO2_THERMAL_GKM = "co2_thermal_gkm"
 CONF_CO2_GRID_GKWH = "co2_grid_gkwh"
@@ -289,6 +290,10 @@ WALLBOX_CHARGING_STATES = {"charging"}
 # stati dell'entità plug_entity che significano "spina collegata" (Uconnect binary_sensor ev_charger + comuni)
 PLUG_CONNECTED_VALUES = {"connected", "completed", "plugged", "plugged_in",
                          "cable_connected", "on", "true", "1"}
+# token nello stato della wallbox (CONF_WB_STATE) che significano "ricarica finita/ferma":
+# chiudono la sessione ANCHE con la spina ancora collegata (utile alle colonnine pubbliche)
+WALLBOX_FINISHED_TOKENS = ("finish", "charged", "complete", "full", "ended",
+                           "stopped", "no_vehicle", "not_connected", "error", "fault")
 
 TRIP_MIN_KM = 0.5
 TRIP_MIN_MINUTES = 2

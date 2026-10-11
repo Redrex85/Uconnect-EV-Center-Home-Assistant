@@ -192,6 +192,13 @@ Con il profilo **Enterprise** mappa il **sensore rete** (e, se hai la batteria d
 
 ⚠️ **Ricariche fatte prima dell'installazione**: dichiara **solo** i kWh **pagati** (colonnine/rete). **Non** inserire i kWh caricati dal tuo fotovoltaico: sono gratis e conteggiarli come spesa **ridurrebbe** il risparmio.
 
+⚙️ **Da dove partono i km del confronto** — campo *Chilometri all'attivazione* (`install_odo`): è un **odometro di partenza**, non i km percorsi. Il risparmio **totale** usa `odometro attuale − install_odo`.
+- **`0`** = rilevato automaticamente al **primo avvio** (e, se hai già un valore salvato, `0` **non lo azzera**: resta quello precedente).
+- Vuoi il calcolo su **tutto l'odometro**? Metti **`1`** (o l'odometro al momento dell'acquisto, per escludere i km del precedente proprietario). Es.: odometro `21404` con `install_odo=1` → conta **21403 km**.
+- ⚠️ Se conti **tutti** i km ma **non** hai dichiarato le ricariche pagate prima (riquadro sopra), il risparmio **si gonfia** (tutti i km "termici" contro ~zero costi elettrici): compila i **kWh/€ pagati prima** in *Configura → Prezzi*.
+
+⛽ **Prezzo carburante (Italia)** — per il confronto con l'auto termica scegli un sensore nel campo *Sensore prezzo diesel €/l* (sezione **Confronto carburante**). In Italia usa l'integrazione HACS **[Fuel Prices Italy](https://github.com/nuggetz/ha-fuel-prices-ita)** (open data **MIMIT**, **senza API key**): crea sensori come `sensor.fuel_prices_italy_diesel_self_service_avg` (media) o `..._min` (minimo) — selezionalo lì. Il prezzo viene salvato **giorno per giorno** e il confronto usa la **media pesata sui km**.
+
 ## 📈 Cosa crea
 
 Oltre **90 entità** sul dispositivo *"Uconnect EV Center"* (prefisso = nome scelto):
@@ -473,6 +480,13 @@ With the **Enterprise** profile, map the **grid sensor** (and, if you have a hom
 **Savings**: the combustion comparison uses **km** (thermal side) and the **cost actually paid** (electric side). If you charge 100% from solar at `0`, the electric cost is `0` → the saving is the **full** avoided fuel cost. Only valid with a mapped grid sensor and solar price `0`.
 
 ⚠️ **Charges made before installing**: declare **only** the kWh you **paid** (public/grid). **Do not** enter kWh charged from your own solar: they are free, and counting them as an expense would **reduce** the saving.
+
+⚙️ **Where the comparison km start** — *Kilometres at activation* field (`install_odo`): it is a **starting odometer**, not the km driven. The **total** saving uses `current odometer − install_odo`.
+- **`0`** = auto-detected on **first start** (and, if a value is already saved, `0` **does not clear it**: the previous one stays).
+- Want the calculation over **the whole odometer**? Set **`1`** (or the odometer at purchase, to exclude the previous owner's km). E.g. odometer `21404` with `install_odo=1` → counts **21403 km**.
+- ⚠️ If you count **all** km but did **not** declare the charges paid before (box above), the saving is **inflated** (all "thermal" km against ~zero electric costs): fill in the **kWh/€ paid before** in *Configure → Prices*.
+
+⛽ **Fuel price (Italy)** — for the combustion comparison pick a sensor in the *Diesel price sensor €/l* field (**Fuel comparison** section). In Italy, use the HACS integration **[Fuel Prices Italy](https://github.com/nuggetz/ha-fuel-prices-ita)** (**MIMIT** open data, **no API key**): it creates sensors such as `sensor.fuel_prices_italy_diesel_self_service_avg` (average) or `..._min` (minimum) — select it there. The price is saved **day by day** and the comparison uses the **km-weighted average**.
 
 ### What it creates
 
@@ -757,6 +771,13 @@ Avec le profil **Enterprise**, mappez le **capteur réseau** (et, si vous avez u
 **Économies** : la comparaison avec la voiture thermique utilise les **km** (côté thermique) et le **coût réellement payé** (côté électrique). Si vous chargez à 100 % au solaire à `0`, le coût électrique est `0` → l'économie est l'**intégralité** du carburant évité. Valable uniquement avec capteur réseau mappé et prix solaire `0`.
 
 ⚠️ **Recharges faites avant l'installation** : déclarez **uniquement** les kWh **payés** (bornes/réseau). **N'inscrivez pas** les kWh rechargés par votre solaire : ils sont gratuits, et les compter comme dépense **réduirait** l'économie.
+
+⚙️ **D'où partent les km de la comparaison** — champ *Kilométrage à l'activation* (`install_odo`) : c'est un **odomètre de départ**, pas les km parcourus. L'économie **totale** utilise `odomètre actuel − install_odo`.
+- **`0`** = détecté automatiquement au **premier démarrage** (et, si une valeur est déjà enregistrée, `0` **ne l'efface pas** : l'ancienne reste).
+- Vous voulez le calcul sur **tout l'odomètre** ? Mettez **`1`** (ou l'odomètre à l'achat, pour exclure les km de l'ancien propriétaire). Ex. : odomètre `21404` avec `install_odo=1` → compte **21403 km**.
+- ⚠️ Si vous comptez **tous** les km mais n'avez **pas** déclaré les recharges payées avant (encadré ci-dessus), l'économie est **gonflée** (tous les km « thermiques » contre ~zéro coût électrique) : renseignez les **kWh/€ payés avant** dans *Configurer → Prix*.
+
+⛽ **Prix du carburant (Italie)** — pour la comparaison avec la voiture thermique, choisissez un capteur dans le champ *Capteur prix diesel €/l* (section **Comparaison carburant**). En Italie, utilisez l'intégration HACS **[Fuel Prices Italy](https://github.com/nuggetz/ha-fuel-prices-ita)** (open data **MIMIT**, **sans clé API**) : elle crée des capteurs comme `sensor.fuel_prices_italy_diesel_self_service_avg` (moyenne) ou `..._min` (minimum) — sélectionnez-le. Le prix est enregistré **jour par jour** et la comparaison utilise la **moyenne pondérée par les km**.
 
 ## 📈 Ce que ça crée
 

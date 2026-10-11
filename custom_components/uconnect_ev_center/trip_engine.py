@@ -273,6 +273,14 @@ class TripEngine:
             kwh_consumati = 0.0
             kwh_per_100 = 0.0
 
+        # Uconnect aggiorna il SoC solo a motore spento: se il campione di chiusura
+        # porta ancora il SoC di partenza il delta e' 0 e il record risulta incoerente
+        # (kWh consumati > 0 ma batteria_inizio == batteria_fine). Ricostruisco il SoC
+        # finale dai kWh effettivi, cosi' delta e display tornano coerenti.
+        if batt_delta <= 0 and kwh_consumati > 0:
+            batt_delta = round(kwh_consumati / self.capacity_kwh * 100, 1)
+            self.battery_now = round(self.battery_start - batt_delta, 1)
+
         ts_inizio = datetime.fromtimestamp(self.ts_start, self.tz) if self.tz else datetime.fromtimestamp(self.ts_start)
         ts_fine = datetime.fromtimestamp(now, self.tz) if self.tz else datetime.fromtimestamp(now)
         return {
@@ -311,4 +319,11 @@ if __name__ == "__main__":
     r2 = b.close("B", 15.0, now_wall=s + 300)
     assert r2["fuel"] is False and r2["kwh_per_100km"] > 0
     assert aggregate([r, r2])["kwh_per_100km"] > 0
+    # SoC "bloccato" (cloud Uconnect aggiorna solo a motore spento): batteria invariata
+    # ma consumo noto → il delta/% va ricostruito dai kWh, mai lasciato a 0
+    c = TripEngine(min_km=0.5, min_minutes=2, capacity_kwh=50.0, powertrain="BEV")
+    c.tick(3000, 60, "A", 16); st = c.seed_ts
+    c.tick(3034, 60, "B", 16)
+    r3 = c.close("B", 16.0, now_wall=st + 3600)
+    assert r3["batteria_delta"] > 0 and r3["batteria_fine"] < r3["batteria_inizio"], r3
     print("trip_engine self-check OK")

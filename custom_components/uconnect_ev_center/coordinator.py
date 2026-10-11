@@ -31,6 +31,7 @@ from .const import (
     CONF_CHARGING_ENTITY,
     CONF_CO2_ENABLED,
     CONF_GEOCODE_ENABLED,
+    CONF_MERGE_CHARGES,
     CONF_AVG_KMH,
     CONF_CO2_GRID_GKWH,
     CONF_CO2_THERMAL_GKM,
@@ -143,6 +144,7 @@ DEFAULT_WB_START_W,
     TRIP_MIN_KM,
     TRIP_MIN_MINUTES,
     WALLBOX_CHARGING_STATES,
+    WALLBOX_FINISHED_TOKENS,
 )
 from .meters import DeltaMeter, PeriodMeter, period_keys
 from .store import MateStore
@@ -303,6 +305,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.geocode_enabled = bool(opts.get(CONF_GEOCODE_ENABLED, True))
         self._geocode_backfilled = False
+        # --- diagnostica (redatta): esito update, esito rete, contatori geocodifica ---
+        self.last_update_ok: bool | None = None
+        self.geocode_stats: dict[str, int] = {"ok": 0, "none": 0, "error": 0}
+        self.geocode_last: str | None = None
+        self.last_net_error: dict[str, Any] | None = None
+        self._geo_last_ts = 0.0
+        self.merge_charges = bool(opts.get(CONF_MERGE_CHARGES, True))
         self.purchase_date = str(opts.get(CONF_PURCHASE_DATE) or "")
         self.store = MateStore(hass, entry.entry_id)
 
@@ -323,7 +332,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         self.tag_termico = _f(opts.get(CONF_TAG_TERMICO), 250.0)
         self.tag_ev = _f(opts.get(CONF_TAG_EV), 80.0)
         self.bollo_termico = _f(opts.get(CONF_BOLLO_TERMICO), 350.0)
-        self.bollo_ev = _f(opts.get(CONF_BOLLO_EV), 150.0)
+        self.bollo_ev = _f(opts.get(CONF_BOLLO_EV), DEFAULT_BOLLO_EV)
         self.tagliando_intervallo = max(_f(opts.get(CONF_TAGLIANDO_INTERVALLO), 15000), 5000)
         self.tyre_interval = max(_f(opts.get(CONF_TYRE_INTERVAL), 40000), 5000)
         self.temp_entity = opts.get(CONF_TEMP_ENTITY) or ""
@@ -726,6 +735,18 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             return None
         return v in PLUG_CONNECTED_VALUES
 
+    def _wb_finished(self) -> bool:
+        """True se la wallbox segnala ricarica finita/ferma (chiude anche a spina inserita)."""
+        ent = self.opts.get(CONF_WB_STATE)
+        if not ent:
+            return False
+        v = (_txt(self.hass, ent) or "").lower()
+        if not v or v in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            return False
+        if v in WALLBOX_CHARGING_STATES:
+            return False
+        return any(tok in v for tok in WALLBOX_FINISHED_TOKENS)
+
     def _wb_counter(self) -> float | None:
         """Contatore energia wallbox in kWh: prima la sessione, poi il totale."""
         for key in (CONF_WB_SESSION_ENERGY, CONF_WB_TOTAL_ENERGY):
@@ -835,9 +856,12 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         try:
             data = await self._async_update_data_inner()
+            self.last_update_ok = True
         except UpdateFailed:
+            self.last_update_ok = False
             raise
         except Exception as err:  # noqa: BLE001
+            self.last_update_ok = False
             if self.data:
                 _LOGGER.warning("Update fallito, uso dati precedenti: %s", err, exc_info=True)
                 return self.data
@@ -1064,6 +1088,9 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     "power_max_kw": 0.0,
                     "odometro_inizio": odometer,
                     "prezzo": self._price_for_zone(location or "home"),
+                    # posizione all'avvio della ricarica (per l'indirizzo, opzionale)
+                    "gps": ({"lat": round(lat, 5), "lon": round(lon, 5)}
+                            if lat is not None and lon is not None else {}),
                 }
                 started_charge = True
             self.charge_session["soc_now"] = battery
@@ -1101,9 +1128,17 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             if (time.time() - self.charge_session["start_ts"]) > 26 * 3600:
                 finished_charge = self._finalize_charge(location, battery)
         elif self.charge_session is not None:
-            self._charge_off_polls += 1
-            if self._charge_off_polls >= 2:
-                finished_charge = self._finalize_charge(location, battery)
+            # Chiusura sessione = spina STACCATA (guard) OPPURE wallbox che segnala "finita".
+            # - spina ancora dentro + wallbox in pausa/load-balancing → NON chiudere (guard):
+            #   altrimenti una singola ricarica viene spezzettata in più sessioni;
+            # - wallbox "finita/ferma" → chiudi anche a spina inserita (utile alle colonnine
+            #   pubbliche, dove la spina resta dentro o lo stato non è affidabile).
+            if self._wb_finished() or self._plug_connected() is not True:
+                self._charge_off_polls += 1
+                if self._charge_off_polls >= 2:
+                    finished_charge = self._finalize_charge(location, battery)
+            else:
+                self._charge_off_polls = 0  # spina dentro e wallbox attiva → sessione aperta
 
         # --- storico giornaliero ---------------------------------------------------
         history = self.store.data["daily"]
@@ -1158,6 +1193,9 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "drain": round(_vamp_oggi, 1),
             "soc_end": _soc_end,
             "temp": round(temp_out, 1) if temp_out is not None else None,
+            # prezzo carburante del giorno (ultimo letto): serve al risparmio dei periodi,
+            # che usa la media PESATA SUI KM dei prezzi dei giorni (vedi sotto)
+            "prezzo_carburante": round(self._prezzo_termico(), 3),
         })
         _storico = self.store.data["daily"]
         _trip_day: dict[str, int] = {}
@@ -1267,10 +1305,28 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         if self.fuel_enabled:
             litri_100 = self.fuel_consumption
             prezzo_l = self._prezzo_termico()
+            # prezzo carburante SALVATO per giorno (store.data["daily"]): ogni periodo usa la
+            # MEDIA PESATA SUI KM dei prezzi dei suoi giorni → il prezzo di oggi non riscrive
+            # più retroattivamente i mesi/anni passati.
+            _daily_price = [
+                (str(r.get("data", "")), _f(r.get("km")), _f(r.get("prezzo_carburante")))
+                for r in self.store.data.get("daily", [])
+            ]
+
+            def _prezzo_of(pred) -> float:
+                num = den = 0.0
+                for d, k, p in _daily_price:
+                    if pred(d) and p > 0.2 and k > 0:  # >0.2 = scarta vuoti/placeholder
+                        num += k * p
+                        den += k
+                return (num / den) if den > 0 else prezzo_l  # fallback: prezzo attuale
             # Km MIEI: si parte dall'odometro all'attivazione (auto comprata usata
             # con 10000 km: quei km non sono tuoi, il costo termico va sui tuoi).
             _base0 = _f(self.store.data.get("install", {}).get("odometer"))
             km_tot = odometer - _base0 if 0 < _base0 < odometer else odometer
+            # il totale non può essere MENO dei km realmente tracciati (viaggi): con una
+            # baseline "all'attivazione" troppo alta il totale crollava sotto il mensile
+            km_tot = max(km_tot, sum(_f(t.get("km")) for t in trips))
 
             def _chg_cost(pred) -> float:
                 """Costo ricariche del periodo, dai RECORD (i meter live non sono affidabili)."""
@@ -1287,7 +1343,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
             def _periodo(label: str, pred, km_meter: float) -> None:
                 km = km_meter if km_meter > 0 else _km_of(pred)
-                termica = km * litri_100 * prezzo_l / 100.0
+                termica = km * litri_100 * _prezzo_of(pred) / 100.0
                 elettrico = _chg_cost(pred)
                 savings[label] = round(termica - elettrico, 2)
                 if label == "totale":
@@ -1299,7 +1355,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                      self._km_shown("monthly"))
             _periodo("anno", lambda d: d[:4] == keys["yearly"],
                      self._km_shown("yearly"))
-            savings["prezzo_termico"] = prezzo_l
+            savings["prezzo_termico"] = round(_prezzo_of(lambda d: True), 3)
+            savings["prezzo_live"] = round(prezzo_l, 3)
             savings["km_totali"] = round(km_tot, 1)
 
             # --- dettaglio per voce: termica vs elettrica --------------------------
@@ -1380,7 +1437,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             savings["install_date"] = _inst.get("date") or None
             if _odo_base > 0 and odometer > _odo_base:
                 km_i = odometer - _odo_base
-                termica_i = km_i * litri_100 * prezzo_l / 100.0
+                termica_i = km_i * litri_100 * _prezzo_of(lambda d: True) / 100.0
                 elettrica_i = _f(savings.get("elettrico_totale"))  # solo ricariche registrate
                 savings["da_installazione"] = {
                     "km": round(km_i, 1),
@@ -1574,15 +1631,17 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         yday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
         def _trips_sum(pred) -> tuple[float, float, float]:
-            km = pct = 0.0
+            km = pct = kwh_real = 0.0
             for t in trips:
                 if pred(str(t.get("data", ""))):
                     km += _f(t.get("km"))
                     pct += abs(_f(t.get("batteria_delta")))
-            # kWh consumati dal SoC REALE (delta % × capacità EFFETTIVA con SOH): è il
-            # consumo effettivo; il calcolo dai km sbaglia sui tragitti corti.
+                    kwh_real += _f(t.get("kwh_consumati"))
+            # stima dal SoC REALE (delta % × capacità EFFETTIVA con SOH)
             kwh = round(pct / 100.0 * self._eff_capacity(), 2)
-            return round(km, 0), kwh, round(pct, 1)
+            # ma i kWh dei viaggi (integrati alla chiusura) sono la fonte primaria:
+            # il solo delta li azzera quando il cloud non aggiorna il SoC a metà viaggio
+            return round(km, 0), (round(kwh_real, 2) if kwh_real > 0 else kwh), round(pct, 1)
 
         o_km, o_kwh, o_pct = _trips_sum(lambda d: d == today_key)
         i_km, i_kwh, i_pct = _trips_sum(lambda d: d == yday)
@@ -1986,6 +2045,10 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "tipo": tipo,
             # posizione della ricarica (per la notifica di fine carica)
             "zona": self._zone_label(str(s.get("zone") or zone or "")),
+            # GPS della ricarica (indirizzo risolto dopo via reverse-geocode, cache condivisa)
+            "gps": dict(s.get("gps") or {}),
+            # fine sessione (epoch): serve alla fusione dei frammenti della stessa ricarica
+            "end_ts": int(time.time()),
         }
         if split_ok:
             record["src_fv"] = src_fv
@@ -2024,15 +2087,60 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             })
             del sessions[:-100]
 
-        self.store.data["charges"].append(record)
+        # --- fusione ricariche frammentate: la wallbox può spezzare la STESSA ricarica ---
+        # (load-balancing / surplus). Se la precedente è finita da poco (<360 s), stessa
+        # zona, nessun viaggio nel mezzo e non è stata separata a mano → ESTENDI quella.
+        merged_into = None
+        _charges = self.store.data["charges"]
+        if self.merge_charges and _charges:
+            last = _charges[-1]
+            if (not last.get("separata")
+                    and _f(last.get("end_ts")) > 0
+                    and 0 <= (record["end_ts"] - _f(last.get("end_ts"))) < 360
+                    and str(last.get("zona", "")) == str(record.get("zona", ""))
+                    and not self._trip_between(_f(last.get("end_ts")), s["start_ts"])):
+                merged_into = self._merge_charge(last, record)
+        if merged_into is None:
+            _charges.append(record)
+            self._queue_geocode_charge(record)
         # costo totale = somma delle ricariche registrate (fonte di verità, niente doppi conteggi)
-        self.cost_total = round(
-            sum(_f(c.get("costo")) for c in self.store.data["charges"]), 2
-        )
+        self.cost_total = round(sum(_f(c.get("costo")) for c in _charges), 2)
         self.charge_session = None
         self._charge_off_polls = 0
         self.persist(force=True)
-        return record
+        return merged_into or record
+
+    def _trip_between(self, a: float, b: float) -> bool:
+        """True se un viaggio è iniziato tra 'a' e 'b' (epoch): blocca la fusione."""
+        lo, hi = (a, b) if a <= b else (b, a)
+        for t in self.store.data.get("trips", []):
+            ts = _f(t.get("id"))
+            if ts > 0 and lo <= ts <= hi:
+                return True
+        return False
+
+    def _merge_charge(self, last: dict[str, Any], rec: dict[str, Any]) -> dict[str, Any]:
+        """Estende la ricarica 'last' con 'rec' (fusione di frammenti della stessa sessione)."""
+        # tiene traccia dei frammenti originali: consente di "separare" (annullare la fusione)
+        frags = last.get("_frammenti")
+        if not frags:
+            frags = [{k: v for k, v in last.items() if not k.startswith("_")}]
+        frags.append({k: v for k, v in rec.items() if not k.startswith("_")})
+        last["kwh"] = round(_f(last.get("kwh")) + _f(rec.get("kwh")), 2)
+        last["costo"] = round(_f(last.get("costo")) + _f(rec.get("costo")), 2)
+        last["durata_min"] = int(_f(last.get("durata_min"))) + int(_f(rec.get("durata_min")))
+        last["ora_fine"] = rec.get("ora_fine") or last.get("ora_fine")
+        last["end_ts"] = rec.get("end_ts")
+        last["soc_end"] = rec.get("soc_end")
+        last["potenza_max_kw"] = max(_f(last.get("potenza_max_kw")),
+                                     _f(rec.get("potenza_max_kw")))
+        if last["durata_min"] > 5:
+            last["potenza_media_kw"] = round(last["kwh"] / (last["durata_min"] / 60.0), 2)
+        for k in ("src_fv", "src_bat", "src_rete", "rete_kwh", "batteria_kwh"):
+            if k in rec:
+                last[k] = round(_f(last.get(k)) + _f(rec.get(k)), 2)
+        last["_frammenti"] = frags
+        return last
 
     # ------------------------------------------------------------- arricchimenti
     def _zone_label(self, raw: str) -> str:
@@ -2106,6 +2214,43 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         except RuntimeError:  # nessun event loop attivo
             pass
 
+    # vocabolario FISSO degli errori di rete: mai host/IP/testo di sistema nel bundle
+    _NET_ERROR_KINDS = ("timeout", "dns_failure", "connection_refused", "connection_reset",
+                        "network_unreachable", "tls_failure", "http_4xx", "http_5xx",
+                        "invalid_response", "unknown")
+
+    @staticmethod
+    def _classify_error(err: Exception) -> str:
+        """Riconduce un errore di rete a una voce fissa (niente testo di sistema)."""
+        name = type(err).__name__.lower()
+        msg = str(err).lower()
+        if "timeout" in name or "timeout" in msg or "timed out" in msg:
+            return "timeout"
+        if ("name or service" in msg or "nodename" in msg or "getaddrinfo" in msg
+                or "resolver" in name or "gaierror" in name):
+            return "dns_failure"
+        if "certificate" in msg or "ssl" in name or "tls" in name or "cert" in msg:
+            return "tls_failure"
+        if "refused" in msg:
+            return "connection_refused"
+        if "reset" in msg:
+            return "connection_reset"
+        if "unreachable" in msg or "network is down" in msg or "no route" in msg:
+            return "network_unreachable"
+        if isinstance(err, ValueError) or "json" in name or "decode" in msg:
+            return "invalid_response"
+        return "unknown"
+
+    def _note_geo(self, outcome: str, kind: str | None = None) -> None:
+        """Registra l'esito della geocodifica (ok/none/error) per la diagnostica."""
+        self.geocode_stats[outcome] = self.geocode_stats.get(outcome, 0) + 1
+        self.geocode_last = outcome
+        if kind:
+            self.last_net_error = {
+                "kind": kind if kind in self._NET_ERROR_KINDS else "unknown",
+                "at": dt_util.now().isoformat(timespec="seconds"),
+            }
+
     async def _reverse_geocode(self, lat: float, lon: float) -> dict[str, str]:
         """Coordinate → {via, citta, paese, label} via Nominatim/OSM, con cache su disco."""
         if not self.geocode_enabled:
@@ -2119,16 +2264,19 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
         url = ("https://nominatim.openstreetmap.org/reverse?format=jsonv2"
                f"&lat={lat4}&lon={lon4}&zoom=16&addressdetails=1&accept-language=it")
+        await self._geo_throttle()  # condiviso da viaggi E ricariche (~1/1.1 s)
         try:
             session = async_get_clientsession(self.hass)
             async with session.get(
                 url, headers={"User-Agent": "uconnect-ev-center/1.0 (Home Assistant)"}, timeout=6
             ) as resp:
                 if resp.status != 200:
+                    self._note_geo("error", "http_5xx" if resp.status >= 500 else "http_4xx")
                     return {}
                 js = await resp.json()
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Reverse geocoding non riuscito: %s", err)
+            self._note_geo("error", self._classify_error(err))
             return {}
         ad = js.get("address") or {}
         via = ad.get("road") or ad.get("pedestrian") or ad.get("suburb") or ""
@@ -2137,6 +2285,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         paese = ad.get("country") or ""
         out = {"via": via, "citta": citta, "paese": paese,
                "label": ", ".join(p for p in (via, citta) if p)}
+        self._note_geo("ok" if (via or citta or paese) else "none")
         cache[key] = out
         if len(cache) > 500:
             for k in list(cache)[: len(cache) - 500]:
@@ -2159,6 +2308,34 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 record[lkey] = info.get("label") or info.get("citta") or ""
                 record[pkey] = info.get("paese") or ""
         self.persist()
+
+    async def _geo_throttle(self) -> None:
+        """Spazia le richieste a Nominatim (~1/1.1 s) per non farsi bannare."""
+        wait = 1.1 - (time.monotonic() - self._geo_last_ts)
+        if wait > 0:
+            await asyncio.sleep(wait)
+        self._geo_last_ts = time.monotonic()
+
+    def _queue_geocode_charge(self, record: dict[str, Any]) -> None:
+        """Reverse-geocoding della POSIZIONE della ricarica (best-effort, non bloccante)."""
+        if not self.geocode_enabled or record.get("luogo"):
+            return
+        gps = record.get("gps") or {}
+        if gps.get("lat") is None or gps.get("lon") is None:
+            return
+        try:
+            self.hass.async_create_task(self._geocode_charge(record))
+        except RuntimeError:  # nessun event loop attivo
+            pass
+
+    async def _geocode_charge(self, record: dict[str, Any]) -> None:
+        """Scrive luogo/paese della ricarica (cache CONDIVISA con i viaggi)."""
+        gps = record.get("gps") or {}
+        info = await self._reverse_geocode(gps.get("lat"), gps.get("lon"))
+        if info:
+            record["luogo"] = info.get("label") or info.get("citta") or ""
+            record["paese"] = info.get("paese") or ""
+            self.persist()
 
     def _maybe_backfill_geocode(self) -> None:
         """Una tantum: geocodifica i viaggi registrati prima che il geocoding esistesse."""
@@ -2390,14 +2567,22 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         self.persist(force=True)
 
     def service_add_manual_charge(self, kwh: float, costo: float, tipo: str,
-                                  quando: datetime | None, descrizione: str = "") -> dict[str, Any]:
+                                  quando: datetime | None, descrizione: str = "",
+                                  durata_min: float = 0.0) -> dict[str, Any]:
         q = quando or dt_util.now()
+        dur = round(float(durata_min or 0), 1)
+        fine = q + timedelta(minutes=dur) if dur > 0 else q
+        # id univoco: due ricariche nello stesso secondo non devono collidere
+        rid = int(q.timestamp())
+        _ids = {c.get("id") for c in self.store.data["charges"]}
+        while rid in _ids:
+            rid += 1
         record = {
-            "id": int(q.timestamp()),
+            "id": rid,
             "data": q.strftime("%Y-%m-%d"),
             "ora_inizio": q.strftime("%H:%M"),
-            "ora_fine": q.strftime("%H:%M"),
-            "durata_min": 0,
+            "ora_fine": fine.strftime("%H:%M"),
+            "durata_min": dur,
             "kwh": round(kwh, 2),
             "soc_start": 0.0,
             "soc_end": 0.0,
@@ -2405,6 +2590,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "costo": round(costo, 2),
             "tipo": tipo or "Manuale",
             "note": str(descrizione or "").strip(),
+            "manuale": True,
         }
         self.store.data["charges"].append(record)
         self.cost_total = round(
@@ -2412,6 +2598,81 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         )
         self.persist(force=True)
         return record
+
+    def service_delete_charge(self, charge_id: int) -> bool:
+        prima = len(self.store.data["charges"])
+        self.store.data["charges"] = [
+            c for c in self.store.data["charges"] if c.get("id") != charge_id
+        ]
+        self.cost_total = round(
+            sum(_f(c.get("costo")) for c in self.store.data["charges"]), 2
+        )
+        self.persist(force=True)
+        return len(self.store.data["charges"]) < prima
+
+    def service_update_charge(self, charge_id: int, kwh: float | None = None,
+                              costo: float | None = None, tipo: str | None = None,
+                              durata_min: float | None = None, descrizione: str | None = None,
+                              quando: datetime | None = None) -> dict[str, Any] | None:
+        """Modifica una ricarica esistente (solo i campi passati)."""
+        rec = next((c for c in self.store.data["charges"] if c.get("id") == charge_id), None)
+        if rec is None:
+            return None
+        if quando is not None:
+            rec["data"] = quando.strftime("%Y-%m-%d")
+            rec["ora_inizio"] = quando.strftime("%H:%M")
+        if kwh is not None:
+            rec["kwh"] = round(float(kwh), 2)
+        if costo is not None:
+            rec["costo"] = round(float(costo), 2)
+        if tipo is not None:
+            rec["tipo"] = str(tipo)
+        if descrizione is not None:
+            rec["note"] = str(descrizione).strip()
+        if durata_min is not None:
+            rec["durata_min"] = round(float(durata_min), 1)
+        # ora_fine = ora_inizio + durata (avvolgendo la mezzanotte)
+        dur = _f(rec.get("durata_min"))
+        try:
+            hh, mm = str(rec.get("ora_inizio") or "00:00").split(":")[:2]
+            if dur > 0:
+                t1 = (int(hh) * 60 + int(mm) + int(round(dur))) % (24 * 60)
+                rec["ora_fine"] = f"{t1 // 60:02d}:{t1 % 60:02d}"
+            else:
+                rec["ora_fine"] = rec.get("ora_inizio") or rec.get("ora_fine")
+        except (ValueError, TypeError):
+            pass
+        self.cost_total = round(
+            sum(_f(c.get("costo")) for c in self.store.data["charges"]), 2
+        )
+        self.persist(force=True)
+        return rec
+
+    def service_separate_charge(self, charge_id: int | None = None) -> int:
+        """Separa una ricarica fusa nei frammenti originali. Senza id: l'ultima."""
+        charges = self.store.data["charges"]
+        idx = None
+        if charge_id is not None:
+            idx = next((i for i, c in enumerate(charges) if c.get("id") == charge_id), None)
+        elif charges:
+            idx = len(charges) - 1
+        if idx is None:
+            return 0
+        rec = charges[idx]
+        frags = rec.get("_frammenti")
+        if frags and len(frags) > 1:
+            for fr in frags:
+                fr.pop("_frammenti", None)
+                fr["separata"] = True  # evita che venga ri-fusa
+            charges[idx:idx + 1] = frags
+            n = len(frags)
+        else:
+            rec.pop("_frammenti", None)
+            rec["separata"] = True
+            n = 1
+        self.cost_total = round(sum(_f(c.get("costo")) for c in charges), 2)
+        self.persist(force=True)
+        return n
 
     def service_delete_trip(self, trip_id: int) -> bool:
         prima = len(self.store.data["trips"])

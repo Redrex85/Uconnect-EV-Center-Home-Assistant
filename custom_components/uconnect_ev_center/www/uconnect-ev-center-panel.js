@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.3";
+const REC_VER = "1.0.5";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -36,6 +36,7 @@ const I18N = {
     nav_p12: "Vehicle",
     nav_p11: "Wallbox", nav_p5: "Battery health", nav_p6: "Maintenance", nav_p7: "Savings",
     nav_p8: "Extra", nav_p9: "Automations", nav_p10: "Settings",
+    ph_cerca_ricariche: "Search…",
     h3_comandi_uconnect: "Uconnect commands",
     sub_veicolo: "Vehicle status and data read from the Uconnect integration. Entities not mapped in Configure stay hidden.",
     h3_veicolo_stato: "🚗 Vehicle status", h3_veicolo_pneumatici: "🛞 Tyres",
@@ -283,6 +284,7 @@ const I18N = {
     nav_p12: "Véhicule",
     nav_p11: "Wallbox", nav_p5: "Santé batterie", nav_p6: "Entretien", nav_p7: "Économies",
     nav_p8: "Extra", nav_p9: "Automatisations", nav_p10: "Réglages",
+    ph_cerca_ricariche: "Rechercher…",
     h3_comandi_uconnect: "Commandes Uconnect",
     sub_veicolo: "État et données du véhicule lus depuis l'intégration Uconnect. Les entités non mappées dans Configurer restent masquées.",
     h3_veicolo_stato: "🚗 État du véhicule", h3_veicolo_pneumatici: "🛞 Pneumatiques",
@@ -538,6 +540,7 @@ const I18N = {
     nav_p8: "Extra",
     nav_p9: "Automatizaciones",
     nav_p10: "Ajustes",
+    ph_cerca_ricariche: "Buscar…",
     h3_comandi_uconnect: "Comandos Uconnect",
     sub_veicolo: "Estado y datos del vehículo leídos de la integración Uconnect. Las entidades no mapeadas en Configurar permanecen ocultas.",
     h3_veicolo_stato: "🚗 Estado del vehículo", h3_veicolo_pneumatici: "🛞 Neumáticos",
@@ -793,6 +796,7 @@ const I18N = {
     nav_p8: "Extra",
     nav_p9: "Automatisierungen",
     nav_p10: "Einstellungen",
+    ph_cerca_ricariche: "Suchen…",
     h3_comandi_uconnect: "Uconnect-Befehle",
     sub_veicolo: "Fahrzeugstatus und Daten aus der Uconnect-Integration. Nicht in Konfigurieren zugeordnete Entitäten bleiben ausgeblendet.",
     h3_veicolo_stato: "🚗 Fahrzeugstatus", h3_veicolo_pneumatici: "🛞 Reifen",
@@ -2679,6 +2683,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     _POWERTRAIN = this._cfg.powertrain;
     this._page = localStorage.getItem("rec_panel_page") || "p1";
     this._theme = localStorage.getItem("rec_panel_theme") || "blu";
+    this._ricQuery = localStorage.getItem("rec_ric_q") || "";
     this._built = false;
     this._raf = null;
     // SOLO ORA: queste usano this._cfg, quindi vanno dopo la sua assegnazione
@@ -3399,6 +3404,37 @@ class UconnectEvCenterPanel extends HTMLElement {
     });
     // click sui sensori KPI → apre il more-info di HA
     this.shadowRoot.addEventListener("click", (ev) => {
+      const rdel = ev.target && ev.target.closest ? ev.target.closest("[data-ricdel]") : null;
+      if (rdel) {
+        this._call("uconnect_ev_center", "delete_charge",
+          { charge_id: parseInt(rdel.dataset.ricdel, 10) }, "🗑 Ricarica eliminata");
+        return;
+      }
+      const rsep = ev.target && ev.target.closest ? ev.target.closest("[data-ricsep]") : null;
+      if (rsep) {
+        this._call("uconnect_ev_center", "separate_charge",
+          { charge_id: parseInt(rsep.dataset.ricsep, 10) }, "✂️ Ricarica separata");
+        return;
+      }
+      const redit = ev.target && ev.target.closest ? ev.target.closest("[data-ricedit]") : null;
+      if (redit) {
+        const id = parseInt(redit.dataset.ricedit, 10);
+        const r = this._list(this._sid("lista_ricariche")).find((x) => parseInt(x.id, 10) === id);
+        if (r) {
+          const g = (k) => this.shadowRoot.querySelector(`[data-mc="${k}"]`);
+          if (g("data")) g("data").value = r.data || "";
+          if (g("kwh")) g("kwh").value = (r.kwh ?? r.energia ?? "");
+          if (g("costo")) g("costo").value = (r.costo ?? "");
+          if (g("tipo")) g("tipo").value = r.tipo || "Pubblica";
+          if (g("durata")) g("durata").value = (r.durata_min ?? r.durata ?? "");
+          if (g("descrizione")) g("descrizione").value = r.note || "";
+          this._editChargeId = id;
+          this._editChargeData = r.data || "";
+          const btn = this.shadowRoot.querySelector('[data-cmd="add_charge_manual"]');
+          if (btn) { btn.textContent = "💾 Salva modifiche"; btn.scrollIntoView({ behavior: "smooth", block: "center" }); }
+        }
+        return;
+      }
       const del = ev.target && ev.target.closest ? ev.target.closest("[data-mdel]") : null;
       if (del) {
         this._call("uconnect_ev_center", "delete_maintenance",
@@ -3508,6 +3544,16 @@ class UconnectEvCenterPanel extends HTMLElement {
         this._update();
       });
     });
+    // ricerca testuale nello storico ricariche (filtro client, persistito)
+    const ricq = this.shadowRoot.querySelector('[data-f="ric_q"]');
+    if (ricq) {
+      ricq.value = this._ricQuery || "";
+      ricq.addEventListener("input", () => {
+        this._ricQuery = ricq.value;
+        localStorage.setItem("rec_ric_q", ricq.value);
+        this._tableRicariche(this.shadowRoot);
+      });
+    }
     // selettore lingua (p10): override in localStorage, vuoto = segui HA
     const langSel = this.shadowRoot.querySelector("select[data-lang]");
     if (langSel) {
@@ -3892,12 +3938,25 @@ class UconnectEvCenterPanel extends HTMLElement {
         const costo = parseFloat((g("costo") || {}).value);
         const data = (g("data") || {}).value || "";
         const tipo = (g("tipo") || {}).value || "Pubblica";
+        const durata = parseFloat((g("durata") || {}).value);
         const descrizione = ((g("descrizione") || {}).value || "").trim();
         const payload = { kwh, costo: isNaN(costo) ? 0 : costo, tipo };
+        if (!isNaN(durata) && durata > 0) payload.durata_min = durata;
         if (descrizione) payload.descrizione = descrizione;
-        if (data) payload.quando = `${data}T12:00:00`;
-        this._call("uconnect_ev_center", "add_manual_charge", payload, "➕ Ricarica registrata");
-        ["data", "kwh", "costo", "descrizione"].forEach((k) => { const el = g(k); if (el) el.value = ""; });
+        const btnCM = this.shadowRoot.querySelector('[data-cmd="add_charge_manual"]');
+        if (this._editChargeId) {
+          // la data si manda solo se l'utente l'ha cambiata (altrimenti l'ora originale resta)
+          if (data && data !== this._editChargeData) payload.quando = `${data}T12:00:00`;
+          payload.charge_id = this._editChargeId;
+          this._call("uconnect_ev_center", "update_charge", payload, "✏️ Ricarica modificata");
+          this._editChargeId = null;
+          this._editChargeData = null;
+          if (btnCM) btnCM.textContent = "💾 Registra ricarica";
+        } else {
+          if (data) payload.quando = `${data}T12:00:00`;
+          this._call("uconnect_ev_center", "add_manual_charge", payload, "➕ Ricarica registrata");
+        }
+        ["data", "kwh", "costo", "durata", "descrizione"].forEach((k) => { const el = g(k); if (el) el.value = ""; });
         break;
       }
       case "tfilter-reset": {
@@ -4324,20 +4383,28 @@ class UconnectEvCenterPanel extends HTMLElement {
             show: { legend_value: false },
           },
           {
-            entity: this._sid("kwh_per_100km"),
+            // media GIORNALIERA REALE (kWh/100km pesato sui km del giorno), presa dallo
+            // storico giornaliero: i giorni a 0 km NON entrano, così la linea non "crolla".
+            // Il vecchio uso dell'eff live (× autonomia) si azzerava/oscillava da fermo.
+            entity: this._sid("storico_giornaliero"),
             name: _ui("Media Consumi"),
             yaxis_id: "second",
+            type: "line",
             curve: "smooth",
             stroke_width: 3,
-            fill_raw: "last",
             color: "green",
-            extend_to: "end",
             float_precision: 2,
             min: 0,
-            // gli 0 dello stato (nessun viaggio, dati non ancora pronti) non devono
-            // abbassare la media giornaliera: la linea scendeva a 0 nel grafico
-            transform: "return x > 0 ? x : null",
-            group_by: { func: "avg", fill: "last", duration: "1day" },
+            data_generator: (entity) => {
+              const days = (entity && entity.attributes && entity.attributes.days) || [];
+              return days
+                .filter((d) => (parseFloat(d.km) || 0) > 0.5)
+                .map((d) => {
+                  const v = parseFloat(d.kwh_per_100km) || parseFloat(d.eff) || 0;
+                  return [new Date(String(d.data) + "T12:00:00").getTime(), Math.round(v * 100) / 100];
+                })
+                .filter((p) => p[1] > 0);
+            },
             show: { legend_value: false },
           },
         ],
@@ -5076,7 +5143,10 @@ class UconnectEvCenterPanel extends HTMLElement {
     }).join("") || `<tr><td colspan="10" style="color:var(--muted)">Nessun viaggio per il filtro scelto</td></tr>`;
   }
   _tableRicariche(root) {
-    const rows = this._list(this._sid("lista_ricariche"));
+    const q = (this._ricQuery || "").trim().toLowerCase();
+    let rows = this._list(this._sid("lista_ricariche"));
+    if (q) rows = rows.filter((r) => [r.data, r.tipo, r.luogo, r.paese, r.note, r.zona]
+      .some((v) => String(v ?? "").toLowerCase().includes(q)));
     const tb = root.querySelector('[data-c="tab-ricariche"]');
     if (!tb) return;
     const vis = rows.slice(0, 8);
@@ -5084,8 +5154,13 @@ class UconnectEvCenterPanel extends HTMLElement {
       const dm = parseFloat(r.durata_min ?? r.durata ?? 0);
       const dur = dm > 0 ? this._fmt(dm / 60, 1) + " h" : "—";
       const dsoc = (r.soc_end !== undefined && r.soc_start !== undefined) ? "+" + Math.round(r.soc_end - r.soc_start) + "%" : "—";
-      return `<tr><td>${this._d(r.data)}${r.ora_inizio ? " · " + r.ora_inizio : ""}</td>
-        <td>${r.tipo ?? "—"}${r.note ? `<br><span style="color:var(--muted);font-size:11px">${r.note}</span>` : ""}</td><td>${dur}</td>
+      // ricariche inserite a mano (o storiche senza dati wallbox): eliminabili / modificabili
+      const manual = r.manuale === true || ((parseFloat(r.potenza_media_kw || 0) || 0) === 0 && (parseFloat(r.soc_start || 0) || 0) === 0 && (parseFloat(r.soc_end || 0) || 0) === 0);
+      const merged = Array.isArray(r._frammenti) && r._frammenti.length > 1;
+      const sep = merged ? ` <span class="dchip" data-ricsep="${r.id}" title="Separa (annulla fusione)">✂️</span>` : "";
+      const act = (manual ? ` <span class="dchip" data-ricedit="${r.id}" title="Modifica">✏️</span><span class="dchip" data-ricdel="${r.id}" title="Elimina">🗑</span>` : "") + sep;
+      return `<tr><td>${this._d(r.data)}${r.ora_inizio ? " · " + r.ora_inizio : ""}${merged ? ' <span title="Ricarica fusa">🔗</span>' : ""}${act}</td>
+        <td>${r.tipo ?? "—"}${r.luogo ? `<br><span style="color:var(--muted);font-size:11px">📍 ${r.luogo}${r.paese ? ", " + r.paese : ""}</span>` : ""}${r.note ? `<br><span style="color:var(--muted);font-size:11px">${r.note}</span>` : ""}</td><td>${dur}</td>
         <td><b>${dsoc}</b></td>
         <td>${this._fmt(parseFloat(r.kwh ?? r.energia ?? 0), 2)}</td>
         <td>${this._fmt(parseFloat(r.potenza_media_kw ?? r.kw_medio ?? 0), 2)}</td>
@@ -5546,6 +5621,8 @@ const PAGES = () => ({
         <input type="number" data-mc="kwh" step="0.01" min="0" style="width:90px"></label>
       <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)">Costo €
         <input type="number" data-mc="costo" step="0.01" min="0" style="width:90px"></label>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)">Durata min
+        <input type="number" data-mc="durata" step="1" min="0" style="width:80px"></label>
       <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)">Tipo
         <select data-mc="tipo" style="width:auto"><option>${_t("opt_casa", "Casa")}</option><option>${_t("opt_fotovoltaico", "Fotovoltaico")}</option><option selected>${_t("opt_pubblica", "Pubblica")}</option><option>${_t("opt_manuale", "Manuale")}</option></select></label>
       <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);flex:1;min-width:180px">Descrizione
@@ -5573,7 +5650,8 @@ const PAGES = () => ({
       <select data-sel="sel_tipo"></select>
       <select data-sel="sel_periodo"></select>
       <select data-sel="sel_mese"></select>
-      <select data-sel="sel_anno"></select></div>
+      <select data-sel="sel_anno"></select>
+      <input data-f="ric_q" type="search" placeholder="${_t("ph_cerca_ricariche", "Cerca…")}" style="min-width:180px"></div>
     <table><tr><th>Data</th><th>Tipo</th><th>Durata</th><th>Δ SoC</th><th>kWh</th><th>Ø kW</th><th>€/kWh</th><th>Costo</th></tr>
     <tbody data-c="tab-ricariche"></tbody></table></div>`,
 

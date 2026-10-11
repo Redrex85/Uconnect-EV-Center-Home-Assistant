@@ -51,6 +51,9 @@ SERVICE_CLOSE_TRIP = "close_trip"
 SERVICE_RESET_COUNTERS = "reset_counters"
 SERVICE_EXPORT_CSV = "export_trips_csv"
 SERVICE_ADD_CHARGE = "add_manual_charge"
+SERVICE_DELETE_CHARGE = "delete_charge"
+SERVICE_UPDATE_CHARGE = "update_charge"
+SERVICE_SEPARATE_CHARGE = "separate_charge"
 SERVICE_DELETE_TRIP = "delete_trip"
 SERVICE_ADD_MAINTENANCE = "add_maintenance"
 SERVICE_DELETE_MAINTENANCE = "delete_maintenance"
@@ -142,10 +145,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         quando = dt_util.parse_datetime(quando_raw) if quando_raw else dt_util.now()
         if isinstance(quando, dt) and quando.tzinfo is None:
             quando = quando.replace(tzinfo=dt_util.UTC)
+        durata = float(call.data.get("durata_min", 0) or 0)
         for coord in _targets(hass, call):
             rec = coord.service_add_manual_charge(kwh, costo, tipo, quando,
-                                                 str(call.data.get("descrizione", "") or ""))
+                                                 str(call.data.get("descrizione", "") or ""),
+                                                 durata)
+            # aggiorna SUBITO: senza questo la ricarica compariva solo al poll successivo
+            await coord.async_request_refresh()
             _LOGGER.info("Ricarica manuale aggiunta: %s kWh (%s)", rec["kwh"], rec["tipo"])
+
+    async def handle_delete_charge(call: ServiceCall) -> None:
+        cid = int(call.data["charge_id"])
+        for coord in _targets(hass, call):
+            coord.service_delete_charge(cid)
+            await coord.async_request_refresh()
+
+    async def handle_update_charge(call: ServiceCall) -> None:
+        quando_raw = call.data.get("quando")
+        quando = dt_util.parse_datetime(quando_raw) if quando_raw else None
+        if isinstance(quando, dt) and quando.tzinfo is None:
+            quando = quando.replace(tzinfo=dt_util.UTC)
+        for coord in _targets(hass, call):
+            coord.service_update_charge(
+                int(call.data["charge_id"]),
+                call.data.get("kwh"),
+                call.data.get("costo"),
+                call.data.get("tipo"),
+                call.data.get("durata_min"),
+                call.data.get("descrizione"),
+                quando,
+            )
+            await coord.async_request_refresh()
+
+    async def handle_separate_charge(call: ServiceCall) -> None:
+        cid = call.data.get("charge_id")
+        for coord in _targets(hass, call):
+            n = coord.service_separate_charge(int(cid) if cid is not None else None)
+            await coord.async_request_refresh()
+            _LOGGER.info("Ricarica separata in %s record", n)
 
     async def handle_delete_trip(call: ServiceCall) -> None:
         trip_id = int(call.data["trip_id"])
@@ -266,8 +303,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                   vol.Optional("costo", default=0.0): vol.Coerce(float),
                   vol.Optional("tipo", default="Pubblica"): str,
                   vol.Optional("descrizione", default=""): str,
+                  vol.Optional("durata_min", default=0.0): vol.Coerce(float),
                   vol.Optional("quando"): str,
               }))
+    _register(SERVICE_DELETE_CHARGE, handle_delete_charge,
+              schema=vol.Schema({vol.Optional("entry_id"): str,
+                                 vol.Required("charge_id"): cv.positive_int}))
+    _register(SERVICE_UPDATE_CHARGE, handle_update_charge,
+              schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
+                  vol.Required("charge_id"): cv.positive_int,
+                  vol.Optional("kwh"): vol.Coerce(float),
+                  vol.Optional("costo"): vol.Coerce(float),
+                  vol.Optional("tipo"): str,
+                  vol.Optional("durata_min"): vol.Coerce(float),
+                  vol.Optional("descrizione"): str,
+                   vol.Optional("quando"): str,
+               }))
+    _register(SERVICE_SEPARATE_CHARGE, handle_separate_charge,
+              schema=vol.Schema({vol.Optional("entry_id"): str,
+                                 vol.Optional("charge_id"): cv.positive_int}))
     _register(SERVICE_DELETE_TRIP, handle_delete_trip,
               schema=vol.Schema({vol.Optional("entry_id"): str,
                                  vol.Required("trip_id"): cv.positive_int}))
@@ -375,7 +430,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not hass.data[DOMAIN]:
             for name in (
                 SERVICE_CLOSE_TRIP, SERVICE_RESET_COUNTERS, SERVICE_EXPORT_CSV,
-                SERVICE_ADD_CHARGE, SERVICE_DELETE_TRIP, SERVICE_ADD_MAINTENANCE,
+    SERVICE_ADD_CHARGE, SERVICE_DELETE_CHARGE, SERVICE_UPDATE_CHARGE,
+    SERVICE_SEPARATE_CHARGE,
+    SERVICE_DELETE_TRIP, SERVICE_ADD_MAINTENANCE,
                 SERVICE_DELETE_MAINTENANCE, SERVICE_RENEW_INSURANCE,
                 SERVICE_SET_SCADENZA, SERVICE_SET_TAGLIANDO, SERVICE_CREATE_DASHBOARD,
                 SERVICE_CREATE_AUTOMATIONS, SERVICE_SET_LOW_SOC_DAYS,

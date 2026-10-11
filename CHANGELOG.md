@@ -4,6 +4,33 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.5] - 2026-10-11
+
+### Aggiunto
+- Indirizzo dell'auto nelle ricariche (via/paese dall'OpenStreetMap `geocoding`), mostrato nella tabella ricariche del pannello.
+- Fusione automatica delle ricariche frammentate della **stessa sessione** (stessa zona, entro 360 s, nessun viaggio nel mezzo), con azione **Separa** (✂️) per annullarla. Opzione in Configura («Unisci ricariche frammentate»).
+- Ricerca testuale nello storico ricariche (filtro client, persistito nel browser).
+- Diagnostica scaricabile (Download diagnostics) con esito ultimo aggiornamento, stato sorgenti, ultimo errore di rete e statistiche geocoding — valori sensibili oscurati.
+
+### Corretto
+- Ricariche: la sessione **non viene più chiusa mentre la spina è ancora collegata** (la wallbox in pausa/load-balancing non spezzetta più una singola ricarica in tante sessioni). La chiusura avviene ora o **staccando la spina** oppure quando la **wallbox segnala "ricarica finita"** (utile alle colonnine pubbliche, dove la spina resta inserita): lo stacco spina resta la *guard* anti-spezzettamento.
+
+## [1.0.4] - 2026-10-11
+
+### Aggiunto
+- Ricariche manuali: compaiono subito dopo l'inserimento, campo **Durata (min)** opzionale e azioni **modifica** (✏️) / **elimina** (🗑) sui record manuali (servizi `update_charge`, `delete_charge`).
+- Risparmi: il **prezzo carburante** è salvato **giorno per giorno**; ogni periodo (totale/mese/anno) usa la **media pesata sui km** dei prezzi dei suoi giorni, così il prezzo di oggi non riscrive più i periodi passati.
+
+### Corretto
+- Viaggi: il delta batteria è ricostruito dai kWh quando il cloud Uconnect non aggiorna il SoC a fine viaggio (record coerenti: niente più `batteria_inizio == batteria_fine`).
+- Percorrenza: gli "usati" (kWh) usano i kWh reali dei viaggi, non più 0 quando il delta batteria risulta nullo.
+- Risparmi: il **totale** non può essere inferiore ai km realmente tracciati (non più sotto il mensile).
+- Grafico Km (7 giorni): la linea "Media Consumi" usa il consumo **giornaliero reale** (pesato sui km) e non crolla più nei giorni a 0 km.
+
+### Modificato
+- Bollo EV predefinito **0 €/anno** (esenzione tipica EV in Italia; il termico resta 350).
+- README: spiegazione dei km del confronto (campo *Chilometri all'attivazione*) e integrazione **Fuel Prices Italy** (open data MIMIT) consigliata per gli utenti italiani.
+
 ## [1.0.3] - 2026-10-10
 
 ### Modificato

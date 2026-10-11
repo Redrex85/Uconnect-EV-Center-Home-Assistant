@@ -72,6 +72,7 @@ from .const import (
     MODELS,
     CONF_CO2_ENABLED,
     CONF_GEOCODE_ENABLED,
+    CONF_MERGE_CHARGES,
     CONF_AVG_KMH,
     CONF_CO2_GRID_GKWH,
     CONF_CO2_THERMAL_GKM,
@@ -601,6 +602,7 @@ def _settings_schema(defaults: dict[str, Any]) -> vol.Schema:
             vol.Optional(CONF_CO2_GRID_GKWH, default=defaults.get(CONF_CO2_GRID_GKWH, DEFAULT_CO2_GRID_GKWH)): NumberSelector(
                 NumberSelectorConfig(min=0, max=800, step=10, unit_of_measurement="g/kWh", mode=NumberSelectorMode.BOX)),
             vol.Required(CONF_GEOCODE_ENABLED, default=defaults.get(CONF_GEOCODE_ENABLED, True)): BooleanSelector(),
+            vol.Required(CONF_MERGE_CHARGES, default=defaults.get(CONF_MERGE_CHARGES, True)): BooleanSelector(),
             vol.Required(CONF_AVG_KMH, default=defaults.get(CONF_AVG_KMH, 30.0)): NumberSelector(
                 NumberSelectorConfig(min=10, max=120, step=1, unit_of_measurement="km/h", mode=NumberSelectorMode.BOX)),
             vol.Required(CONF_SCADENZE_ENABLED, default=defaults.get(CONF_SCADENZE_ENABLED, False)): BooleanSelector(),

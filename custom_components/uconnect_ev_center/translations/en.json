@@ -13,7 +13,8 @@
         "title": "Uconnect EV Center — Wallbox",
         "description": "Map your wallbox sensors (Wallbox, go-e, Easee, OCPP…). Leave empty what you don't have.",
         "data": {
-          "geocode_enabled": "Street and country in trips (OpenStreetMap geocoding)",
+          "geocode_enabled": "Street and country in trips and charges (OpenStreetMap geocoding)",
+          "merge_charges": "Merge fragmented charges of the same session",
           "avg_speed_kmh": "Average speed estimate for trip departure time"
         },
         "sections": {
@@ -300,7 +301,8 @@
               "co2_comparison": "Compute thermal vs EV CO2 comparison",
               "co2_thermal_gkm": "Thermal CO2 (g/km)",
               "co2_grid_gkwh": "Grid CO2 (g/kWh)",
-              "geocode_enabled": "Street and country in trips (OpenStreetMap geocoding)",
+              "geocode_enabled": "Street and country in trips and charges (OpenStreetMap geocoding)",
+          "merge_charges": "Merge fragmented charges of the same session",
               "avg_speed_kmh": "Average speed estimate for trip departure time",
               "scadenze_enabled": "Enable deadline reminders",
               "scadenza_bollo": "Road tax due date (YYYY-MM-DD)",
@@ -579,7 +581,8 @@
               "co2_comparison": "Compute thermal vs EV CO2 comparison",
               "co2_thermal_gkm": "Thermal CO2 (g/km)",
               "co2_grid_gkwh": "Grid CO2 (g/kWh)",
-              "geocode_enabled": "Street and country in trips (OpenStreetMap geocoding)",
+              "geocode_enabled": "Street and country in trips and charges (OpenStreetMap geocoding)",
+          "merge_charges": "Merge fragmented charges of the same session",
               "avg_speed_kmh": "Average speed estimate for trip departure time",
               "scadenze_enabled": "Enable deadline reminders",
               "scadenza_bollo": "Road tax due date (YYYY-MM-DD)",

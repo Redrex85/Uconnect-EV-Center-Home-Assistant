@@ -13,7 +13,8 @@
         "title": "Uconnect EV Center — Wallbox",
         "description": "Ordne deine Wallbox-Sensoren zu (Wallbox, go-e, Easee, OCPP…). Lasse leer, was du nicht hast.",
         "data": {
-          "geocode_enabled": "Straße und Land in Fahrten (OpenStreetMap-Geocoding)",
+          "geocode_enabled": "Straße und Land in Fahrten und Ladevorgängen (OpenStreetMap-Geocoding)",
+          "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
           "avg_speed_kmh": "Geschätzte Durchschnittsgeschwindigkeit für die Abfahrtszeit der Fahrt"
         },
         "sections": {
@@ -300,7 +301,8 @@
               "co2_comparison": "CO2-Vergleich Verbrenner vs. EV berechnen",
               "co2_thermal_gkm": "Verbrenner-CO2 (g/km)",
               "co2_grid_gkwh": "Netz-CO2 (g/kWh)",
-              "geocode_enabled": "Straße und Land in Fahrten (OpenStreetMap-Geocoding)",
+              "geocode_enabled": "Straße und Land in Fahrten und Ladevorgängen (OpenStreetMap-Geocoding)",
+          "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
               "avg_speed_kmh": "Geschätzte Durchschnittsgeschwindigkeit für die Abfahrtszeit der Fahrt",
               "scadenze_enabled": "Fristenerinnerungen aktivieren",
               "scadenza_bollo": "Fälligkeitsdatum Kfz-Steuer (JJJJ-MM-TT)",
@@ -579,7 +581,8 @@
               "co2_comparison": "CO2-Vergleich Verbrenner vs. EV berechnen",
               "co2_thermal_gkm": "Verbrenner-CO2 (g/km)",
               "co2_grid_gkwh": "Netz-CO2 (g/kWh)",
-              "geocode_enabled": "Straße und Land in Fahrten (OpenStreetMap-Geocoding)",
+              "geocode_enabled": "Straße und Land in Fahrten und Ladevorgängen (OpenStreetMap-Geocoding)",
+          "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
               "avg_speed_kmh": "Geschätzte Durchschnittsgeschwindigkeit für die Abfahrtszeit der Fahrt",
               "scadenze_enabled": "Fristenerinnerungen aktivieren",
               "scadenza_bollo": "Fälligkeitsdatum Kfz-Steuer (JJJJ-MM-TT)",
