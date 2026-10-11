@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.6] - 2026-10-11
+
+### Aggiunto
+- Pannello Ricariche: **calendario mensile** con i kWh per giorno e filtro cliccando una data (mese persistito nel browser).
+
 ## [1.0.5] - 2026-10-11
 
 ### Aggiunto

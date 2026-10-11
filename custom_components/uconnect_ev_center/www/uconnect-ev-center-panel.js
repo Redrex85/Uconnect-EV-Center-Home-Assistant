@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.5";
+const REC_VER = "1.0.6";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -2684,6 +2684,8 @@ class UconnectEvCenterPanel extends HTMLElement {
     this._page = localStorage.getItem("rec_panel_page") || "p1";
     this._theme = localStorage.getItem("rec_panel_theme") || "blu";
     this._ricQuery = localStorage.getItem("rec_ric_q") || "";
+    this._ricMonth = localStorage.getItem("rec_ric_month") || "";
+    this._ricDay = "";
     this._built = false;
     this._raf = null;
     // SOLO ORA: queste usano this._cfg, quindi vanno dopo la sua assegnazione
@@ -3404,6 +3406,33 @@ class UconnectEvCenterPanel extends HTMLElement {
     });
     // click sui sensori KPI → apre il more-info di HA
     this.shadowRoot.addEventListener("click", (ev) => {
+      const calnav = ev.target && ev.target.closest ? ev.target.closest("[data-calnav]") : null;
+      if (calnav) {
+        let c = this._ricMonth || "";
+        if (!/^\d{4}-\d{2}$/.test(c)) { const n = new Date(); c = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0"); }
+        let cy = parseInt(c.slice(0, 4), 10);
+        let cm = parseInt(c.slice(5, 7), 10) + parseInt(calnav.dataset.calnav, 10);
+        if (cm < 1) { cm = 12; cy -= 1; } else if (cm > 12) { cm = 1; cy += 1; }
+        this._ricMonth = cy + "-" + String(cm).padStart(2, "0");
+        localStorage.setItem("rec_ric_month", this._ricMonth);
+        this._calendarRicariche(this.shadowRoot);
+        return;
+      }
+      const calday = ev.target && ev.target.closest ? ev.target.closest("[data-calday]") : null;
+      if (calday) {
+        const key = calday.dataset.calday;
+        this._ricDay = this._ricDay === key ? "" : key;
+        this._calendarRicariche(this.shadowRoot);
+        this._tableRicariche(this.shadowRoot);
+        return;
+      }
+      const caldel = ev.target && ev.target.closest ? ev.target.closest("[data-caldel]") : null;
+      if (caldel) {
+        this._ricDay = "";
+        this._calendarRicariche(this.shadowRoot);
+        this._tableRicariche(this.shadowRoot);
+        return;
+      }
       const rdel = ev.target && ev.target.closest ? ev.target.closest("[data-ricdel]") : null;
       if (rdel) {
         this._call("uconnect_ev_center", "delete_charge",
@@ -4228,6 +4257,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     // tabelle dati dinamici
     this._tableViaggi(root);
     this._tableRicariche(root);
+    this._calendarRicariche(root);
     this._tableSalute(root);
     this._tableMesi(root);
     this._treeViaggi(root);
@@ -5142,9 +5172,61 @@ class UconnectEvCenterPanel extends HTMLElement {
         <td>${this._zn(r.zona_arrivo)}${r.luogo_arrivo ? `<br><span style="color:var(--muted);font-size:11px">${r.luogo_arrivo}${r.paese_arrivo ? " · " + r.paese_arrivo : ""}</span>` : ""}</td></tr>`;
     }).join("") || `<tr><td colspan="10" style="color:var(--muted)">Nessun viaggio per il filtro scelto</td></tr>`;
   }
+  _calendarRicariche(root) {
+    const box = root.querySelector('[data-c="cal-ricariche"]');
+    if (!box) return;
+    const byDay = {};
+    this._list(this._sid("lista_ricariche")).forEach((r) => {
+      const d = String(r.data || "").slice(0, 10);
+      if (d) byDay[d] = (byDay[d] || 0) + (parseFloat(r.kwh ?? r.energia ?? 0) || 0);
+    });
+    let cur = this._ricMonth || "";
+    if (!/^\d{4}-\d{2}$/.test(cur)) {
+      const n = new Date();
+      cur = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0");
+      this._ricMonth = "";
+    }
+    const y = parseInt(cur.slice(0, 4), 10);
+    const m = parseInt(cur.slice(5, 7), 10);
+    const loc = _loc();
+    const first = new Date(y, m - 1, 1);
+    const startDow = (first.getDay() + 6) % 7;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const monthLabel = first.toLocaleDateString(loc, { month: "long", year: "numeric" });
+    let head = "";
+    for (let i = 0; i < 7; i += 1) {
+      const w = new Date(2024, 0, 1 + i).toLocaleDateString(loc, { weekday: "narrow" });
+      head += '<th class="calh" style="text-align:center;text-transform:capitalize">' + w + "</th>";
+    }
+    let body = "";
+    let row = "";
+    let col = 0;
+    for (let i = 0; i < startDow; i += 1) { row += "<td></td>"; col += 1; }
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const key = cur + "-" + String(d).padStart(2, "0");
+      const kwh = byDay[key];
+      const mark = kwh ? '<div style="font-size:9px;color:var(--accent,#4d8dff)">' + this._fmt(kwh, 1) + "</div>" : "";
+      const st = "cursor:pointer;text-align:center;padding:4px" + (this._ricDay === key ? ";outline:2px solid var(--accent,#4d8dff);border-radius:4px" : "");
+      row += '<td class="cald" data-calday="' + key + '" style="' + st + '">' + d + mark + "</td>";
+      col += 1;
+      if (col % 7 === 0) { body += "<tr>" + row + "</tr>"; row = ""; }
+    }
+    if (row) { while (col % 7 !== 0) { row += "<td></td>"; col += 1; } body += "<tr>" + row + "</tr>"; }
+    const clear = this._ricDay
+      ? '<span class="dchip" data-caldel="1" style="cursor:pointer">✕ ' + this._ricDay + "</span>"
+      : "";
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+      '<span class="dchip" data-calnav="-1" style="cursor:pointer">◀</span>' +
+      '<b style="text-transform:capitalize">' + monthLabel + "</b>" +
+      '<span class="dchip" data-calnav="1" style="cursor:pointer">▶</span>' + clear +
+      "</div>" +
+      '<table style="width:auto"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table>";
+  }
   _tableRicariche(root) {
     const q = (this._ricQuery || "").trim().toLowerCase();
     let rows = this._list(this._sid("lista_ricariche"));
+    if (this._ricDay) rows = rows.filter((r) => String(r.data || "").slice(0, 10) === this._ricDay);
     if (q) rows = rows.filter((r) => [r.data, r.tipo, r.luogo, r.paese, r.note, r.zona]
       .some((v) => String(v ?? "").toLowerCase().includes(q)));
     const tb = root.querySelector('[data-c="tab-ricariche"]');
@@ -5652,6 +5734,7 @@ const PAGES = () => ({
       <select data-sel="sel_mese"></select>
       <select data-sel="sel_anno"></select>
       <input data-f="ric_q" type="search" placeholder="${_t("ph_cerca_ricariche", "Cerca…")}" style="min-width:180px"></div>
+    <div data-c="cal-ricariche" style="margin-bottom:12px"></div>
     <table><tr><th>Data</th><th>Tipo</th><th>Durata</th><th>Δ SoC</th><th>kWh</th><th>Ø kW</th><th>€/kWh</th><th>Costo</th></tr>
     <tbody data-c="tab-ricariche"></tbody></table></div>`,
 
