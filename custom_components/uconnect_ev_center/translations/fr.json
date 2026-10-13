@@ -88,7 +88,7 @@
               "charging_entity": "Capteur en charge",
               "plug_entity": "Statut prise (optionnel)",
               "location_entity": "Traqueur GPS voiture (optionnel)",
-              "install_odo": "Kilométrage à l'activation (km, 0 = lu au premier démarrage)",
+              "install_odo": "Compteur à l'installation — 0 = depuis l'installation, 1 = depuis le début de vie (si d'occasion : km à l'achat)",
               "powertrain": "Type (BEV / PHEV)"
             }
           },
@@ -368,7 +368,7 @@
               "charging_entity": "Capteur en charge",
               "plug_entity": "Statut prise (optionnel)",
               "location_entity": "Traqueur GPS voiture (optionnel)",
-              "install_odo": "Kilométrage à l'activation (km, 0 = lu au premier démarrage)",
+              "install_odo": "Compteur à l'installation — 0 = depuis l'installation, 1 = depuis le début de vie (si d'occasion : km à l'achat)",
               "powertrain": "Type (BEV / PHEV)"
             }
           },

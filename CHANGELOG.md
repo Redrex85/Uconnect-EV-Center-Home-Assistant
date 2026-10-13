@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.7] - 2026-10-11
+
+### Modificato
+- Calendario ricariche: mostra il mese delle ricariche **filtrate** (segue i filtri tipo/periodo/mese/anno), così anche i mesi vecchi (es. settembre) diventano visibili; rimosso il cambio mese separato (più semplice). Storico ricariche esposto dal sensore: 30 → 120 record.
+- Configura: *Chilometri all'attivazione* predefinito **1** (metti **0** per partire dal giorno d'installazione); README aggiornato — 0 = dal giorno d'installazione, 1 = dall'inizio vita auto, auto usata = km alla data d'acquisto.
+
 ## [1.0.6] - 2026-10-11
 
 ### Aggiunto

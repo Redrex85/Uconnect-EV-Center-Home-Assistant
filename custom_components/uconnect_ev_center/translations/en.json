@@ -88,7 +88,7 @@
               "charging_entity": "Charging sensor/binary sensor",
               "plug_entity": "Plug status (optional)",
               "location_entity": "Car GPS tracker (optional)",
-              "install_odo": "Kilometres at activation (km, 0 = read at first boot)",
+              "install_odo": "Odometer at setup — 0 = from install day, 1 = from car's first day (if used: km at purchase)",
               "powertrain": "Type (BEV / PHEV)"
             }
           },
@@ -368,7 +368,7 @@
               "charging_entity": "Charging sensor/binary sensor",
               "plug_entity": "Plug status (optional)",
               "location_entity": "Car GPS tracker (optional)",
-              "install_odo": "Kilometres at activation (km, 0 = read at first boot)",
+              "install_odo": "Odometer at setup — 0 = from install day, 1 = from car's first day (if used: km at purchase)",
               "powertrain": "Type (BEV / PHEV)"
             }
           },

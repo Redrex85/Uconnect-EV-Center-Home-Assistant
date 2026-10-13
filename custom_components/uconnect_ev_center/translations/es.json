@@ -88,7 +88,7 @@
               "charging_entity": "Sensor/binario de carga",
               "plug_entity": "Estado del enchufe (opcional)",
               "location_entity": "Rastreador GPS del coche (opcional)",
-              "install_odo": "Kilómetros en la activación (km, 0 = leer al primer arranque)",
+              "install_odo": "Odómetro al instalar — 0 = desde la instalación, 1 = desde el inicio de vida (si es de segunda mano: km de compra)",
               "powertrain": "Tipo (BEV / PHEV)"
             }
           },
@@ -368,7 +368,7 @@
               "charging_entity": "Sensor/binario de carga",
               "plug_entity": "Estado del enchufe (opcional)",
               "location_entity": "Rastreador GPS del coche (opcional)",
-              "install_odo": "Kilómetros en la activación (km, 0 = leer al primer arranque)",
+              "install_odo": "Odómetro al instalar — 0 = desde la instalación, 1 = desde el inicio de vida (si es de segunda mano: km de compra)",
               "powertrain": "Tipo (BEV / PHEV)"
             }
           },

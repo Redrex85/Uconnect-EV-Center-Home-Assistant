@@ -927,7 +927,7 @@ class ListaRicariche(MateSensor):
     def extra_state_attributes(self):
         cf = self.coordinator.data["charges_filtered"]
         return {
-            "items": cf["items"][:30],
+            "items": cf["items"][:120],
             "total": cf["n"],
             "tipo": cf["tipo"],
             "periodo": cf["periodo"],

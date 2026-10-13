@@ -88,7 +88,7 @@
               "charging_entity": "Lade-Binärsensor/Sensor",
               "plug_entity": "Steckerstatus (optional)",
               "location_entity": "Auto-GPS-Tracker (optional)",
-              "install_odo": "Kilometer bei Aktivierung (km, 0 = beim ersten Start auslesen)",
+              "install_odo": "Kilometerstand bei Einrichtung — 0 = ab Installation, 1 = ab Fahrzeugbeginn (bei Gebrauchtwagen: km beim Kauf)",
               "powertrain": "Typ (BEV / PHEV)"
             }
           },
@@ -368,7 +368,7 @@
               "charging_entity": "Lade-Binärsensor/Sensor",
               "plug_entity": "Steckerstatus (optional)",
               "location_entity": "Auto-GPS-Tracker (optional)",
-              "install_odo": "Kilometer bei Aktivierung (km, 0 = beim ersten Start auslesen)",
+              "install_odo": "Kilometerstand bei Einrichtung — 0 = ab Installation, 1 = ab Fahrzeugbeginn (bei Gebrauchtwagen: km beim Kauf)",
               "powertrain": "Typ (BEV / PHEV)"
             }
           },

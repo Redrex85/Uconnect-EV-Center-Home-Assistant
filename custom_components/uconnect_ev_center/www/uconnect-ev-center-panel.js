@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.6";
+const REC_VER = "1.0.7";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -2684,7 +2684,6 @@ class UconnectEvCenterPanel extends HTMLElement {
     this._page = localStorage.getItem("rec_panel_page") || "p1";
     this._theme = localStorage.getItem("rec_panel_theme") || "blu";
     this._ricQuery = localStorage.getItem("rec_ric_q") || "";
-    this._ricMonth = localStorage.getItem("rec_ric_month") || "";
     this._ricDay = "";
     this._built = false;
     this._raf = null;
@@ -3406,18 +3405,6 @@ class UconnectEvCenterPanel extends HTMLElement {
     });
     // click sui sensori KPI → apre il more-info di HA
     this.shadowRoot.addEventListener("click", (ev) => {
-      const calnav = ev.target && ev.target.closest ? ev.target.closest("[data-calnav]") : null;
-      if (calnav) {
-        let c = this._ricMonth || "";
-        if (!/^\d{4}-\d{2}$/.test(c)) { const n = new Date(); c = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0"); }
-        let cy = parseInt(c.slice(0, 4), 10);
-        let cm = parseInt(c.slice(5, 7), 10) + parseInt(calnav.dataset.calnav, 10);
-        if (cm < 1) { cm = 12; cy -= 1; } else if (cm > 12) { cm = 1; cy += 1; }
-        this._ricMonth = cy + "-" + String(cm).padStart(2, "0");
-        localStorage.setItem("rec_ric_month", this._ricMonth);
-        this._calendarRicariche(this.shadowRoot);
-        return;
-      }
       const calday = ev.target && ev.target.closest ? ev.target.closest("[data-calday]") : null;
       if (calday) {
         const key = calday.dataset.calday;
@@ -5180,11 +5167,15 @@ class UconnectEvCenterPanel extends HTMLElement {
       const d = String(r.data || "").slice(0, 10);
       if (d) byDay[d] = (byDay[d] || 0) + (parseFloat(r.kwh ?? r.energia ?? 0) || 0);
     });
-    let cur = this._ricMonth || "";
-    if (!/^\d{4}-\d{2}$/.test(cur)) {
+    // mese = quello delle ricariche visibili (segue i filtri tipo/periodo/mese/anno);
+    // se non c'è nulla, il mese corrente. Niente stato/navigazione: più semplice.
+    const dayKeys = Object.keys(byDay).sort();
+    let cur;
+    if (dayKeys.length) {
+      cur = dayKeys[dayKeys.length - 1].slice(0, 7);
+    } else {
       const n = new Date();
       cur = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0");
-      this._ricMonth = "";
     }
     const y = parseInt(cur.slice(0, 4), 10);
     const m = parseInt(cur.slice(5, 7), 10);
@@ -5217,10 +5208,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       : "";
     box.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-      '<span class="dchip" data-calnav="-1" style="cursor:pointer">◀</span>' +
-      '<b style="text-transform:capitalize">' + monthLabel + "</b>" +
-      '<span class="dchip" data-calnav="1" style="cursor:pointer">▶</span>' + clear +
-      "</div>" +
+      '<b style="text-transform:capitalize">' + monthLabel + "</b>" + clear + "</div>" +
       '<table style="width:auto"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table>";
   }
   _tableRicariche(root) {
