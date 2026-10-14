@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.8] - 2026-10-11
+
+### Aggiunto
+- Pannello: stile **EV Center** — nuovo tema `ev` (blu notte + accento giallo) **predefinito**, superfici in vetro (glass) con angoli arrotondati, alone colorato di sfondo, font Inter (fallback Segoe UI offline) e **toggle Chiaro/Scuro** in sidebar (persistito nel browser).
+
 ## [1.0.7] - 2026-10-11
 
 ### Modificato

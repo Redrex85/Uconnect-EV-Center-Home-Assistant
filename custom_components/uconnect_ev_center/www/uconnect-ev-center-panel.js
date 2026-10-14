@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.7";
+const REC_VER = "1.0.8";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -37,6 +37,7 @@ const I18N = {
     nav_p11: "Wallbox", nav_p5: "Battery health", nav_p6: "Maintenance", nav_p7: "Savings",
     nav_p8: "Extra", nav_p9: "Automations", nav_p10: "Settings",
     ph_cerca_ricariche: "Search…",
+    theme_ev: "⚡ EV Center", mode_dark: "🌙 Dark", mode_light: "☀️ Light",
     h3_comandi_uconnect: "Uconnect commands",
     sub_veicolo: "Vehicle status and data read from the Uconnect integration. Entities not mapped in Configure stay hidden.",
     h3_veicolo_stato: "🚗 Vehicle status", h3_veicolo_pneumatici: "🛞 Tyres",
@@ -285,6 +286,7 @@ const I18N = {
     nav_p11: "Wallbox", nav_p5: "Santé batterie", nav_p6: "Entretien", nav_p7: "Économies",
     nav_p8: "Extra", nav_p9: "Automatisations", nav_p10: "Réglages",
     ph_cerca_ricariche: "Rechercher…",
+    theme_ev: "⚡ EV Center", mode_dark: "🌙 Sombre", mode_light: "☀️ Clair",
     h3_comandi_uconnect: "Commandes Uconnect",
     sub_veicolo: "État et données du véhicule lus depuis l'intégration Uconnect. Les entités non mappées dans Configurer restent masquées.",
     h3_veicolo_stato: "🚗 État du véhicule", h3_veicolo_pneumatici: "🛞 Pneumatiques",
@@ -541,6 +543,7 @@ const I18N = {
     nav_p9: "Automatizaciones",
     nav_p10: "Ajustes",
     ph_cerca_ricariche: "Buscar…",
+    theme_ev: "⚡ EV Center", mode_dark: "🌙 Oscuro", mode_light: "☀️ Claro",
     h3_comandi_uconnect: "Comandos Uconnect",
     sub_veicolo: "Estado y datos del vehículo leídos de la integración Uconnect. Las entidades no mapeadas en Configurar permanecen ocultas.",
     h3_veicolo_stato: "🚗 Estado del vehículo", h3_veicolo_pneumatici: "🛞 Neumáticos",
@@ -797,6 +800,7 @@ const I18N = {
     nav_p9: "Automatisierungen",
     nav_p10: "Einstellungen",
     ph_cerca_ricariche: "Suchen…",
+    theme_ev: "⚡ EV Center", mode_dark: "🌙 Dunkel", mode_light: "☀️ Hell",
     h3_comandi_uconnect: "Uconnect-Befehle",
     sub_veicolo: "Fahrzeugstatus und Daten aus der Uconnect-Integration. Nicht in Konfigurieren zugeordnete Entitäten bleiben ausgeblendet.",
     h3_veicolo_stato: "🚗 Fahrzeugstatus", h3_veicolo_pneumatici: "🛞 Reifen",
@@ -2682,7 +2686,8 @@ class UconnectEvCenterPanel extends HTMLElement {
     };
     _POWERTRAIN = this._cfg.powertrain;
     this._page = localStorage.getItem("rec_panel_page") || "p1";
-    this._theme = localStorage.getItem("rec_panel_theme") || "blu";
+    this._theme = localStorage.getItem("rec_panel_theme") || "ev";
+    this._mode = localStorage.getItem("rec_panel_mode") || "dark";
     this._ricQuery = localStorage.getItem("rec_ric_q") || "";
     this._ricDay = "";
     this._built = false;
@@ -3367,7 +3372,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     const c = this._cfg;
     this.shadowRoot.innerHTML = `
     <style>${REC_CSS}</style>
-    <div class="app" data-theme="${this._theme}">
+    <div class="app" data-theme="${this._theme}" data-mode="${this._mode}">
       <div class="sidebar">
         <div class="logo">
           <svg class="ph" viewBox="-70 -70 140 140" aria-hidden="true"><path d="M0,-62 L40,0 L0,62 L-40,0 Z" fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="miter"/><path d="M0,-34 L21,0 L0,34 L-21,0 Z" fill="#FFCB00"/></svg>
@@ -3375,6 +3380,10 @@ class UconnectEvCenterPanel extends HTMLElement {
         </div>
         <div class="nav" id="nav">
           ${this._navItems().map(([id, em, label]) => `<button data-p="${id}" class="${id === this._page ? "active" : ""}"><span class="em">${em}</span> ${_t("nav_" + id, label)}</button>`).join("")}
+        </div>
+        <div class="modes" id="modes">
+          <button data-mode="dark" class="${this._mode === "dark" ? "active" : ""}">${_t("mode_dark", "🌙 Scuro")}</button>
+          <button data-mode="light" class="${this._mode === "light" ? "active" : ""}">${_t("mode_light", "☀️ Chiaro")}</button>
         </div>
       </div>
       <div class="mobilenav" id="mnav">
@@ -3394,6 +3403,9 @@ class UconnectEvCenterPanel extends HTMLElement {
     this.shadowRoot.getElementById("mnav").addEventListener("click", gotoHandler);
     this.shadowRoot.querySelectorAll("[data-palette]").forEach((b) => {
       b.addEventListener("click", () => this._theme_(b.dataset.palette));
+    });
+    this.shadowRoot.querySelectorAll(".modes [data-mode]").forEach((b) => {
+      b.addEventListener("click", () => this._mode_(b.dataset.mode));
     });
     // comandi / bottoni
     this.shadowRoot.querySelectorAll("[data-cmd]").forEach((el) => {
@@ -3587,6 +3599,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     if (!this._cfg.notify) { const nn = localStorage.getItem("rec_notify"); if (nn) this._cfg.notify = nn; }
     this._update();
     this._theme_(this._theme);
+    this._mode_(this._mode);
   }
   _goto(p) {
     this._page = p;
@@ -3605,6 +3618,12 @@ class UconnectEvCenterPanel extends HTMLElement {
     localStorage.setItem("rec_panel_theme", t);
     this.shadowRoot.querySelector(".app").dataset.theme = t;
     this.shadowRoot.querySelectorAll("[data-palette]").forEach((b) => b.classList.toggle("active", b.dataset.palette === t));
+  }
+  _mode_(m) {
+    this._mode = m;
+    localStorage.setItem("rec_panel_mode", m);
+    this.shadowRoot.querySelector(".app").dataset.mode = m;
+    this.shadowRoot.querySelectorAll(".modes [data-mode]").forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
   }
   _dur(v, unit) {
     if (v === null || v === undefined || isNaN(v)) return "—";
@@ -5393,21 +5412,27 @@ const NAV = [
   ["p9", "🤖", "Automazioni"], ["p10", "⚙️", "Impostazioni"],
 ];
 const THEMES = [
+  ["ev", "#ffd23f", "⚡ EV Center"],
   ["blu", "#4d8dff", "🔵 Blu"], ["giallo", "#F5CB39", "🟡 Giallo"],
   ["verde", "#57b98a", "🟢 Verde"], ["aviation", "#c9d4e2", "⚪ Grigio"],
 ];
 
 // NB: nome prefissato per NON ombreggiare window.CSS (romperebbe CSS.escape di altre card)
 const REC_CSS = `
-.app{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;transition:background .25s,color .25s;user-select:text}
-.app[data-theme="blu"]{--bg:#0d1522;--panel:#14202f;--panel2:#101b2c;--line:#1e2d40;--txt:#e8eef6;--muted:#8296ad;--accent:#4d8dff;--accent-soft:rgba(77,141,255,.15);--good:#4ade80;--warn:#fbbf24;--bad:#f87171}
-.app[data-theme="giallo"]{--bg:#141414;--panel:#1d1d1d;--panel2:#181818;--line:#2a2a2a;--txt:#f2f2f2;--muted:#9e9e9e;--accent:#F5CB39;--accent-soft:rgba(245,203,57,.14);--good:#7ed957;--warn:#ff9f43;--bad:#ff5252}
-.app[data-theme="verde"]{--bg:#0f1613;--panel:#16211c;--panel2:#121a16;--line:#22322a;--txt:#e9f2ec;--muted:#87a094;--accent:#57b98a;--accent-soft:rgba(87,185,138,.15);--good:#57b98a;--warn:#fbbf24;--bad:#f87171}
-.app[data-theme="aviation"]{--bg:#16181c;--panel:#20242b;--panel2:#1a1d23;--line:#2e333c;--txt:#eef1f5;--muted:#9aa4b1;--accent:#c9d4e2;--accent-soft:rgba(201,212,226,.13);--good:#7ed957;--warn:#fbbf24;--bad:#ff6b6b}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+.app{background:var(--bg);color:var(--txt);font-family:Inter,'Segoe UI',system-ui,sans-serif;transition:background .25s,color .25s;user-select:text}
+.app[data-theme="ev"]{--bg:#0b0f17;--panel:#121826;--panel2:#0e1420;--line:#232c3d;--txt:#eef2f8;--muted:#8695ab;--accent:#ffd23f;--accent-soft:rgba(255,210,63,.14);--good:#4ade80;--warn:#fbbf24;--bad:#f87171;--glass:rgba(255,255,255,.045);--glass-hi:rgba(255,255,255,.09);--blob1:rgba(255,210,63,.20)}
+.app[data-theme="blu"]{--bg:#0d1522;--panel:#14202f;--panel2:#101b2c;--line:#1e2d40;--txt:#e8eef6;--muted:#8296ad;--accent:#4d8dff;--accent-soft:rgba(77,141,255,.15);--good:#4ade80;--warn:#fbbf24;--bad:#f87171;--glass:rgba(255,255,255,.045);--glass-hi:rgba(255,255,255,.09);--blob1:rgba(77,141,255,.22)}
+.app[data-theme="giallo"]{--bg:#141414;--panel:#1d1d1d;--panel2:#181818;--line:#2a2a2a;--txt:#f2f2f2;--muted:#9e9e9e;--accent:#F5CB39;--accent-soft:rgba(245,203,57,.14);--good:#7ed957;--warn:#ff9f43;--bad:#ff5252;--glass:rgba(255,255,255,.05);--glass-hi:rgba(255,255,255,.1);--blob1:rgba(245,203,57,.16)}
+.app[data-theme="verde"]{--bg:#0f1613;--panel:#16211c;--panel2:#121a16;--line:#22322a;--txt:#e9f2ec;--muted:#87a094;--accent:#57b98a;--accent-soft:rgba(87,185,138,.15);--good:#57b98a;--warn:#fbbf24;--bad:#f87171;--glass:rgba(255,255,255,.045);--glass-hi:rgba(255,255,255,.09);--blob1:rgba(87,185,138,.20)}
+.app[data-theme="aviation"]{--bg:#16181c;--panel:#20242b;--panel2:#1a1d23;--line:#2e333c;--txt:#eef1f5;--muted:#9aa4b1;--accent:#c9d4e2;--accent-soft:rgba(201,212,226,.13);--good:#7ed957;--warn:#fbbf24;--bad:#ff6b6b;--glass:rgba(255,255,255,.05);--glass-hi:rgba(255,255,255,.1);--blob1:rgba(201,212,226,.16)}
 *{margin:0;padding:0;box-sizing:border-box}
 :host{display:block}
-.sidebar{position:absolute;top:0;bottom:0;left:0;width:230px;background:var(--panel2);border-right:1px solid var(--line);padding:18px 12px;overflow-y:auto}
+.sidebar{position:absolute;top:0;bottom:0;left:0;width:230px;z-index:1;background:var(--glass);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);border-right:1px solid var(--line);padding:18px 12px;overflow-y:auto}
 .app{display:flex;min-height:520px;position:relative;overflow:hidden;border-radius:14px}
+.app::before{content:"";position:absolute;top:-160px;right:-140px;width:540px;height:540px;border-radius:50%;background:var(--blob1);filter:blur(90px);pointer-events:none;z-index:0}
+.app[data-mode="light"]{--bg:#eef1f6;--panel:#ffffff;--panel2:#f4f6fb;--line:#dde3ee;--txt:#1b2433;--muted:#5b6b83;--glass:rgba(255,255,255,.65);--glass-hi:rgba(255,255,255,.85);--blob1:rgba(120,150,255,.20)}
+.app[data-mode="light"][data-theme="ev"]{--accent:#3b6df0;--accent-soft:rgba(59,109,240,.14);--blob1:rgba(59,109,240,.18)}
 .main{flex:1;margin-left:230px;padding:24px 28px}
 .logo{display:flex;align-items:center;gap:12px;padding:6px 10px 14px}
 .logo .ph{width:34px;height:34px;flex:0 0 auto;display:block}
@@ -5419,6 +5444,9 @@ const REC_CSS = `
 .nav button:hover{background:var(--accent-soft);color:var(--txt)}
 .nav button.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .nav .em{width:20px;text-align:center}
+.modes{display:flex;gap:6px;margin-top:14px;padding:0 6px}
+.modes button{flex:1;background:var(--glass);border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:7px 6px;font-size:12px;cursor:pointer;backdrop-filter:blur(10px)}
+.modes button.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);display:inline-block}
 h1{font-size:26px;margin-bottom:4px}
 .sub{color:var(--muted);font-size:13.5px;margin-bottom:22px}
@@ -5449,8 +5477,8 @@ h1{font-size:26px;margin-bottom:4px}
   .mobilenav button.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
   .main{padding:14px 14px}
 }
-.card{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 -14px 30px rgba(0,0,0,.42),0 16px 36px rgba(0,0,0,.32)}
-.card::before{content:"";position:absolute;inset:0;border-radius:16px;padding:1px;background:linear-gradient(135deg,var(--accent),transparent 42%,rgba(255,255,255,.04));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.card{position:relative;background:var(--glass);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 1px 0 var(--glass-hi) inset,0 -14px 30px rgba(0,0,0,.30),0 16px 36px rgba(0,0,0,.22)}
+.card::before{content:"";position:absolute;inset:0;border-radius:24px;padding:1px;background:linear-gradient(135deg,var(--accent),transparent 42%,rgba(255,255,255,.04));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .card h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-weight:600}
 .big{font-size:44px;font-weight:800;line-height:1}
 .big small{font-size:18px;font-weight:600;color:var(--muted)}
@@ -5469,11 +5497,11 @@ h1{font-size:26px;margin-bottom:4px}
 .dchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
 @media(max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
-.tile{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:15px;padding:16px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 -12px 26px rgba(0,0,0,.38),0 14px 30px rgba(0,0,0,.3)}
+.tile{position:relative;background:var(--glass);backdrop-filter:blur(18px) saturate(130%);-webkit-backdrop-filter:blur(18px) saturate(130%);border:1px solid var(--line);border-radius:22px;padding:16px;display:flex;gap:13px;align-items:center;box-shadow:0 1px 0 var(--glass-hi) inset,0 -12px 26px rgba(0,0,0,.28),0 14px 30px rgba(0,0,0,.22)}
 .tile .em{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;background:var(--accent-soft)}
 .tile .v{font-size:24px;font-weight:800;line-height:1.05}
 .tile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
-.cmd{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:15px 8px;text-align:center;font-size:13.5px;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 -10px 22px rgba(0,0,0,.35),0 12px 26px rgba(0,0,0,.3)}
+.cmd{position:relative;background:var(--glass);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid var(--line);border-radius:20px;padding:15px 8px;text-align:center;font-size:13.5px;cursor:pointer;box-shadow:0 1px 0 var(--glass-hi) inset,0 -10px 22px rgba(0,0,0,.26),0 12px 26px rgba(0,0,0,.22)}
 .kv{text-align:center;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:12px;padding:10px 4px;box-shadow:0 1px 0 rgba(255,255,255,.08) inset}
 .kv:hover{border-color:var(--accent)}
 .kv b{display:block;font-size:22px;font-weight:800;line-height:1.1}
@@ -5502,14 +5530,14 @@ select,input{background:var(--panel2);color:var(--txt);border:1px solid var(--li
 .inp{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;gap:10px}
 .inp input{width:110px;text-align:right}
 .inp .u{color:var(--muted);font-size:12px;width:52px}
-.btn{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px 14px;font-size:13px;cursor:pointer;text-align:center;flex:1;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 22px rgba(0,0,0,.3)}
+.btn{background:var(--glass);backdrop-filter:blur(12px) saturate(130%);-webkit-backdrop-filter:blur(12px) saturate(130%);border:1px solid var(--line);color:var(--txt);border-radius:16px;padding:11px 14px;font-size:13px;cursor:pointer;text-align:center;flex:1;box-shadow:0 1px 0 var(--glass-hi) inset,0 10px 22px rgba(0,0,0,.22)}
 .btn:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft),0 1px 0 rgba(255,255,255,.05) inset,0 12px 24px rgba(0,0,0,.35)}
 .btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--txt);font-weight:600;box-shadow:0 0 0 1px var(--accent)}
 .palette .btn{flex:0 0 auto;min-width:150px;display:flex;align-items:center;gap:8px;justify-content:flex-start}
 .netto{background:linear-gradient(135deg,var(--accent-soft),transparent);border-color:var(--accent)}
 .carbox{position:relative;border-radius:14px;overflow:hidden;border:1px dashed var(--accent);background:radial-gradient(ellipse at 50% 115%,var(--accent-soft),transparent 60%),var(--panel);display:flex;align-items:center;justify-content:center;min-height:210px;flex-direction:column;gap:8px}
 .carbox .ph{font-size:52px}
-.carbox img{max-height:190px;max-width:90%;object-fit:contain}
+.carbox img{max-height:190px;max-width:90%;object-fit:contain;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent)}
 .mapbox{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--panel2);height:100%;min-height:0}
 .mapbox ha-map{display:block;width:100%;height:100%}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel);color:var(--txt);border:1px solid var(--accent);border-radius:12px;padding:12px 20px;font-size:14px;opacity:0;transition:.3s;z-index:999}
