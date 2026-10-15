@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.9] - 2026-10-15
+
+### Corretto
+- Pannello: copia-incolla dei valori funziona in tutte le sezioni (il ridisegno automatico non interrompe piu' la selezione del testo).
+- Viaggi: consumo fuori scala (es. 155 kWh/100km con pochi km, odometro aggiornato in ritardo dal cloud) non viene piu' mostrato ne' conteggiato nelle medie: i kWh restano, il rapporto kWh/100km si azzera.
+- Grafico km: punti kWh/100km sopra 60 esclusi; i giorni a 0 km non entrano nella media.
+- Storico ricariche: spaziatura uniforme rispetto alla card Distribuzione.
+
+### Modificato
+- Avviso "apexcharts-card mancante" tradotto in IT/EN/FR/ES/DE con istruzioni di installazione (HACS → Frontend).
+
 ## [1.0.8] - 2026-10-11
 
 ### Aggiunto

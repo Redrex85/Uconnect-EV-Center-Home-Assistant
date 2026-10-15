@@ -22,9 +22,12 @@ def aggregate(trips: list[dict]) -> dict[str, float]:
     dur_tot = int(sum(int(t.get("durata_min", 0)) for t in trips))
     batt_tot = round(sum(float(t.get("batteria_delta", 0)) for t in trips), 1)
     # PHEV: i tratti a benzina (fuel) hanno km ma 0 kWh → non devono diluire il
-    # kWh/100km elettrico: la media usa solo i km percorsi in elettrico.
-    km_ev = round(sum(float(t.get("km", 0)) for t in trips if not t.get("fuel")), 1)
-    eff = round(kwh_tot / km_ev * 100, 2) if km_ev > 0 else 0.0
+    # kWh/100km elettrico. Media solo su viaggi con consumo plausibile (0 < kWh/100km <= 60,
+    # anche per i record gia' salvati): km e kWh dello stesso insieme, nessun viaggio sballato.
+    ev = [t for t in trips if not t.get("fuel") and 0 < float(t.get("kwh_per_100km", 0)) <= 60]
+    km_ev = round(sum(float(t.get("km", 0)) for t in ev), 1)
+    kwh_ev = round(sum(float(t.get("kwh_consumati", 0)) for t in ev), 2)
+    eff = round(kwh_ev / km_ev * 100, 2) if km_ev > 0 else 0.0
     return {
         "n_trip": len(trips),
         "km_totali": km_tot,
@@ -272,6 +275,10 @@ class TripEngine:
         else:
             kwh_consumati = 0.0
             kwh_per_100 = 0.0
+        # km sottostimati dal cloud con pochi km: kWh/km esplode (155 kWh/100km). Tengo i kWh,
+        # azzero il rapporto: il viaggio resta fuori dalle medie (vedi aggregate).
+        if kwh_per_100 > 60:
+            kwh_per_100 = 0.0
 
         # Uconnect aggiorna il SoC solo a motore spento: se il campione di chiusura
         # porta ancora il SoC di partenza il delta e' 0 e il record risulta incoerente
@@ -326,4 +333,10 @@ if __name__ == "__main__":
     c.tick(3034, 60, "B", 16)
     r3 = c.close("B", 16.0, now_wall=st + 3600)
     assert r3["batteria_delta"] > 0 and r3["batteria_fine"] < r3["batteria_inizio"], r3
+    # km sottostimati (2 km, -5% su 60 kWh = 150 kWh/100km): rapporto azzerato, fuori dalla media
+    d = TripEngine(min_km=0.5, min_minutes=2, capacity_kwh=60.0, powertrain="BEV")
+    d.tick(4000, 80, "A", 15); u = d.seed_ts
+    d.tick(4002, 75, "B", 15)
+    r4 = d.close("B", 15.0, now_wall=u + 300)
+    assert r4["kwh_per_100km"] == 0.0 and aggregate([r4])["kwh_per_100km"] == 0.0, r4
     print("trip_engine self-check OK")

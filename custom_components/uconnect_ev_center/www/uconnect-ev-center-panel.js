@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.8";
+const REC_VER = "1.0.9";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -32,6 +32,8 @@ const I18N = {
     nav_p8: "Extra", nav_p9: "Automazioni", nav_p10: "Impostazioni",
   },
   en: {
+    apex_titolo: "Install the «apexcharts-card» card",
+    apex_corpo: "To see this chart install <b>HACS → Frontend</b> → <code>apexcharts-card</code>, then restart Home Assistant and reload the page.",
     nav_p1: "Overview", nav_p2: "Trips", nav_p3: "Stats", nav_p4: "Charges",
     nav_p12: "Vehicle",
     nav_p11: "Wallbox", nav_p5: "Battery health", nav_p6: "Maintenance", nav_p7: "Savings",
@@ -281,6 +283,8 @@ const I18N = {
     toast_no_stop: "⚠️ Charge stop not mapped (Settings → Wallbox)",
   },
   fr: {
+    apex_titolo: "Installer la carte «apexcharts-card»",
+    apex_corpo: "Pour voir ce graphique, installe <b>HACS → Frontend</b> → <code>apexcharts-card</code>, puis redémarre Home Assistant et recharge la page.",
     nav_p1: "Aperçu", nav_p2: "Trajets", nav_p3: "Statistiques", nav_p4: "Recharges",
     nav_p12: "Véhicule",
     nav_p11: "Wallbox", nav_p5: "Santé batterie", nav_p6: "Entretien", nav_p7: "Économies",
@@ -530,6 +534,8 @@ const I18N = {
     toast_no_stop: "⚠️ Arrêt recharge non mappé (Réglages → Wallbox)",
   },
   es: {
+    apex_titolo: "Instala la tarjeta «apexcharts-card»",
+    apex_corpo: "Para ver este gráfico instálala desde <b>HACS → Frontend</b> → <code>apexcharts-card</code>, luego reinicia Home Assistant y recarga la página.",
     nav_p1: "Resumen",
     nav_p2: "Viajes",
     nav_p3: "Estadísticas",
@@ -787,6 +793,8 @@ const I18N = {
     toast_no_stop: "⚠️ Parada de recarga no mapeada (Ajustes → Wallbox)",
   },
   de: {
+    apex_titolo: "Karte «apexcharts-card» installieren",
+    apex_corpo: "Um dieses Diagramm zu sehen, installiere <b>HACS → Frontend</b> → <code>apexcharts-card</code>, dann Home Assistant neu starten und die Seite neu laden.",
     nav_p1: "Übersicht",
     nav_p2: "Fahrten",
     nav_p3: "Statistiken",
@@ -2753,10 +2761,17 @@ class UconnectEvCenterPanel extends HTMLElement {
       if (!this._built) { this._build(); this._translateDom(); }
       else if (!this._raf) this._raf = requestAnimationFrame(() => {
         this._raf = null;
+        // testo selezionato: rinvio il ridisegno, altrimenti la copia si interrompe
+        if (this._selecting()) { this._raf = setTimeout(() => { this._raf = null; this.hass = this._hass; }, 1000); return; }
         try { if (!PAGES()[this._page] || !this._pages().some(([id]) => id === this._page)) this._page = "p1"; this._update(); this._translateDom(); }
         catch (e) { this._showError(e); }
       });
     } catch (e) { this._showError(e); }
+  }
+
+  _selecting() {
+    const s = window.getSelection && window.getSelection();
+    return !!s && !s.isCollapsed && s.toString().length > 0;
   }
 
   _showError(e) {
@@ -4026,19 +4041,23 @@ class UconnectEvCenterPanel extends HTMLElement {
     }
     root.querySelectorAll("[data-f]").forEach((el) => {
       if (el.tagName === "INPUT") return; // gli input data-ls si inizializzano in _build
+      // scrivi solo se cambia: riassegnare textContent a ogni aggiornamento annulla la selezione (copia)
+      let txt;
       if (el.dataset.dec) {
         const raw = this._field(el.dataset.f);
         const num = typeof raw === "number" ? raw : parseFloat(raw);
-        el.textContent = (num === null || num === undefined || isNaN(num)) ? "—" : this._fmt(num, parseInt(el.dataset.dec, 10));
+        txt = (num === null || num === undefined || isNaN(num)) ? "—" : this._fmt(num, parseInt(el.dataset.dec, 10));
       } else {
-        el.textContent = this._f(el.dataset.f);
+        txt = this._f(el.dataset.f);
       }
+      if (el.textContent !== txt) el.textContent = txt;
       el.classList.toggle("clk", !!this._ent(el.dataset.f));
     });
     // sezione Veicolo: entità Uconnect mappate, mostrate 1:1 (nessun ricalcolo)
     root.querySelectorAll("[data-uc]").forEach((el) => {
       const v = this._ucVal(el.dataset.uc);
-      el.textContent = v === null ? (el.dataset.na || "—") : v;
+      const txt = v === null ? (el.dataset.na || "—") : v;
+      if (el.textContent !== txt) el.textContent = txt;
       el.classList.toggle("clk", !!this._ucId(el.dataset.uc));
     });
     // comandi Panoramica: nascondi clacson/lampeggia se non mappati in Configura
@@ -4439,7 +4458,7 @@ class UconnectEvCenterPanel extends HTMLElement {
                   const v = parseFloat(d.kwh_per_100km) || parseFloat(d.eff) || 0;
                   return [new Date(String(d.data) + "T12:00:00").getTime(), Math.round(v * 100) / 100];
                 })
-                .filter((p) => p[1] > 0);
+                .filter((p) => p[1] > 0 && p[1] <= 60);
             },
             show: { legend_value: false },
           },
@@ -4461,10 +4480,9 @@ class UconnectEvCenterPanel extends HTMLElement {
     box.style.cssText = "";
     box.innerHTML =
       `<div style="padding:16px;border:1px dashed var(--accent);border-radius:12px;background:rgba(255,255,255,.04)">
-        <div style="font-weight:700;margin-bottom:6px">📦 Serve la card «apexcharts-card»</div>
+        <div style="font-weight:700;margin-bottom:6px">📦 ${_t("apex_titolo", "Serve la card «apexcharts-card»")}</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.7">
-          Per vedere questo grafico installa da <b>HACS → Frontend</b> → <code>apexcharts-card</code>,
-          poi riavvia Home Assistant e ricarica la pagina.
+          ${_t("apex_corpo", "Per vedere questo grafico installa da <b>HACS → Frontend</b> → <code>apexcharts-card</code>, poi riavvia Home Assistant e ricarica la pagina.")}
         </div></div>`;
   }
   /** ciambella con CSS conic-gradient: nessuna card HACS richiesta */
@@ -5743,7 +5761,7 @@ const PAGES = () => ({
       <div class="tile"><div><div class="v" data-cs="costo">—</div><div class="l">Costo totale €</div></div></div>
       <div class="tile"><div><div class="v" data-cs="prezzo">—</div><div class="l">Prezzo medio €/kWh</div></div></div>
     </div></div>
-  <div class="card"><h3>${_t("h3_storico_ricariche", "Storico ricariche")}</h3>
+  <div class="card" style="margin-top:16px"><h3>${_t("h3_storico_ricariche", "Storico ricariche")}</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <select data-sel="sel_tipo"></select>
       <select data-sel="sel_periodo"></select>
