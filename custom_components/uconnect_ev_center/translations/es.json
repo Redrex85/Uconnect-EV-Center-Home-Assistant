@@ -712,9 +712,14 @@
       "name": "Crear panel",
       "description": "Crea/actualiza el panel de la barra lateral con todas las vistas incluidas."
     },
-    "create_automations": {
-      "name": "Crear automatizaciones recomendadas",
-      "description": "Crea las 3 automatizaciones recomendadas en Home Assistant."
+    "set_notify_texts": {
+      "name": "Textos de notificaciones",
+      "description": "Guarda los textos de las notificaciones nativas (recarga completada, batería baja).",
+      "fields": {
+        "texts": {
+          "name": "Textos"
+        }
+      }
     },
     "set_maintenance": {
       "name": "Establecer vencimiento de mantenimiento",

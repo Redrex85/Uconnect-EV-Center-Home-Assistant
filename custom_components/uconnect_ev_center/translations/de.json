@@ -712,9 +712,14 @@
       "name": "Dashboard erstellen",
       "description": "Erstellt/aktualisiert das Seitenleisten-Dashboard mit allen enthaltenen Ansichten."
     },
-    "create_automations": {
-      "name": "Empfohlene Automatisierungen erstellen",
-      "description": "Erstellt die 3 empfohlenen Automatisierungen in Home Assistant."
+    "set_notify_texts": {
+      "name": "Benachrichtigungstexte",
+      "description": "Speichert die Texte der nativen Benachrichtigungen (Ladung abgeschlossen, Batterie schwach).",
+      "fields": {
+        "texts": {
+          "name": "Texte"
+        }
+      }
     },
     "set_maintenance": {
       "name": "Wartungsfrist festlegen",

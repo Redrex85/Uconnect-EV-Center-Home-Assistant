@@ -712,9 +712,14 @@
       "name": "Créer tableau de bord",
       "description": "Créer/mettre à jour le tableau de bord latéral avec toutes les vues."
     },
-    "create_automations": {
-      "name": "Créer automatisations recommandées",
-      "description": "Créer les 3 automatisations recommandées dans Home Assistant."
+    "set_notify_texts": {
+      "name": "Textes des notifications",
+      "description": "Enregistre les textes des notifications natives (recharge terminée, batterie faible).",
+      "fields": {
+        "texts": {
+          "name": "Textes"
+        }
+      }
     },
     "set_maintenance": {
       "name": "Définir l'échéance d'entretien",

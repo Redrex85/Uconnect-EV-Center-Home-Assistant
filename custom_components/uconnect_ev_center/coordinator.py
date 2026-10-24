@@ -1915,6 +1915,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "charges_stats": cstats,
             "consumi_temp": consumi_temp,
             "schedule": dict(self.store.data.get("schedule", {})),
+            "notify_texts": dict(self.store.data.get("notify_texts") or {}),
             "gse": self._gse_info(),
             "report": report,
             "temp_out": temp_out,
@@ -2785,219 +2786,20 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         self.notify_service = opts[CONF_NOTIFY_SERVICE]
         return self.notify_service
 
-    async def service_create_automations(self) -> list[str]:
-        """Crea (solo se assenti) le automazioni consigliate in automations.yaml."""
-        from .dashboard import entry_name, slugify
-
-        n = slugify(entry_name(self.entry))
-        batt = str(self.opts.get("battery_level_entity") or f"sensor.{n}_batteria")
-        range_e = str(self.opts.get("range_entity") or f"sensor.{n}_autonomia_della_batteria")
-        # il nostro binary_sensor è SEMPRE on/off: l'entità sorgente può essere un sensore
-        # testuale ("charging"/"not_charging") e il trigger from on → off non scatterebbe mai
-        charging = f"binary_sensor.{n}_in_carica"
-        loc = str(self.opts.get("location_entity") or "")
-        wb_state_e = str(self.opts.get(CONF_WB_STATE) or "sensor.wallbox_charger_state")
-        target = ""
-        if self.notify_service:
-            target = self.notify_service if "." in self.notify_service else f"notify.{self.notify_service}"
-
-        def _pn(notif_id: str, title: str, msg: str) -> dict:
-            if target:
-                return {"action": target, "data": {"title": title, "message": msg}}
-            return {"action": "persistent_notification.create",
-                    "data": {"notification_id": notif_id, "title": title, "message": msg}}
-
-        # etichette notifica di fine ricarica, nella lingua scelta in Home Assistant
-        _lang = str(getattr(self.hass.config, "language", "en") or "en")[:2].lower()
-        _L10N = {
-            "it": ("🔋 Ricarica Completata", "📍 Location", "⚡️ Energia", "🕐 Tempo",
-                   "📊 Batteria", "💰 Costo stimato", "ore"),
-            "en": ("🔋 Charging Complete", "📍 Location", "⚡️ Energy", "🕐 Time",
-                   "📊 Battery", "💰 Estimated cost", "h"),
-            "fr": ("🔋 Recharge terminée", "📍 Emplacement", "⚡️ Énergie", "🕐 Durée",
-                   "📊 Batterie", "💰 Coût estimé", "h"),
-            "es": ("🔋 Recarga completada", "📍 Ubicación", "⚡️ Energía", "🕐 Tiempo",
-                   "📊 Batería", "💰 Coste estimado", "h"),
-            "de": ("🔋 Ladung abgeschlossen", "📍 Standort", "⚡️ Energie", "🕐 Dauer",
-                   "📊 Batterie", "💰 Geschätzte Kosten", "h"),
-        }
-        _t_title, _t_loc, _t_energy, _t_time, _t_batt, _t_cost, _t_h = _L10N.get(_lang, _L10N["en"])
-        _ric_msg = (
-            _t_loc + ": {{ state_attr('sensor." + n + "_ultima_ricarica', 'zona') or '—' }}\n"
-            + _t_energy + ": {{ states('sensor." + n + "_ultima_ricarica') }} kWh\n"
-            + _t_time + ": {{ (state_attr('sensor." + n + "_ultima_ricarica', 'durata_min')"
-            " | float(0) / 60) | round(2) }} " + _t_h + "\n"
-            + _t_batt + ": {{ state_attr('sensor." + n + "_ultima_ricarica', 'soc_start') }}% → "
-            "{{ state_attr('sensor." + n + "_ultima_ricarica', 'soc_end') }}%\n"
-            + _t_cost + ": €{{ state_attr('sensor." + n + "_ultima_ricarica', 'costo') }}"
-        )
-
-        autos: dict[str, dict] = {
-            f"uconnect_ev_center_{n}_ricarica_completata": {
-                "alias": f"Uconnect EV Center — Ricarica completata ({n})",
-                "trigger": [{"trigger": "state", "entity_id": charging,
-                              "from": "on", "to": "off", "for": {"minutes": 3}}],
-                # NIENTE condizione sulla data: una ricarica notturna inizia ieri e finisce oggi,
-                # quindi il confronto con la data di OGGI la scartava (notifica mai inviata).
-                "action": [_pn(f"rec_ric_{n}", _t_title, _ric_msg)],
-                "mode": "single",
-            },
-            f"uconnect_ev_center_{n}_avvio_ricarica": {
-                "alias": f"Uconnect EV Center — Notifica avvio ricarica ({n})",
-                "trigger": [{"trigger": "state", "entity_id": wb_state_e, "to": "charging"}],
-                "condition": [],
-                "action": [_pn(f"rec_start_{n}", "🔋 Ricarica avviata",
-                                "La ricarica è iniziata alle {{ now().strftime('%d-%m-%Y %H:%M') }}")],
-                "mode": "single",
-            },
-            f"uconnect_ev_center_{n}_riassunto_giornaliero": {
-                "alias": f"Uconnect EV Center — Riassunto giornaliero ({n})",
-                "trigger": [{"trigger": "time", "at": "21:30:00"}],
-                "condition": [{"condition": "numeric_state",
-                                "entity_id": f"sensor.{n}_km_giornalieri", "above": 0.5}],
-                "action": [_pn(f"rec_sum_{n}", "📊 Oggi con la tua Uconnect",
-                                "{% set kwh = states('sensor." + n + "_energia_batteria_giornaliero') | float(none) %}"
-                                "{% set prezzo = states('number." + n + "_costo_energia_casa') | float(none) %}"
-                                "Km oggi: {{ states('sensor." + n + "_km_giornalieri') }} km\n"
-                                "Energia consumata oggi: {% if kwh is not none %}{{ kwh | round(2) }} kWh"
-                                "{% else %}non disponibile{% endif %}\n"
-                                "Costo totale energia oggi (stimato, tariffa casa): "
-                                "{% if kwh is not none and prezzo is not none %}{{ (kwh * prezzo) | round(2) }} €"
-                                "{% else %}non disponibile{% endif %}\n"
-                                "Consumo: {{ states('sensor." + n + "_kwh_per_100km') }} kWh/100km · "
-                                "Costo/km: {{ states('sensor." + n + "_costo_per_km') }} €/km")],
-                "mode": "single",
-            },
-            f"uconnect_ev_center_{n}_refresh_auto": {
-                "alias": f"Uconnect EV Center — Aggiorna posizione auto ({n})",
-                "trigger": [{"trigger": "time_pattern", "minutes": "/30"}],
-                "condition": [],
-                "action": [{"action": "uconnect_ev_center.refresh_car"}],
-                "mode": "single",
-            },
-        }
-
-        # la notifica "batteria bassa" è gestita NATIVAMENTE dall'integrazione (soglia, fascia
-        # oraria e giorni configurabili dalla vista Automazioni): l'automazione omonima va rimossa
-        return await self._automations_apply(
-            autos,
-            [f"uconnect_ev_center_{n}_promemoria", f"uconnect_ev_center_{n}_batteria_bassa"],
-        )
-
-    async def _automations_apply(self, upserts: dict[str, dict], removes: list[str]) -> list[str]:
-        """Scrive/aggiorna/rimuove automazioni in automations.yaml (come la UI HA)."""
-        from homeassistant.config import AUTOMATION_CONFIG_PATH
-        from homeassistant.util.file import write_utf8_file_atomic
-        from homeassistant.util.yaml import dump as _yaml_dump
-        from homeassistant.util.yaml import load_yaml as _yaml_load
-
-        from .dashboard import entry_name, slugify
-
-        nome = slugify(entry_name(self.entry))
-        # suffissi gestiti dall'integrazione: un id con slug diverso è un orfano (nome auto cambiato)
-        gestiti = ("_ricarica_completata", "_avvio_ricarica", "_batteria_bassa",
-                   "_riassunto_giornaliero", "_promemoria", "_programma_ricarica",
-                   "_programma_clima", "_scadenze", "_promemoria_batteria", "_refresh_auto")
-
-        def _orfana(aid: object) -> bool:
-            if not isinstance(aid, str) or not aid.startswith("uconnect_ev_center_"):
-                return False
-            if any(aid == f"uconnect_ev_center_{nome}{s}" for s in gestiti):
-                return False
-            return any(aid.endswith(s) for s in gestiti)
-
-        def _legacy(entry: object) -> bool:
-            """Automazioni NON più create dall'integrazione: vanno rimosse.
-
-            - 'batteria bassa' / 'batteria bassa fuori casa': sostituite dalla notifica NATIVA
-              (soglia, fascia oraria e giorni configurabili dalla vista Automazioni);
-            - 'promemoria collegamento': ridondante — la notifica «Avviso batteria bassa» dice
-              già «Collega la wallbox!».
-
-            Match su id O alias: i residui vecchi possono avere id diversi.
-            """
-            if not isinstance(entry, dict):
-                return False
-            aid = str(entry.get("id") or "")
-            alias = str(entry.get("alias") or "").lower()
-            if not (aid.startswith("uconnect_ev_center_") or "uconnect ev center" in alias):
-                return False
-            return (aid.endswith("_batteria_bassa") or "_batteria_bassa_" in aid
-                    or aid.endswith("_programma_promemoria") or "_promemoria_collegamento" in aid
-                    or "batteria bassa fuori casa" in alias
-                    or "promemoria collegamento" in alias)
-
-        path = self.hass.config.path(AUTOMATION_CONFIG_PATH)
-        rmset = set(removes)
-
-        def _eid(cfg: dict) -> str:
-            return f"automation.{slugify(str(cfg.get('alias', '')))}"
-
-        # stato on/off di TUTTE le automazioni PRIMA del reload: `automation.reload`
-        # riaccende tutto, quindi va ripristinata la scelta dell'utente (non solo le salvate).
-        prev_auto: dict[str, str] = {
-            s.entity_id: s.state for s in self.hass.states.async_all("automation")
-        }
-        prev_state: dict[str, str | None] = {
-            aid: prev_auto.get(_eid(cfg)) for aid, cfg in upserts.items()
-        }
-
-        def _apply() -> list[str]:
-            try:
-                data = _yaml_load(path)
-            except Exception:  # noqa: BLE001
-                data = None
-            if not isinstance(data, list):
-                data = []
-            n_before = len(data)
-            data = [d for d in data if not (isinstance(d, dict) and d.get("id") in rmset)]
-            data = [d for d in data if not (isinstance(d, dict) and _legacy(d))]
-            data = [d for d in data if not (isinstance(d, dict) and _orfana(d.get("id")))]
-            purged = len(data) != n_before   # legacy/orfane rimosse → va riscritto
-            byid = {d.get("id"): i for i, d in enumerate(data) if isinstance(d, dict) and d.get("id")}
-            made: list[str] = []
-            for aid, cfg in upserts.items():
-                entry = {"id": aid, **cfg}
-                if aid in byid:
-                    data[byid[aid]] = entry
-                else:
-                    data.append(entry)
-                made.append(aid)
-            if made or rmset or purged:
-                write_utf8_file_atomic(path, _yaml_dump(data))
-            return made, purged
-
-        changed, purged = await self.hass.async_add_executor_job(_apply)
-        if changed or rmset or purged:
-            await self.hass.services.async_call("automation", "reload", {}, blocking=True)
-            # 1) ripristina TUTTE le automazioni che l'utente aveva spento (il reload le riaccende)
-            for eid, stt in prev_auto.items():
-                if stt == "off" and self.hass.states.get(eid) is not None:
-                    await self.hass.services.async_call(
-                        "automation", "turn_off", {"entity_id": eid}, blocking=False)
-            # 2) accendi SOLO le automazioni appena create
-            for aid, cfg in upserts.items():
-                if prev_state.get(aid) is None:
-                    eid = _eid(cfg)
-                    if self.hass.states.get(eid) is not None:
-                        await self.hass.services.async_call(
-                            "automation", "turn_on", {"entity_id": eid}, blocking=False)
-        return changed
-
     async def service_set_schedule(self, tipo: str, attivo: bool, inizio: str,
                                    fine: str, soc: int, modo: str, temperatura: int,
                                    giorni: list[str]) -> list[str]:
-        """Crea/aggiorna l'automazione di schedulazione ricarica o clima."""
-        from .dashboard import entry_name, slugify
+        """Salva il programma di ricarica/clima nello store.
 
-        n = slugify(entry_name(self.entry))
-        aid = f"uconnect_ev_center_{n}_programma_{tipo}"
-        # memorizzo i valori: il pannello li usa per ripopolare il form dopo un refresh
-        self.store.data.setdefault("schedule", {})[tipo] = {
+        Nessun file YAML viene toccato: avvio, fermo e climatizzazione sono
+        valutati dal coordinatore a ogni ciclo.
+        """
+        sel: dict = {
             "attivo": bool(attivo), "inizio": str(inizio), "fine": str(fine),
             "soc": int(soc or 0), "modo": str(modo), "temperatura": int(temperatura or 0),
-            "giorni": list(giorni or []),
+            "giorni": [d for d in (giorni or []) if d in WEEKDAYS],
         }
+        self.store.data.setdefault("schedule", {})[tipo] = sel
         self.persist(force=True)
         # lo switch gate e' la fonte del fermo nel coordinatore: senza questo il
         # checkbox "Attivo" del pannello faceva partire la carica ma non la fermava.
@@ -3008,66 +2810,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     "switch", "turn_on" if attivo else "turn_off",
                     {"entity_id": gate}, blocking=False)
                 self._sched_sync_done = True
-        if not attivo:
-            return await self._automations_apply({}, [aid])
-
-        days = [d for d in (giorni or []) if d in ("mon", "tue", "wed", "thu", "fri", "sat", "sun")]
-        cond = [{"condition": "time", "weekday": days}] if days else []
-
-        if tipo == "ricarica":
-            actions: list[dict] = []
-            tgt = self.opts.get(CONF_CHARGE_TARGET_NUMBER)
-            if soc and tgt:
-                actions.append({"action": "number.set_value",
-                                "target": {"entity_id": tgt}, "data": {"value": int(soc)}})
-            wb = self.opts.get(CONF_WB_CHARGE_SWITCH)
-            btn = self.opts.get(CONF_CHARGE_START_BUTTON)
-            ent = wb or btn
-            if not ent:
-                # senza entità di avvio l'automazione non farebbe NULLA: provo i nomi comuni
-                for cand in ("button.wallbox_charger_start", f"button.{n}_start_charge"):
-                    if self.hass.states.get(cand) is not None:
-                        ent = cand
-                        break
-            if ent:
-                dom = str(ent).split(".")[0]
-                if dom == "switch":
-                    actions.append({"action": "switch.turn_on", "target": {"entity_id": ent}})
-                elif dom == "button":
-                    actions.append({"action": "button.press", "target": {"entity_id": ent}})
-                else:
-                    actions.append({"action": "homeassistant.turn_on", "target": {"entity_id": ent}})
-            if not actions:
-                _LOGGER.error(
-                    "Programma ricarica: NESSUNA azione possibile — mappa 'Avvio carica WALLBOX' "
-                    "(o il Pulsante Avvia carica) in Configura, altrimenti l'automazione non fa nulla"
-                )
-            cfg = {"alias": f"Uconnect EV Center — Programma ricarica ({n})",
-                   "trigger": [{"trigger": "time", "at": f"{inizio}:00"}],
-                   "condition": cond, "action": actions, "mode": "single"}
-        elif tipo == "promemoria":
-            target = ""
-            if self.notify_service:
-                target = self.notify_service if "." in self.notify_service else f"notify.{self.notify_service}"
-            act = ({"action": target, "data": {"title": "🔌 Ricarica", "message": "Ricordati di collegare l'auto alla ricarica."}}
-                   if target else
-                   {"action": "persistent_notification.create",
-                    "data": {"notification_id": f"rec_plug_{n}", "title": "🔌 Ricarica",
-                             "message": "Ricordati di collegare l'auto alla ricarica."}})
-            cfg = {"alias": f"Uconnect EV Center — Promemoria collegamento ({n})",
-                   "trigger": [{"trigger": "time", "at": f"{inizio}:00"}],
-                   "condition": cond, "action": [act], "mode": "single"}
-        else:
-            btn = self.opts.get(CONF_AC_BUTTON)
-            cfg = {"alias": f"Uconnect EV Center — Programma clima ({n})",
-                   "trigger": [{"trigger": "time", "at": f"{inizio}:00"}],
-                   "condition": cond,
-                   "action": [{"action": "button.press", "target": {"entity_id": btn}}] if btn else [],
-                   "mode": "single"}
-        made = await self._automations_apply({aid: cfg}, [])
-        # l'automazione appena salvata deve essere ATTIVA, altrimenti non parte mai
-        await self._enable_automation(cfg["alias"])
-        return made
+        return [f"schedule.{tipo}"]
 
     async def async_sync_schedule_from_automation(self) -> None:
         """Riprende orario, giorni e SoC della carica programmata DALL'automazione esistente.
@@ -3131,14 +2874,28 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     return
 
     async def async_cleanup_automations(self) -> None:
-        """All'avvio rimuove le automazioni legacy (es. 'batteria bassa fuori casa').
+        """Segnala (senza toccare nulla) le automazioni legacy create in passato.
 
-        La notifica batteria bassa è gestita NATIVAMENTE: le automazioni omonime non servono.
+        automations.yaml e' SOLO in lettura: la notifica batteria bassa e quella di
+        ricarica completata sono native, quindi le vecchie automazioni sono
+        ridondanti ma le rimuove l'utente.
         """
-        try:
-            await self._automations_apply({}, [])
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Pulizia automazioni fallita: %s", err)
+        legacy: list[str] = []
+        for st in self.hass.states.async_all("automation"):
+            eid = st.entity_id
+            name = str(st.attributes.get("friendly_name") or "").lower()
+            if not ("uconnect ev center" in name or eid.startswith("automation.uconnect_ev_center_")):
+                continue
+            if any(k in eid or k in name for k in
+                   ("_batteria_bassa", "batteria bassa", "promemoria collegamento",
+                    "_programma_promemoria")):
+                legacy.append(eid)
+        if legacy:
+            _LOGGER.warning(
+                "Automazioni legacy non piu' necessarie (notifiche native): %s. "
+                "Puoi eliminarle da Impostazioni > Automazioni.",
+                ", ".join(sorted(legacy)),
+            )
 
     def _managed_auto_ids(self) -> list[str]:
         """Automazioni create dall'integrazione (per nome o entity_id)."""
@@ -3223,6 +2980,85 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                                 f"Scadenze in arrivo:\n{righe}")
         counters["last_notify"] = today_key
         self.persist(force=True)
+
+    # testi predefiniti delle notifiche native, per lingua di Home Assistant
+    _NOTIFY_DEFAULTS = {
+        "it": {
+            "charge_title": "🔋 Ricarica completata",
+            "charge_body": "📍 Zona: {zona}\n⚡ Energia: {kwh} kWh\n🕐 Tempo: {minuti} min\n"
+                           "📊 Batteria: {soc_start}% → {soc_end}%\n💰 Costo stimato: {costo} €",
+            "low_title": "⚠️ Batteria bassa",
+            "low_body": "Batteria al {batteria}% ({autonomia} km).\nCollega la wallbox!",
+        },
+        "en": {
+            "charge_title": "🔋 Charging complete",
+            "charge_body": "📍 Area: {zona}\n⚡ Energy: {kwh} kWh\n🕐 Time: {minuti} min\n"
+                           "📊 Battery: {soc_start}% → {soc_end}%\n💰 Estimated cost: {costo} €",
+            "low_title": "⚠️ Low battery",
+            "low_body": "Battery at {batteria}% ({autonomia} km).\nPlug in the wallbox!",
+        },
+        "fr": {
+            "charge_title": "🔋 Recharge terminée",
+            "charge_body": "📍 Zone : {zona}\n⚡ Énergie : {kwh} kWh\n🕐 Durée : {minuti} min\n"
+                           "📊 Batterie : {soc_start}% → {soc_end}%\n💰 Coût estimé : {costo} €",
+            "low_title": "⚠️ Batterie faible",
+            "low_body": "Batterie à {batteria}% ({autonomia} km).\nBranchez la wallbox !",
+        },
+        "es": {
+            "charge_title": "🔋 Recarga completada",
+            "charge_body": "📍 Zona: {zona}\n⚡ Energía: {kwh} kWh\n🕐 Tiempo: {minuti} min\n"
+                           "📊 Batería: {soc_start}% → {soc_end}%\n💰 Coste estimado: {costo} €",
+            "low_title": "⚠️ Batería baja",
+            "low_body": "Batería al {batteria}% ({autonomia} km).\n¡Conecta la wallbox!",
+        },
+        "de": {
+            "charge_title": "🔋 Ladung abgeschlossen",
+            "charge_body": "📍 Bereich: {zona}\n⚡ Energie: {kwh} kWh\n🕐 Dauer: {minuti} min\n"
+                           "📊 Batterie: {soc_start}% → {soc_end}%\n💰 Geschätzte Kosten: {costo} €",
+            "low_title": "⚠️ Batterie schwach",
+            "low_body": "Batterie bei {batteria}% ({autonomia} km).\nWallbox anschließen!",
+        },
+    }
+
+    def _notify_text(self, key: str) -> str:
+        """Testo di notifica: quello scelto dall'utente, altrimenti il default per lingua."""
+        custom = (self.store.data.get("notify_texts") or {}).get(key)
+        if custom:
+            return str(custom)
+        lang = str(getattr(self.hass.config, "language", "en") or "en")[:2].lower()
+        return self._NOTIFY_DEFAULTS.get(lang, self._NOTIFY_DEFAULTS["en"]).get(key, "")
+
+    def service_set_notify_texts(self, texts: dict[str, str]) -> dict[str, str]:
+        """Salva i testi delle notifiche native (editabili dal pannello)."""
+        cur = dict(self.store.data.get("notify_texts") or {})
+        for k, v in (texts or {}).items():
+            if k in ("charge_title", "charge_body", "low_title", "low_body"):
+                cur[k] = str(v or "").strip()
+        self.store.data["notify_texts"] = cur
+        self.persist(force=True)
+        return cur
+
+    async def _notify_charge_finished(self, rec: dict[str, Any]) -> None:
+        """Notifica nativa di fine ricarica (prima era un'automazione in YAML)."""
+        if not self._switch_on("notify_end"):
+            return
+        vals = {
+            "zona": rec.get("zona") or "—",
+            "kwh": round(_f(rec.get("kwh")), 2),
+            "minuti": int(_f(rec.get("durata_min"))),
+            "soc_start": rec.get("soc_start", "—"),
+            "soc_end": rec.get("soc_end", "—"),
+            "costo": round(_f(rec.get("costo")), 2),
+        }
+
+        def _fmt(text: str) -> str:
+            try:
+                return text.format(**vals)
+            except (KeyError, IndexError, ValueError):
+                return text
+
+        await self._send_notify(self._notify_text("charge_title"),
+                                _fmt(self._notify_text("charge_body")))
 
     async def _send_notify(self, title: str, message: str) -> None:
         """Invia una notifica tramite il servizio notify configurato."""
@@ -3557,12 +3393,10 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 f"La {data.get('capacity', 60):.0f}-kWh si sta caricando.\n"
                 f"Tipo: {zona}\nBatteria: {data.get('battery')}%"
             )
-        # NOTA: la notifica di FINE ricarica la manda l'automazione "Ricarica completata"
-        # (visibile e attivabile dalla vista Automazioni, con posizione inclusa).
-        # Qui NON la inviamo più: prima arrivavano DUE notifiche identiche.
+        # notifica di FINE ricarica: NATIVA (testi modificabili dal pannello).
         if events.get("charge_finished"):
-            _LOGGER.info("Ricarica completata: %s kWh (notifica via automazione)",
-                         events["charge_finished"].get("kwh"))
+            rec = events["charge_finished"] or {}
+            await self._notify_charge_finished(rec)
 
         # --- promemoria batteria bassa a casa --------------------------------------
         soglia = self._setting_num("low_soc", self.low_soc_threshold)
@@ -3577,11 +3411,16 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     and (data.get("location") or "") == "home"
                     and data.get("battery", 100) <= soglia
                     and counters.get("last_low_notify") != today_key):
-                await self._send_notify(
-                    "⚠️ Batteria bassa",
-                    f"Batteria al {data.get('battery')}% ({data.get('range')} km).\n"
-                    "Collega la wallbox!"
-                )
+                _vals = {"batteria": data.get("battery"), "autonomia": data.get("range")}
+
+                def _lb(text: str) -> str:
+                    try:
+                        return text.format(**_vals)
+                    except (KeyError, IndexError, ValueError):
+                        return text
+
+                await self._send_notify(self._notify_text("low_title"),
+                                        _lb(self._notify_text("low_body")))
                 counters["last_low_notify"] = today_key
                 self.persist(force=True)
 
@@ -3618,17 +3457,33 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         stop_soc = self._setting_num("charge_stop_soc", self.charge_stop_soc)
         stop_target = _f(_sc_prog.get("soc"), 0.0) or stop_soc
 
-        # SOLO FERMO: l'AVVIO lo fa unicamente l'automazione della vista Automazioni.
-        # Premendo anche da qui, la carica partiva DUE volte (automazione alle 23:05
-        # e poll del coordinatore nello stesso istante).
+        # AVVIO e FERMO li valuta il coordinatore (niente automazioni scritte in YAML).
+        # Il marker per finestra evita di premere il pulsante a ogni poll.
+        giorni = [d for d in (_sc_prog.get("giorni") or []) if d in WEEKDAYS]
+        oggi_ok = not giorni or WEEKDAYS[now.weekday()] in giorni
+        target = min(stop_soc, stop_target) if mode != "orario" else stop_target
+        counters = self.store.data["counters"]
         if mode == "orario":
             in_window = _in_window(hhmm, avvio_ora_s, stop_ora_s)
+            win_key = f"{now.strftime('%Y-%m-%d')}|{avvio_ora_s}|{stop_ora_s}"
+            if in_window and oggi_ok and not charging and battery < target:
+                if counters.get("last_sched_start") != win_key:
+                    await self._wb_charge(True, battery)
+                    counters["last_sched_start"] = win_key
+                    self.persist(force=True)
+                    _LOGGER.info("Carica programmata: avvio (%s-%s)", avvio_ora_s, stop_ora_s)
             # stop: fuori dalla finestra OPPURE SoC obiettivo raggiunto
-            # (prima il SoC veniva ignorato: la carica proseguiva oltre il 70%)
             if charging and (not in_window or battery >= stop_target):
                 await self._wb_charge(False, battery)
-        else:  # percentuale
-            if charging and battery >= min(stop_soc, stop_target):
+        else:  # percentuale: carica fino al SoC obiettivo, una volta al giorno
+            day_key = now.strftime("%Y-%m-%d")
+            if oggi_ok and not charging and battery < target:
+                if counters.get("last_sched_start") != day_key:
+                    await self._wb_charge(True, battery)
+                    counters["last_sched_start"] = day_key
+                    self.persist(force=True)
+                    _LOGGER.info("Carica programmata: avvio a SoC %s%%", int(target))
+            if charging and battery >= target:
                 await self._wb_charge(False, battery)
 
     async def _press_start(self) -> None:
@@ -3679,12 +3534,12 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
     async def service_export_csv(self) -> str:
         """Esporta viaggi e ricariche in CSV dentro config/uconnect_ev_center_export."""
         base = self.hass.config.path("uconnect_ev_center_export")
-        os.makedirs(base, exist_ok=True)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         trips_path = os.path.join(base, f"{self.entry.entry_id[:8]}_trips_{stamp}.csv")
 
         def _write() -> str:
+            os.makedirs(base, exist_ok=True)
             fields = ["id", "data", "ora_inizio", "ora_fine", "durata_min", "km",
                       "mileage_inizio", "mileage_fine", "batteria_inizio", "batteria_fine",
                       "batteria_delta", "kwh_consumati", "kwh_per_100km",

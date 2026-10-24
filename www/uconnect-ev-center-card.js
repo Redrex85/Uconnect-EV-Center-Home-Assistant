@@ -7,18 +7,18 @@
  * Installazione:
  *   1) copia questo file in /config/www/uconnect-ev-center/
  *   2) Impostazioni → Dashboard → ⋮ → Risorse → + → URL:
- *      /local/uconnect-ev-center/uconnect-ev-center-card.js
+ *      /uconnect_ev_center/www/uconnect-ev-center-card.js
  *   3) aggiungi la card manuale di tipo "custom:uconnect-ev-center-card"
  *
  * Configurazione:
  *   type: custom:uconnect-ev-center-card
  *   name: Uconnect            # prefisso entità (il nome dell'auto)
- *   image: /local/uconnect-ev-center/auto.png
+ *   image: /uconnect_ev_center/images/custom.png
  *   battery_entity: sensor.battery_level
  *   range_entity: sensor.battery_autonomy
  *   odometer_entity: sensor.mileage
  */
-const CARD_VER = "1.0.10";
+const CARD_VER = "1.0.11";
 let _cardVerChecked = false;
 
 class UconnectEvCenterCard extends HTMLElement {
@@ -27,7 +27,7 @@ class UconnectEvCenterCard extends HTMLElement {
     if (_cardVerChecked) return;
     _cardVerChecked = true;
     try {
-      fetch(`/local/uconnect-ev-center/uconnect-ev-center-card.js?ts=${Date.now()}`, { cache: "no-store" })
+      fetch(`/uconnect_ev_center/www/uconnect-ev-center-card.js?ts=${Date.now()}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.text() : ""))
         .then((t) => {
           const m = t && t.match(/const CARD_VER = "([^"]+)"/);
@@ -48,7 +48,7 @@ class UconnectEvCenterCard extends HTMLElement {
     this._config = Object.assign(
       {
         name: "Uconnect",
-        image: "/local/uconnect-ev-center/auto.png",
+        image: "/uconnect_ev_center/images/custom.png",
         battery_entity: "sensor.battery_level",
         range_entity: "sensor.battery_autonomy",
         odometer_entity: "sensor.mileage",
@@ -164,7 +164,7 @@ class UconnectEvCenterCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { name: "Uconnect", image: "/local/uconnect-ev-center/auto.png" };
+    return { name: "Uconnect", image: "/uconnect_ev_center/images/custom.png" };
   }
 }
 
@@ -182,4 +182,4 @@ try {
   /* ambiente non-HA (demo): ignora */
 }
 
-  console.info("%c UCONNECT EV CENTER CARD %c v1.0.10 " , "background:#4d8dff;color:#fff", "background:#333;color:#fff");
+  console.info("%c UCONNECT EV CENTER CARD %c v1.0.11 " , "background:#4d8dff;color:#fff", "background:#333;color:#fff");

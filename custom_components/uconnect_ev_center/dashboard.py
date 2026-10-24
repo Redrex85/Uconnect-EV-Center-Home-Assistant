@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import re
-import shutil
 from typing import Any
 
 from homeassistant.components import frontend
@@ -56,6 +55,7 @@ _UC_KEYS = (
 _LOGGER = logging.getLogger(__name__)
 
 WWW_DIR = "uconnect-ev-center"
+STATIC_URL = "/uconnect_ev_center"
 
 
 def slugify(text: str) -> str:
@@ -88,22 +88,20 @@ def _version() -> str:
         return "dev"
 
 
-def setup_card_js(hass: HomeAssistant) -> None:
-    """Copia le card Lovelace in /config/www (risorsa: /local/...)."""
-    dest_dir = hass.config.path("www", WWW_DIR)
+async def async_setup_static(hass: HomeAssistant) -> None:
+    """Serve card e immagini dal pacchetto (niente scritture in /config/www)."""
+    from homeassistant.components.http import StaticPathConfig
+
+    paths = [
+        (f"{STATIC_URL}/www", _pkg_dir("www")),
+        (f"{STATIC_URL}/images", _pkg_dir("images")),
+    ]
     try:
-        os.makedirs(dest_dir, exist_ok=True)
-        for fn in ("uconnect-ev-center-card.js", "uconnect-ev-center-panel.js"):
-            src = _pkg_dir("www", fn)
-            if os.path.isfile(src):
-                shutil.copyfile(src, os.path.join(dest_dir, fn))
-        # immagine wallbox (usata dalla pagina Wallbox del pannello)
-        wb = _pkg_dir("images", "wallbox.png")
-        if os.path.isfile(wb):
-            shutil.copyfile(wb, os.path.join(dest_dir, "wallbox.png"))
-        _LOGGER.info("Card Lovelace copiate in /local/%s/", WWW_DIR)
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(url, path, False) for url, path in paths]
+        )
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Impossibile copiare le card: %s", err)
+        _LOGGER.warning("Static path del pannello non registrate: %s", err)
 
 
 async def register_card_resource(hass: HomeAssistant) -> None:
@@ -113,20 +111,22 @@ async def register_card_resource(hass: HomeAssistant) -> None:
     if resources is None or not hasattr(resources, "async_create_item"):
         _LOGGER.warning(
             "Registro risorse Lovelace non trovato: registra le card a mano "
-            "(Impostazioni → Dashboard → ⋮ → Risorse → /local/%s/uconnect-ev-center-card.js "
-            "e /local/%s/uconnect-ev-center-panel.js)",
-            WWW_DIR, WWW_DIR,
+            "(Impostazioni → Dashboard → ⋮ → Risorse → %s/www/uconnect-ev-center-card.js "
+            "e %s/www/uconnect-ev-center-panel.js)",
+            STATIC_URL, STATIC_URL,
         )
         return
     ver = await hass.async_add_executor_job(_version)
     for fn in ("uconnect-ev-center-card.js", "uconnect-ev-center-panel.js"):
-        base = f"/local/{WWW_DIR}/{fn}"
+        base = f"{STATIC_URL}/www/{fn}"
         url = f"{base}?v={ver}"
+        legacy = f"/local/{WWW_DIR}/"
         try:
             items = list(resources.async_items())
             for item in items:
-                old = item.get("url")
-                if old == base or (old and old.startswith(f"{base}?v=") and old != url):
+                old = item.get("url") or ""
+                # vecchia /local/... o versione precedente dello stesso URL
+                if old.startswith(legacy) or (old.startswith(f"{base}?v=") and old != url):
                     item_id = item.get("id")
                     if item_id and hasattr(resources, "async_delete_item"):
                         await resources.async_delete_item(item_id)
@@ -137,40 +137,26 @@ async def register_card_resource(hass: HomeAssistant) -> None:
             _LOGGER.warning("Registrazione risorsa %s fallita: %s", url, err)
 
 
-def setup_car_image(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
-    """Copia la foto del modello in /config/www e ritorna il path /local."""
+def car_image_url(entry: ConfigEntry) -> str:
+    """URL della foto del modello servita dal pacchetto (nessun file copiato)."""
     # il modello può stare in entry.data (setup iniziale) O in entry.options
     # (flusso «Configura»): leggere solo data faceva cadere sul default "Custom"
-    # → copiava la macchinina generica anche per chi aveva scelto il modello.
+    # → mostrava la macchinina generica anche per chi aveva scelto il modello.
     model = str(
         (entry.options or {}).get("model")
         or entry.data.get("model")
         or "Custom"
     )
     slug = slugify(model)
-    src = _pkg_dir("images", f"{slug}.png")
-    if not os.path.isfile(src):
+    if not os.path.isfile(_pkg_dir("images", f"{slug}.png")):
         # i file immagine usano "etech", lo slug di HA produce "e_tech"
-        # (modelli con suffisso "-ETech": lo slug HA produce ".._e_tech" ma il file e' ".._etech")
         alt = re.sub(r"_e_tech$", "_etech", slug)
-        if alt != slug:
-            src = _pkg_dir("images", f"{alt}.png")
-    dest_dir = hass.config.path("www", WWW_DIR)
-    dest = os.path.join(dest_dir, "auto.png")
-    try:
-        os.makedirs(dest_dir, exist_ok=True)
-        if os.path.isfile(src):
-            shutil.copyfile(src, dest)
-            return f"/local/{WWW_DIR}/auto.png"
-        if not os.path.isfile(dest):
-            _LOGGER.info(
-                "Nessuna immagine per il modello %s: metti la tua foto in %s", model, dest
-            )
-            return None
-        return f"/local/{WWW_DIR}/auto.png"
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Impossibile copiare l'immagine dell'auto: %s", err)
-        return None
+        if alt != slug and os.path.isfile(_pkg_dir("images", f"{alt}.png")):
+            slug = alt
+    if not os.path.isfile(_pkg_dir("images", f"{slug}.png")):
+        _LOGGER.info("Nessuna immagine per il modello %s: uso custom.png", model)
+        slug = "custom"
+    return f"{STATIC_URL}/images/{slug}.png"
 
 
 def _panel_view(name: str, image: str | None, overrides: dict[str, Any] | None = None,
@@ -181,7 +167,7 @@ def _panel_view(name: str, image: str | None, overrides: dict[str, Any] | None =
         "type": "custom:uconnect-ev-center-panel",
         "name": name,
         "car": slugify(name),
-        "image": f"/local/{WWW_DIR}/auto.png",
+        "image": f"{STATIC_URL}/images/custom.png",
         "version": version,
         # il pannello usa questi per nascondere le parti non attive (profilo base/pro)
         "wallbox": bool(opts_wb),
@@ -360,7 +346,7 @@ async def async_setup_dashboard(hass: HomeAssistant, entry: ConfigEntry, name: s
     overrides = {k: v for k, v in _ov.items() if v}
     _pt = str(opts.get(CONF_POWERTRAIN)
               or MODEL_POWERTRAIN.get(str(opts.get("model") or ""), DEFAULT_POWERTRAIN))
-    views = [_panel_view(name, None, overrides, version,
+    views = [_panel_view(name, car_image_url(entry), overrides, version,
                          bool(opts.get(CONF_WALLBOX_ENABLED, True)),
                          str(opts.get(CONF_PROFILE) or ""), _pt)]
 

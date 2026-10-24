@@ -261,30 +261,11 @@ if os.path.isfile(agent):
 
 print("\n[7] Riepilogo giornaliero")
 try:
-    import ast
-    from jinja2 import Environment
-
-    with open(os.path.join(CC, "coordinator.py"), encoding="utf-8") as fh:
-        tree = ast.parse(fh.read())
-    message = next(node.args[2] for node in ast.walk(tree)
-                   if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                   and node.func.id == "_pn" and isinstance(node.args[0], ast.JoinedStr)
-                   and node.args[0].values[0].value == "rec_sum_")
-    template = Environment().from_string(eval(
-        compile(ast.Expression(message), "<daily-summary>", "eval"),
-        {"__builtins__": {}, "n": "uconnect"}))
-    for energy, price, expected in (
-        ("12", "0.25", "3.0 €"), ("0", "0.25", "0.0 €"),
-        ("12", "0", "0.0 €"), ("unknown", "0.25", "non disponibile"),
-        ("12", "unavailable", "non disponibile"),
-    ):
-        states = {"sensor.uconnect_energia_batteria_giornaliero": energy,
-                  "number.uconnect_costo_energia_casa": price}
-        rendered = template.render(states=lambda entity: states.get(entity, "unknown"))
-        assert expected in rendered, rendered
-        if energy == "12":
-            assert "12.0 kWh" in rendered, rendered
-    ok("riepilogo: consumo, costo, valori zero e dati mancanti")
+    # il riepilogo non e' piu' un'automazione scritta in YAML: nessun template da validare
+    src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
+    assert "rec_sum_" not in src, "il riepilogo giornaliero viene ancora scritto in automations.yaml"
+    assert "Automazioni legacy non piu' necessarie" in src, "manca l'avviso sulle automazioni legacy"
+    ok("riepilogo nativo: nessuna automazione scritta, legacy solo segnalate")
 except Exception as e:
     bad(f"riepilogo giornaliero: {e}")
 
@@ -505,13 +486,11 @@ print("\n[20] Automazioni: entita', date e schedulazioni")
 try:
     src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
     # il trigger della fine ricarica deve usare il NOSTRO binary_sensor (sempre on/off)
-    assert 'charging = f"binary_sensor.{n}_in_carica"' in src, \
-        "il trigger fine ricarica usa l'entità sorgente (può essere testuale: non scatterebbe)"
+    assert "_notify_charge_finished" in src, \
+        "manca la notifica nativa di fine ricarica"
     # niente condizione sulla data: scartava le ricariche notturne
     assert "state_attr('sensor.\" + n + \"_ultima_ricarica', 'data') == now()" not in src, \
         "la fine ricarica ha ancora la condizione sulla data (ricariche notturne perse)"
-    # date gg-mm-aaaa nelle notifiche
-    assert "%d-%m-%Y" in src, "le date nelle notifiche non sono gg-mm-aaaa"
     # schedulazioni persistite
     assert 'setdefault("schedule", {})[tipo]' in src, "le schedulazioni non vengono salvate"
     assert '"schedule": dict(self.store.data' in src, "le schedulazioni non sono esposte nei dati"
@@ -563,9 +542,9 @@ except Exception as e:
 print("\n[22] Wallbox, stima e scadenze")
 try:
     src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
-    # l'automazione 'batteria bassa' non va più creata e va rimossa sempre
-    assert "def _legacy(" in src and '"_batteria_bassa"' in src, \
-        "l'automazione 'batteria bassa' non viene rimossa"
+    # la notifica 'batteria bassa' e' nativa: automations.yaml resta solo in lettura
+    assert "write_utf8_file_atomic" not in src, \
+        "automations.yaml viene ancora scritto (deve essere solo in lettura)"
     # la stima deve usare il SoC della carica programmata quando attiva
     assert '_sc_prog = (self.store.data.get("schedule"' in src, \
         "la stima ricarica ignora il SoC dell'automazione (due valori diversi)"
@@ -580,7 +559,7 @@ try:
     assert '"zona": self._zone_label(' in src, "la ricarica non salva la posizione"
     assert "finished.get('soc_start')" not in src, \
         "la notifica di fine carica è ancora inviata due volte (nativa + automazione)"
-    assert "'zona') or '—'" in src, "la notifica di fine carica non include la posizione"
+    assert '"zona": rec.get("zona")' in src, "la notifica di fine carica non include la posizione"
     # programmazione: l'orario mostrato in Panoramica viene dalla programmazione salvata
     assert "_pg.attributes.schedule.ricarica" in open(
         os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read(), \
@@ -686,8 +665,8 @@ try:
     src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
     assert '_sc_prog.get("inizio")' in src and '_sc_prog.get("fine")' in src, \
         "lo scheduler nativo non usa gli orari dell'automazione salvata"
-    assert "prev_state" in src and "prev_auto" in src, \
-        "le automazioni non conservano lo stato on/off al reload"
+    assert "save_auto_states" in src and "async_restore_auto_states" in src, \
+        "lo stato on/off delle automazioni non viene conservato"
     sel = open(os.path.join(CC, "select.py"), encoding="utf-8").read()
     assert '"filtro_mese", MESI, "Tutti"' in sel, \
         "il filtro mese deve partire da Tutti: e' il periodo a dare la finestra"
@@ -751,10 +730,10 @@ except Exception as e:
 print("\n[27] Fix 1.0.24.3: stato automazioni, batteria bassa duplicata, ritocchi UI")
 try:
     co = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
-    assert "prev_auto: dict[str, str]" in co and 'async_all("automation")' in co, \
-        "il reload non ripristina lo stato di TUTTE le automazioni"
-    assert '" _batteria_bassa" ' not in co and '"_batteria_bassa_" in aid' in co, \
-        "le automazioni 'batteria bassa fuori casa' non vengono rimosse"
+    assert "write_utf8_file_atomic" not in co and "_automations_apply" not in co, \
+        "il coordinatore scrive ancora automations.yaml"
+    assert "Automazioni legacy non piu' necessarie" in co, \
+        "la pulizia non segnala le automazioni legacy (solo warning, nessuna rimozione)"
     assert "async def async_cleanup_automations" in co, "manca la pulizia delle automazioni legacy"
     ini = open(os.path.join(CC, "__init__.py"), encoding="utf-8").read()
     assert "async_cleanup_automations()" in ini, "la pulizia automazioni non è chiamata all'avvio"
@@ -828,7 +807,7 @@ try:
     js = open(os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read()
     i = js.find("p11:")
     body = js[i:js.find("`,\n};", i)]
-    assert "/local/uconnect-ev-center/wallbox.png" in body, "manca l'immagine wallbox nello Stato"
+    assert "/uconnect_ev_center/images/wallbox.png" in body, "manca l'immagine wallbox nello Stato"
     assert body.find("Stato wallbox") < body.find("Sessione corrente") < body.find("Stima ricarica"), \
         "Stato / Sessione / Stima non sono nell'ordine giusto"
     assert "grid g3" in body, "i bilanciamenti o la riga Stato/Sessione/Stima non sono a 3 colonne"
@@ -836,12 +815,11 @@ try:
         assert f'data-sw="{k}"' in body, f"manca lo switch {k} nella pagina Wallbox"
     assert body.count('id="wb_amp"') == 1, "la corrente di carica non è unica/dentro Sessione"
     dash = open(os.path.join(CC, "dashboard.py"), encoding="utf-8").read()
-    assert 'wallbox.png' in dash, "l'immagine wallbox non viene copiata in /local"
+    assert '_pkg_dir("images")' in dash and "async_register_static_paths" in dash, \
+        "le immagini non sono servite dal pacchetto (static path)"
     co = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
-    assert "_programma_promemoria" in co and "_promemoria_collegamento" in co, \
-        "l'automazione Promemoria collegamento non viene rimossa"
-    assert "_legacy(d)" in co and 'entry.get("alias")' in co, \
-        "la rimozione legacy non controlla anche l'alias"
+    assert "write_utf8_file_atomic" not in co, \
+        "automations.yaml viene ancora scritto: deve essere solo in lettura"
     assert "def save_auto_states" in co and "async def async_restore_auto_states" in co, \
         "lo stato on/off delle automazioni non persiste tra riavvii"
     assert "async_restore_auto_states()" in co and "if self._auto_restored:" in co, \
@@ -959,8 +937,7 @@ try:
     js = open(os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read()
     assert 'data-cmd="refresh_car"' in js and 'case "refresh_car"' in js, \
         "manca il tasto Aggiorna auto nel pannello"
-    assert "_refresh_auto" in co and '"action": "uconnect_ev_center.refresh_car"' in co, \
-        "manca l'automazione periodica Aggiorna posizione auto"
+    assert "async def service_refresh_car" in co, "manca il refresh forzato"
     ok("refresh forzato auto: servizio + tasto + automazione periodica")
 except Exception as e:
     bad(f"refresh auto: {e}")
@@ -1104,8 +1081,8 @@ try:
     coord = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
     assert "opts.get(CONF_NAME" not in coord, \
         "coordinator.py usa ancora opts.get(CONF_NAME) con default fisso"
-    assert coord.count("slugify(entry_name(self.entry))") >= 4, \
-        "automazioni/schedule del coordinatore non usano entry_name()"
+    assert "slugify(entry_name(self.entry))" in coord, \
+        "il coordinatore non usa piu' entry_name() per le entita' dell'auto"
     assert init.count("entry_name(entry") >= 2 and "entry_name(coord.entry)" in init, \
         "entry_name() non usato in tutte le chiamate a async_setup_dashboard"
     # le 9 piattaforme leggono entry.data → entry.title (testa comune)
@@ -1605,18 +1582,18 @@ except Exception as e:
     bad(f"carica programmata: {e}")
 
 # ---------------------------------------------------------------- [64] solo l'automazione avvia
-print("\n[64] Carica programmata: l'AVVIO lo fa solo l'automazione, il coordinatore ferma")
+print("\n[64] Carica programmata: avvio e fermo gestiti dal coordinatore")
 try:
     src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
-    assert "_wb_charge(True" not in src, "il coordinatore preme ancora l'avvio (doppio start)"
-    assert "_sched_done_key" not in src, "residuo contatore di avvio giornaliero"
-    i = src.find("# SOLO FERMO")
-    assert i > 0, "manca il blocco 'solo ferma'"
-    blk = src[i:src.find("_press_start", i)]
-    assert "_wb_charge(False" in blk, "il fermo e' sparito dal blocco carica programmata"
+    assert "_wb_charge(True" in src, "il coordinatore non avvia piu' la carica programmata"
+    assert "last_sched_start" in src, "manca il marker per finestra: doppio avvio a ogni poll"
+    i = src.find("# --- carica programmata")
+    assert i > 0, "manca il blocco carica programmata"
+    blk = src[i:]
+    assert "_wb_charge(False, battery)" in blk, "il fermo e' sparito dal blocco"
     assert "wb_stop_switch or self.charge_target_number or ent" in src, \
         "stop senza fallback sul target Uconnect"
-    ok("coordinatore non avvia piu': parte solo l'automazione della vista Automazioni")
+    ok("avvio e fermo gestiti dal coordinatore, marker per finestra")
 except Exception as e:
     bad(f"avvio carica: {e}")
 

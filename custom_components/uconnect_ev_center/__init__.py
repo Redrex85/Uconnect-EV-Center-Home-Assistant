@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import shutil
 from datetime import datetime as dt
 
 import voluptuous as vol
@@ -20,10 +19,9 @@ from .coordinator import UconnectMateCoordinator
 from .dashboard import (
     async_remove_dashboard,
     async_setup_dashboard,
+    async_setup_static,
     entry_name,
     register_card_resource,
-    setup_card_js,
-    setup_car_image,
     slugify,
 )
 
@@ -61,9 +59,9 @@ SERVICE_RENEW_INSURANCE = "renew_insurance"
 SERVICE_SET_SCADENZA = "set_scadenza"
 SERVICE_SET_TAGLIANDO = "set_tagliando"
 SERVICE_CREATE_DASHBOARD = "create_dashboard"
-SERVICE_CREATE_AUTOMATIONS = "create_automations"
 SERVICE_SET_LOW_SOC_DAYS = "set_low_soc_days"
 SERVICE_SET_NOTIFY_SERVICE = "set_notify_service"
+SERVICE_SET_NOTIFY_TEXTS = "set_notify_texts"
 
 RESET_SCOPES = ["km", "energia", "costi", "viaggi", "ricariche", "all"]
 
@@ -106,14 +104,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Dashboard automatica non creata: %s", err)
     try:
-        await hass.async_add_executor_job(setup_car_image, hass, entry)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Immagine auto non copiata: %s", err)
-    try:
-        await hass.async_add_executor_job(setup_card_js, hass)
+        await async_setup_static(hass)
         await register_card_resource(hass)
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Card non copiata/registrata: %s", err)
+        _LOGGER.warning("Card non registrata: %s", err)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
@@ -259,10 +253,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for coord in _targets(hass, call):
             coord.service_set_notify_service(str(call.data.get("service", "") or ""))
 
-    async def handle_create_automations(call: ServiceCall) -> None:
+    async def handle_set_notify_texts(call: ServiceCall) -> None:
+        texts = call.data.get("texts") or {}
         for coord in _targets(hass, call):
-            created = await coord.service_create_automations()
-            _LOGGER.info("Automazioni Uconnect EV Center create: %s", created)
+            coord.service_set_notify_texts(dict(texts))
 
     async def handle_set_schedule(call: ServiceCall) -> None:
         for coord in _targets(hass, call):
@@ -365,8 +359,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
               }))
     _register(SERVICE_CREATE_DASHBOARD, handle_create_dashboard,
               schema=vol.Schema({vol.Optional("entry_id"): str}))
-    _register(SERVICE_CREATE_AUTOMATIONS, handle_create_automations,
-              schema=vol.Schema({vol.Optional("entry_id"): str}))
+    _register(SERVICE_SET_NOTIFY_TEXTS, handle_set_notify_texts,
+              schema=vol.Schema({
+                  vol.Optional("entry_id"): str,
+                  vol.Required("texts"): dict,
+              }))
     _register("refresh_car", handle_refresh_car,
               schema=vol.Schema({vol.Optional("entry_id"): str}))
     _register("set_auto_state", handle_set_auto_state, schema=vol.Schema({
@@ -434,9 +431,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     SERVICE_SEPARATE_CHARGE,
     SERVICE_DELETE_TRIP, SERVICE_ADD_MAINTENANCE,
                 SERVICE_DELETE_MAINTENANCE, SERVICE_RENEW_INSURANCE,
-                SERVICE_SET_SCADENZA, SERVICE_SET_TAGLIANDO, SERVICE_CREATE_DASHBOARD,
-                SERVICE_CREATE_AUTOMATIONS, SERVICE_SET_LOW_SOC_DAYS,
-                SERVICE_SET_NOTIFY_SERVICE,
+                SERVICE_SET_SCADENZA, SERVICE_SET_TAGLIANDO,                 SERVICE_CREATE_DASHBOARD,
+                SERVICE_SET_LOW_SOC_DAYS,
+                SERVICE_SET_NOTIFY_SERVICE, SERVICE_SET_NOTIFY_TEXTS,
                 "set_maintenance", "refresh_car", "set_auto_state", "set_schedule",
             ):
                 hass.services.async_remove(DOMAIN, name)
@@ -457,11 +454,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
             {"notification_id": nid}, blocking=False,
         )
 
-    # 3) file copiati in /config/www/uconnect-ev-center/, YAML fallback e storage
+    # 3) YAML fallback e storage (niente più file in /config/www: la card è servita
+    #    dal pacchetto via static path)
     def _cleanup_files() -> None:
-        www = hass.config.path("www", "uconnect-ev-center")
-        if os.path.isdir(www):
-            shutil.rmtree(www, ignore_errors=True)
         storage_file = hass.config.path(".storage", f"uconnect_ev_center.{entry.entry_id}")
         for leftover in (
             hass.config.path(f"uconnect-ev-center_{slugify(name)}_dashboard.yaml"),

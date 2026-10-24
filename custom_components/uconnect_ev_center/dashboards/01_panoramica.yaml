@@ -1,16 +1,15 @@
 # ============================================================
 #  UCONNECT EV CENTER — PANORAMICA
 # ============================================================
-# Richiede la CARD DEDICATA (copiata automaticamente dall'integrazione
-# in /config/www/uconnect-ev-center/): registra la risorsa una volta sola:
+# Richiede la CARD DEDICATA (servita dall'integrazione, risorsa registrata
+# in automatico): se manca, registrala una volta sola:
 #   Impostazioni → Dashboard → ⋮ → Risorse → +
-#   URL: /local/uconnect-ev-center/uconnect-ev-center-card.js   (Javascript)
+#   URL: /uconnect_ev_center/www/uconnect-ev-center-card.js   (Javascript)
 # Card opzionali per i grafici (HACS → Frontend):
 #   - apexcharts-card   (grafico km + consumi)
 #   - mini-graph-card   (potenza wallbox)
-# Immagine auto: /config/www/uconnect-ev-center/auto.png
-#   (verrà servita come /local/uconnect-ev-center/auto.png) — oppure scelta
-#   dal modello nel wizard.
+# Immagine auto: servita dal pacchetto, /uconnect_ev_center/images/<modello>.png
+#   (l'integrazione imposta da sola il percorso scelto nel wizard).
 # Se la tua auto NON si chiama "Uconnect", sostituisci il prefisso
 # sensor.uconnect_ / binary_sensor.uconnect_ / number.uconnect_ col tuo.
 # ============================================================
@@ -25,7 +24,7 @@ views:
     cards:
     - type: custom:uconnect-ev-center-card
       name: Uconnect
-      image: /local/uconnect-ev-center/auto.png
+      image: /uconnect_ev_center/images/custom.png
       battery_entity: sensor.battery_level
       range_entity: sensor.battery_autonomy
       odometer_entity: sensor.mileage

@@ -164,10 +164,16 @@ set_tagliando:
       description: km assoluti (mode=km) oppure data YYYY-MM-DD (mode=data).
       example: "71218"
 
-create_automations:
-  name: Crea automazioni consigliate
-  description: Crea o aggiorna in Home Assistant le 3 automazioni consigliate
-    (ricarica completata, batteria bassa fuori casa, riassunto giornaliero).
+set_notify_texts:
+  name: Testi notifiche
+  description: "Salva i testi delle notifiche native (fine ricarica, batteria bassa).
+    Placeholder fine ricarica: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo};
+    batteria bassa: {batteria} {autonomia}."
+  fields:
+    texts:
+      name: Testi
+      description: "Chiavi: charge_title, charge_body, low_title, low_body"
+      example: '{"charge_title": "🔋 Ricarica completata", "low_title": "⚠️ Batteria bassa"}'
 create_dashboard:
   name: Crea dashboard
   description: (Ri)crea la dashboard laterale "«Nome» EV Center" con tutte le viste.
@@ -181,7 +187,8 @@ set_low_soc_days:
       example: '["mon", "tue", "wed", "thu", "fri"]'
 set_schedule:
   name: Imposta schedulazione
-  description: Crea/aggiorna l'automazione di ricarica o clima programmato (orario + giorni).
+  description: Salva il programma di ricarica o clima (orario, giorni, SoC). Nessun
+    file YAML viene modificato - avvio e fermo li gestisce l'integrazione.
   fields:
     tipo:
       name: Tipo

@@ -162,7 +162,7 @@ Attiva l'interruttore se hai una wallbox in HA e mappa i sensori:
 | Stato wallbox | `sensor.wallbox_charger_state` (cerca lo stato tipo *charging*) |
 | Contatore energia sessione | kWh della sessione corrente |
 | Contatore energia totale | kWh totali erogati (usato se manca quello di sessione) |
-| Avvio/stop carica (per l'automazione) | switch o button della wallbox |
+| Avvio/stop carica (programmazione) | switch o button della wallbox |
 | Target di carica (fallback stop) | `number.*charge_target` Uconnect |
 
 ### 3️⃣ Impostazioni
@@ -238,18 +238,18 @@ Alla configurazione viene creata **da sola** la dashboard laterale con tutte le 
 | Manutenzione | Tagliandi (km o data) + Assicurazione (rinnovi, costo) |
 | Risparmi | Carburante, tagliandi (termica 450 € − reale), bollo, netto, FV |
 | Extra | Vampire drain, rotte, meteo, CO₂, scadenze, top&stop, Energy Dashboard |
-| Automazioni | Interruttori + % e orari delle automazioni integrate |
+| Automazioni | Notifiche native on/off, % e orari della programmazione, testi notifiche |
 | Impostazioni | Prezzi, batteria, reset, export |
 | Mobile | Vista compatta per il telefono |
 
 Card custom opzionali (HACS → Frontend), usate **solo** dalle dashboard YAML in `dashboards/`:
 **apexcharts-card** e **mini-graph-card** (grafici in `01_panoramica.yaml` e `04_ricariche.yaml`).
 Il pannello laterale (`uconnect-ev-center-panel.js`) **non ne ha bisogno**: disegna tutto da sé.
-Foto dell'auto: scelta dal modello nel wizard o personale in `/config/www/uconnect-ev-center/auto.png`.
+Foto dell'auto: scelta dal modello nel wizard o personale in `/uconnect_ev_center/images/<modello>.png`.
 
 > Se la tua auto non si chiama "Uconnect", sostituisci `sensor.uconnect_` con il prefisso giusto.
 
-In [`examples/automazioni_esempio.yaml`](examples/automazioni_esempio.yaml) trovi notifiche pronte: ricarica completata, batteria bassa fuori casa, riassunto serale.
+In [`examples/automazioni_esempio.yaml`](examples/automazioni_esempio.yaml) trovi due automazioni facoltative (riassunto serale, aggiornamento posizione): l'integrazione non scrive mai in `automations.yaml`.
 
 ## 🛠️ Servizi
 
@@ -271,8 +271,9 @@ service: uconnect_ev_center.export_trips_csv
 # (Ri)crea la dashboard laterale con tutte le viste
 service: uconnect_ev_center.create_dashboard
 
-# Crea in HA le 3 automazioni consigliate
-service: uconnect_ev_center.create_automations
+# Testi delle notifiche native (fine ricarica, batteria bassa)
+service: uconnect_ev_center.set_notify_texts
+data: { texts: { charge_title: "Ricarica completata", low_title: "Batteria bassa" } }
 
 # Manutenzione e assicurazione
 service: uconnect_ev_center.add_maintenance
@@ -535,11 +536,11 @@ On setup the sidebar dashboard is **created for you** with every view
 Optional custom cards (HACS → Frontend), used **only** by the YAML dashboards in `dashboards/`:
 **apexcharts-card** and **mini-graph-card** (charts in `01_panoramica.yaml` and `04_ricariche.yaml`).
 The side panel (`uconnect-ev-center-panel.js`) **doesn't need them**: it draws everything itself.
-Car photo: chosen from the model in the wizard or personal, in `/config/www/uconnect-ev-center/auto.png`.
+Car photo: chosen from the model in the wizard or personal, in `/uconnect_ev_center/images/<modello>.png`.
 
 > If your car isn't called "Uconnect", replace `sensor.uconnect_` with the right prefix.
 
-[`examples/automazioni_esempio.yaml`](examples/automazioni_esempio.yaml) has ready notifications: charge finished, low battery away from home, evening summary.
+[`examples/automazioni_esempio.yaml`](examples/automazioni_esempio.yaml) has two optional automations (evening summary, position refresh): the integration never writes to `automations.yaml`.
 
 ### Services
 
@@ -561,8 +562,9 @@ service: uconnect_ev_center.export_trips_csv
 # (Re)creates the side dashboard with all views
 service: uconnect_ev_center.create_dashboard
 
-# Creates the 3 recommended automations in HA
-service: uconnect_ev_center.create_automations
+# Texts of the native notifications (charge complete, low battery)
+service: uconnect_ev_center.set_notify_texts
+data: { texts: { charge_title: "Charging complete", low_title: "Low battery" } }
 
 # Maintenance and insurance
 service: uconnect_ev_center.add_maintenance
@@ -829,13 +831,11 @@ tableaux de bord YAML dans `dashboards/` : **apexcharts-card** et **mini-graph-c
 (graphiques dans `01_panoramica.yaml` et `04_ricariche.yaml`). Le panneau latéral
 (`uconnect-ev-center-panel.js`) **n'en a pas besoin** : il dessine tout lui-même.
 Photo de la voiture : choisie depuis le modèle dans l'assistant ou personnelle, dans
-`/config/www/uconnect-ev-center/auto.png`.
+`/uconnect_ev_center/images/<modello>.png`.
 
 > Si votre voiture ne s'appelle pas « Uconnect », remplacez `sensor.uconnect_` par le bon préfixe.
 
-Dans [`examples/automazioni_esempio.yaml`](examples/automazioni_esempio.yaml) vous
-trouvez des notifications prêtes : recharge terminée, batterie faible loin de la maison,
-résumé du soir.
+Dans [`examples/automazioni_esempio.yaml`](examples/automazioni_esempio.yaml) vous trouvez deux automatisations facultatives (résumé du soir, mise à jour de la position) : l'intégration n'écrit jamais dans `automations.yaml`.
 
 ## 🛠️ Services
 
@@ -857,8 +857,9 @@ service: uconnect_ev_center.export_trips_csv
 # (Re)crée le tableau de bord latéral avec toutes les vues
 service: uconnect_ev_center.create_dashboard
 
-# Crée dans HA les 3 automatisations recommandées
-service: uconnect_ev_center.create_automations
+# Textes des notifications natives (recharge terminée, batterie faible)
+service: uconnect_ev_center.set_notify_texts
+data: { texts: { charge_title: "Recharge terminée", low_title: "Batterie faible" } }
 
 # Entretien et assurance
 service: uconnect_ev_center.add_maintenance

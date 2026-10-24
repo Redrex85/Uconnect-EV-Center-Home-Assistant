@@ -712,9 +712,14 @@
       "name": "Crea dashboard",
       "description": "(Ri)crea la dashboard laterale con tutte le viste."
     },
-    "create_automations": {
-      "name": "Crea automazioni consigliate",
-      "description": "Crea in Home Assistant le 3 automazioni consigliate."
+    "set_notify_texts": {
+      "name": "Testi notifiche",
+      "description": "Salva i testi delle notifiche native (fine ricarica, batteria bassa).",
+      "fields": {
+        "texts": {
+          "name": "Testi"
+        }
+      }
     },
     "set_maintenance": {
       "name": "Imposta scadenza manutenzione",

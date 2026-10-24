@@ -14,13 +14,13 @@
  *   type: custom:uconnect-ev-center-panel
  *   name: Uconnect        # nome auto (prefisso entità integrazione)
  *   car: uconnect           # slug entità Uconnect core (battery, range, odometer, location)
- *   image: /local/uconnect-ev-center/auto.png
+ *   image: /uconnect_ev_center/images/avenger.png
  *   notify: notify.michele
  *   overrides: {battery: "sensor.uconnect_battery", ...}
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.10";
+const REC_VER = "1.0.11";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -32,6 +32,15 @@ const I18N = {
     nav_p8: "Extra", nav_p9: "Automazioni", nav_p10: "Impostazioni",
   },
   en: {
+    note_auto_native: "Schedule start/stop, charge-complete and low-battery notifications are handled by the integration: no automations in <code>automations.yaml</code> are needed.",
+    h3_testi_notifiche: "\u270F\uFE0F Notification texts",
+    lbl_nt_charge_title: "Charge complete title",
+    lbl_nt_charge_body: "Charge complete text",
+    lbl_nt_low_title: "Low battery title",
+    lbl_nt_low_body: "Low battery text",
+    btn_salva: "Save",
+    note_testi_notifiche: "Empty = default text in the Home Assistant language.",
+    note_nessuna_automazione: "No Uconnect automation active.",
     apex_titolo: "Install the «apexcharts-card» card",
     apex_corpo: "To see this chart install <b>HACS → Frontend</b> → <code>apexcharts-card</code>, then restart Home Assistant and reload the page.",
     nav_p1: "Overview", nav_p2: "Trips", nav_p3: "Stats", nav_p4: "Charges",
@@ -283,6 +292,15 @@ const I18N = {
     toast_no_stop: "⚠️ Charge stop not mapped (Settings → Wallbox)",
   },
   fr: {
+    note_auto_native: "Le démarrage/l'arrêt programmés et les notifications de fin de recharge et de batterie faible sont gérés par l'intégration : aucune automatisation dans <code>automations.yaml</code> n'est nécessaire.",
+    h3_testi_notifiche: "\u270F\uFE0F Textes des notifications",
+    lbl_nt_charge_title: "Titre fin de recharge",
+    lbl_nt_charge_body: "Texte fin de recharge",
+    lbl_nt_low_title: "Titre batterie faible",
+    lbl_nt_low_body: "Texte batterie faible",
+    btn_salva: "Enregistrer",
+    note_testi_notifiche: "Vide = texte par défaut dans la langue de Home Assistant.",
+    note_nessuna_automazione: "Aucune automatisation Uconnect active.",
     apex_titolo: "Installer la carte «apexcharts-card»",
     apex_corpo: "Pour voir ce graphique, installe <b>HACS → Frontend</b> → <code>apexcharts-card</code>, puis redémarre Home Assistant et recharge la page.",
     nav_p1: "Aperçu", nav_p2: "Trajets", nav_p3: "Statistiques", nav_p4: "Recharges",
@@ -534,6 +552,15 @@ const I18N = {
     toast_no_stop: "⚠️ Arrêt recharge non mappé (Réglages → Wallbox)",
   },
   es: {
+    note_auto_native: "El inicio/parada programados y las notificaciones de recarga completada y batería baja los gestiona la integración: no hacen falta automatizaciones en <code>automations.yaml</code>.",
+    h3_testi_notifiche: "\u270F\uFE0F Textos de notificaciones",
+    lbl_nt_charge_title: "Título recarga completada",
+    lbl_nt_charge_body: "Texto recarga completada",
+    lbl_nt_low_title: "Título batería baja",
+    lbl_nt_low_body: "Texto batería baja",
+    btn_salva: "Guardar",
+    note_testi_notifiche: "Vacío = texto predeterminado en el idioma de Home Assistant.",
+    note_nessuna_automazione: "Ninguna automatización Uconnect activa.",
     apex_titolo: "Instala la tarjeta «apexcharts-card»",
     apex_corpo: "Para ver este gráfico instálala desde <b>HACS → Frontend</b> → <code>apexcharts-card</code>, luego reinicia Home Assistant y recarga la página.",
     nav_p1: "Resumen",
@@ -793,6 +820,15 @@ const I18N = {
     toast_no_stop: "⚠️ Parada de recarga no mapeada (Ajustes → Wallbox)",
   },
   de: {
+    note_auto_native: "Geplanter Start/Stopp sowie Ladeende- und Batteriewarnungen verwaltet die Integration: keine Automatisierungen in <code>automations.yaml</code> nötig.",
+    h3_testi_notifiche: "\u270F\uFE0F Benachrichtigungstexte",
+    lbl_nt_charge_title: "Titel Ladung abgeschlossen",
+    lbl_nt_charge_body: "Text Ladung abgeschlossen",
+    lbl_nt_low_title: "Titel Batterie schwach",
+    lbl_nt_low_body: "Text Batterie schwach",
+    btn_salva: "Speichern",
+    note_testi_notifiche: "Leer = Standardtext in der Sprache von Home Assistant.",
+    note_nessuna_automazione: "Keine aktive Uconnect-Automatisierung.",
     apex_titolo: "Karte «apexcharts-card» installieren",
     apex_corpo: "Um dieses Diagramm zu sehen, installiere <b>HACS → Frontend</b> → <code>apexcharts-card</code>, dann Home Assistant neu starten und die Seite neu laden.",
     nav_p1: "Übersicht",
@@ -1966,12 +2002,6 @@ const UI = {
     "es": "✖ borrar fechas",
     "de": "✖ Daten löschen"
   },
-  "✨ Crea automazioni consigliate": {
-    "en": "✨ Create recommended automations",
-    "fr": "✨ Créer les automatisations recommandées",
-    "es": "✨ Crear automatizaciones recomendadas",
-    "de": "✨ Empfohlene Automatisierungen erstellen"
-  },
   "➕ Aggiungi intervento": {
     "en": "➕ Add service",
     "fr": "➕ Ajouter une intervention",
@@ -2651,7 +2681,7 @@ class UconnectEvCenterPanel extends HTMLElement {
         }
       } catch (e) { /* ignore */ }
       // ripiego: rilegge il file servito
-      fetch(`/local/uconnect-ev-center/uconnect-ev-center-panel.js?ts=${Date.now()}`, { cache: "no-store" })
+      fetch(`/uconnect_ev_center/www/uconnect-ev-center-panel.js?ts=${Date.now()}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.text() : ""))
         .then((t) => {
           const m = t && t.match(/const REC_VER = "([^"]+)"/);
@@ -2684,7 +2714,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     this._cfg = {
       name,
       car: config.car || this._slug(name),
-      image: config.image || "/local/uconnect-ev-center/auto.png",
+      image: config.image || "/uconnect_ev_center/images/custom.png",
       notify: config.notify || "",
       overrides: config.overrides || {},
       capacity: config.capacity || 60,
@@ -2869,6 +2899,11 @@ class UconnectEvCenterPanel extends HTMLElement {
     if (s === "home") return "Casa";
     if (s === "not_home") return "Fuori";
     return s.replace(/_/g, " ").replace(/^\w/, (m) => m.toUpperCase());
+  }
+  /** escape dei valori interpolati nell'HTML: entità, note utente, nomi da geocoding */
+  _esc(v) {
+    return String(v === null || v === undefined ? "" : v)
+      .replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
   /** id entità integrazione: sensor.<slug>_<rest> */
@@ -3784,7 +3819,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     for (const day of Object.keys(byDay).reverse()) {
       html += `<div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">${this._d(day)}</div>`;
       for (const e of byDay[day]) {
-        html += `<div class="row"><span style="font-family:monospace;min-width:64px">${e.t}</span><b>📍 ${e.loc}</b></div>`;
+        html += `<div class="row"><span style="font-family:monospace;min-width:64px">${this._esc(e.t)}</span><b>📍 ${this._esc(e.loc)}</b></div>`;
       }
     }
     host.innerHTML = html;
@@ -3807,7 +3842,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       return true;
     });
     host.innerHTML = uniq.length
-      ? uniq.map((s) => `<div class="row"><span>🟢 ${s.attributes.friendly_name || s.entity_id}</span></div>`).join("")
+      ? uniq.map((s) => `<div class="row"><span>🟢 ${this._esc(s.attributes.friendly_name || s.entity_id)}</span></div>`).join("")
       : `<div style="color:var(--muted);font-size:12px">Nessuna automazione attiva (Uconnect/Wallbox/Bilanciamento).</div>`;
   }
   /** Toggle on/off delle automazioni create (pagina Automazioni). */
@@ -3855,9 +3890,9 @@ class UconnectEvCenterPanel extends HTMLElement {
           const grp = groups.get(nome);
           const on = grp.some((s) => s.state === "on");
           const dup = grp.length > 1 ? ` <span style="color:var(--muted);font-size:11px">(${grp.length})</span>` : "";
-          return `<div class="row"><span>${S._autoIcon(nome + " " + grp[0].entity_id)} ${nome}${dup}</span><label class="switch"><input type="checkbox" ${on ? "checked" : ""} data-auto="${idsOf(nome)}"><span></span></label></div>`;
+          return `<div class="row"><span>${S._autoIcon(nome + " " + grp[0].entity_id)} ${S._esc(nome)}${dup}</span><label class="switch"><input type="checkbox" ${on ? "checked" : ""} data-auto="${idsOf(nome)}"><span></span></label></div>`;
         }).join("")
-        : `<div style="color:var(--muted);font-size:12px">Nessuna automazione Uconnect trovata. Usa "Crea automazioni consigliate" in Impostazioni.</div>`;
+        : `<div style="color:var(--muted);font-size:12px">${_t("note_nessuna_automazione", "Nessuna automazione Uconnect attiva.")}</div>`;
       host.querySelectorAll("[data-auto]").forEach((el) => el.addEventListener("change", () => {
         const st = el.checked ? "on" : "off";
         el.dataset.auto.split(",").forEach((id) => S._call("uconnect_ev_center", "set_auto_state",
@@ -3909,7 +3944,12 @@ class UconnectEvCenterPanel extends HTMLElement {
       case "close_trip": this._call(D, "close_trip", {}, "🏁 Viaggio chiuso"); break;
       case "openmap": this._moreInfo(this._car("device_tracker", "posizione") || "device_tracker.uconnect_posizione"); break;
       case "csv": this._call(D, "export_trips_csv", {}, "📥 CSV esportato"); break;
-      case "create_automations": this._call(D, "create_automations", {}, "✨ Automazioni create"); break;
+      case "save_notify_texts": {
+        const texts = {};
+        this.shadowRoot.querySelectorAll("[data-nt]").forEach((el) => { texts[el.dataset.nt] = el.value; });
+        this._call(D, "set_notify_texts", { texts }, "💾 Testi notifiche salvati");
+        break;
+      }
       case "refresh_car": this._call(D, "refresh_car", {}, "🔄 Aggiornamento auto richiesto"); break;
       case "schsave_ricarica": this._saveSchedule("ricarica"); break;
       case "schsave_clima": this._saveSchedule("clima"); break;
@@ -4110,6 +4150,14 @@ class UconnectEvCenterPanel extends HTMLElement {
         }
       }
     }
+    // testi notifiche: ripopola i campi dai valori salvati
+    const _nt = _prog && _prog.attributes ? _prog.attributes.notify_texts : null;
+    if (_nt) {
+      root.querySelectorAll("[data-nt]").forEach((el) => {
+        const v = _nt[el.dataset.nt];
+        if (v !== undefined && el.getRootNode().activeElement !== el && el.value !== v) el.value = v;
+      });
+    }
     // chips stato
     const chipLoc = root.querySelector('[data-c="loc"]');
     if (chipLoc) chipLoc.textContent = `📍 ${this._f("loc")}`;
@@ -4169,7 +4217,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       const sig = opts.join("|");
       if (sel.dataset.sig !== sig) {
         sel.dataset.sig = sig;
-        sel.innerHTML = opts.map((o) => `<option value="${o}">${o}</option>`).join("") || `<option>—</option>`;
+        sel.innerHTML = opts.map((o) => `<option value="${this._esc(o)}">${this._esc(o)}</option>`).join("") || `<option>—</option>`;
       }
       if (s && s.state !== "unavailable") sel.value = s.state;
     });
@@ -4177,7 +4225,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     root.querySelectorAll("[data-attr-list]").forEach((tb) => {
       const rows = this._list(this._sid(tb.dataset.attrList));
       tb.innerHTML = rows.slice(0, 8).map((r) =>
-        `<tr><td>${r.zona ?? r.nome ?? r.rotta ?? r.tipo ?? "—"}</td><td>${r.viaggi ?? r.n ?? "—"}</td>
+        `<tr><td>${this._esc(r.zona ?? r.nome ?? r.rotta ?? r.tipo ?? "—")}</td><td>${r.viaggi ?? r.n ?? "—"}</td>
         <td>${this._fmt(parseFloat(r.km ?? 0), 1)}</td>
         <td><span class="badge">${this._fmt(parseFloat(r.kwh_100km ?? r.efficienza ?? r.eff ?? 0), 1)}</span></td></tr>`).join("")
         || `<tr><td colspan="4" style="color:var(--muted)">Nessun dato</td></tr>`;
@@ -4214,7 +4262,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       tbSc.innerHTML = _scRows.slice(0, 6).map((r) => {
         const haKm = r.km !== undefined && r.km !== null && !isNaN(parseFloat(r.km));
         const val = haKm ? `${this._i(parseFloat(r.km))} km` : `${r.giorni ?? r.gg ?? "—"} gg`;
-        return `<tr><td>${r.tipo ?? r.nome ?? "—"}</td><td><b>${val}</b></td></tr>`;
+        return `<tr><td>${this._esc(r.tipo ?? r.nome ?? "—")}</td><td><b>${val}</b></td></tr>`;
       }).join("") || `<tr><td colspan="2" style="color:var(--muted)">Nessuna scadenza</td></tr>`;
     }
     const scP1 = root.querySelector('[data-c="tab-scadenze-p1"]');
@@ -4703,9 +4751,9 @@ class UconnectEvCenterPanel extends HTMLElement {
     }
     rows.forEach((r, i) => {
       const h = r.v / max * ih, x = pl + bw * i + bw * 0.2, y = pt + ih - h;
-      svg += `<rect x="${x}" y="${y}" width="${bw * 0.6}" height="${h}" rx="5" fill="#3ea6ff" fill-opacity="0.85"><title>${r.l} = ${f1(r.v)} kWh/100km (${r.n} viaggi)</title></rect>`;
+      svg += `<rect x="${x}" y="${y}" width="${bw * 0.6}" height="${h}" rx="5" fill="#3ea6ff" fill-opacity="0.85"><title>${this._esc(r.l)} = ${f1(r.v)} kWh/100km (${r.n} viaggi)</title></rect>`;
       svg += `<text x="${x + bw * 0.3}" y="${y - 5}" fill="var(--txt)" font-size="11" text-anchor="middle">${f1(r.v)}</text>`;
-      svg += `<text x="${x + bw * 0.3}" y="${pt + ih + 15}" fill="var(--muted)" font-size="10" text-anchor="middle">${r.l}</text>`;
+      svg += `<text x="${x + bw * 0.3}" y="${pt + ih + 15}" fill="var(--muted)" font-size="10" text-anchor="middle">${this._esc(r.l)}</text>`;
       svg += `<text x="${x + bw * 0.3}" y="${pt + ih + 28}" fill="var(--muted)" font-size="9" text-anchor="middle">${r.n} viaggi</text>`;
     });
     svg += `<text x="${pl + iw / 2}" y="${H - 4}" fill="var(--muted)" font-size="10" text-anchor="middle">Fascia di temperatura</text>`;
@@ -4733,9 +4781,9 @@ class UconnectEvCenterPanel extends HTMLElement {
       const dec = r.dec !== undefined ? r.dec : 1;
       const vtxt = this._fmt(r.v, dec);
       const tip = r.l + ": " + vtxt + (r.u || "") + (r.n !== undefined ? " (" + r.n + ")" : "");
-      svg += `<rect x="${x}" y="${y}" width="${bw * 0.7}" height="${h}" rx="4" fill="${r.color || "#3ea6ff"}" fill-opacity="0.85"><title>${tip}</title></rect>`;
+      svg += `<rect x="${x}" y="${y}" width="${bw * 0.7}" height="${h}" rx="4" fill="${r.color || "#3ea6ff"}" fill-opacity="0.85"><title>${this._esc(tip)}</title></rect>`;
       svg += `<text x="${x + bw * 0.35}" y="${y - 5}" fill="var(--txt)" font-size="10" text-anchor="middle">${vtxt}</text>`;
-      svg += `<text x="${x + bw * 0.35}" y="${pt + ih + 14}" fill="var(--muted)" font-size="9" text-anchor="middle">${r.l}</text>`;
+      svg += `<text x="${x + bw * 0.35}" y="${pt + ih + 14}" fill="var(--muted)" font-size="9" text-anchor="middle">${this._esc(r.l)}</text>`;
     });
     if (xLabel) svg += `<text x="${pl + iw / 2}" y="${H - 3}" fill="var(--muted)" font-size="10" text-anchor="middle">${xLabel}</text>`;
     if (yLabel) svg += `<text x="13" y="${pt + ih / 2}" fill="var(--muted)" font-size="10" text-anchor="middle" transform="rotate(-90 13 ${pt + ih / 2})">${yLabel}</text>`;
@@ -5083,7 +5131,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     const rows = Object.entries(groups).sort((a, b) => b[1].km - a[1].km);
     tb.innerHTML = rows.map(([k, g]) => {
       const eff = g.km > 0 ? g.kwh / g.km * 100 : 0;
-      return `<tr><td>${k}</td><td>${g.n}</td><td>${this._i(g.km)}</td><td>${this._fmt(g.kwh, 1)}</td>
+      return `<tr><td>${this._esc(k)}</td><td>${g.n}</td><td>${this._i(g.km)}</td><td>${this._fmt(g.kwh, 1)}</td>
         <td><span class="badge">${this._fmt(eff, 1)}</span></td><td>${this._fmt(g.costo, 2)} €</td></tr>`;
     }).join("") || `<tr><td colspan="6" style="color:var(--muted)">Nessun dato per il filtro</td></tr>`;
   }
@@ -5192,8 +5240,8 @@ class UconnectEvCenterPanel extends HTMLElement {
         <td>${soc}</td><td>${d !== undefined && d !== null ? d + "%" : "—"}</td><td>${this._fmt(parseFloat(r.kwh_consumati ?? r.kwh ?? 0), 2)}</td>
         <td><span class="badge">${this._fmt(parseFloat(eff ?? 0), 1)}</span></td>
         <td>${this._fmt(parseFloat(r.costo_stimato ?? r.costo ?? 0), 2)} €</td>
-        <td>${this._zn(r.zona_partenza ?? r.ricarica_precedente)}${r.luogo_partenza ? `<br><span style="color:var(--muted);font-size:11px">${r.luogo_partenza}${r.paese_partenza ? " · " + r.paese_partenza : ""}</span>` : ""}</td>
-        <td>${this._zn(r.zona_arrivo)}${r.luogo_arrivo ? `<br><span style="color:var(--muted);font-size:11px">${r.luogo_arrivo}${r.paese_arrivo ? " · " + r.paese_arrivo : ""}</span>` : ""}</td></tr>`;
+        <td>${this._zn(r.zona_partenza ?? r.ricarica_precedente)}${r.luogo_partenza ? `<br><span style="color:var(--muted);font-size:11px">${this._esc(r.luogo_partenza)}${r.paese_partenza ? " · " + this._esc(r.paese_partenza) : ""}</span>` : ""}</td>
+        <td>${this._zn(r.zona_arrivo)}${r.luogo_arrivo ? `<br><span style="color:var(--muted);font-size:11px">${this._esc(r.luogo_arrivo)}${r.paese_arrivo ? " · " + this._esc(r.paese_arrivo) : ""}</span>` : ""}</td></tr>`;
     }).join("") || `<tr><td colspan="10" style="color:var(--muted)">Nessun viaggio per il filtro scelto</td></tr>`;
   }
   _calendarRicariche(root) {
@@ -5267,7 +5315,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       const sep = merged ? ` <span class="dchip" data-ricsep="${r.id}" title="Separa (annulla fusione)">✂️</span>` : "";
       const act = (manual ? ` <span class="dchip" data-ricedit="${r.id}" title="Modifica">✏️</span><span class="dchip" data-ricdel="${r.id}" title="Elimina">🗑</span>` : "") + sep;
       return `<tr><td>${this._d(r.data)}${r.ora_inizio ? " · " + r.ora_inizio : ""}${merged ? ' <span title="Ricarica fusa">🔗</span>' : ""}${act}</td>
-        <td>${r.tipo ?? "—"}${r.luogo ? `<br><span style="color:var(--muted);font-size:11px">📍 ${r.luogo}${r.paese ? ", " + r.paese : ""}</span>` : ""}${r.note ? `<br><span style="color:var(--muted);font-size:11px">${r.note}</span>` : ""}</td><td>${dur}</td>
+        <td>${this._esc(r.tipo ?? "—")}${r.luogo ? `<br><span style="color:var(--muted);font-size:11px">📍 ${this._esc(r.luogo)}${r.paese ? ", " + this._esc(r.paese) : ""}</span>` : ""}${r.note ? `<br><span style="color:var(--muted);font-size:11px">${this._esc(r.note)}</span>` : ""}</td><td>${dur}</td>
         <td><b>${dsoc}</b></td>
         <td>${this._fmt(parseFloat(r.kwh ?? r.energia ?? 0), 2)}</td>
         <td>${this._fmt(parseFloat(r.potenza_media_kw ?? r.kw_medio ?? 0), 2)}</td>
@@ -5418,7 +5466,7 @@ class UconnectEvCenterPanel extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { name: "Uconnect", car: "uconnect", image: "/local/uconnect-ev-center/auto.png", powertrain: "BEV" };
+    return { name: "Uconnect", car: "uconnect", image: "/uconnect_ev_center/images/custom.png", powertrain: "BEV" };
   }
 }
 
@@ -6045,8 +6093,19 @@ const PAGES = () => ({
         </select></div>
       <div style="color:var(--muted);font-size:11.5px;margin-top:4px">"Automatica" segue la lingua di HA.</div></div>
     <div class="card"><h3>${_t("h3_automazioni", "🤖 Automazioni")}</h3>
-      <div class="btn" data-cmd="create_automations">✨ Crea automazioni consigliate</div>
-      <div class="note" style="margin-top:8px">${_t("note_crea", "Crea in HA: <b>ricarica completata</b> (kWh, SoC, costo),\n        <b>avvio ricarica</b> e <b>riassunto giornaliero</b>. Modificabili da Impostazioni → Automazioni.")}</div></div>
+      <div style="color:var(--muted);font-size:12px">${_t("note_auto_native", "Avvio/stop della ricarica programmata, notifica di fine ricarica e avviso batteria bassa sono gestiti dall'integrazione: non servono automazioni in <code>automations.yaml</code>.")}</div>
+      <div data-c="autos-created" style="display:flex;flex-direction:column;gap:2px;margin-top:8px"></div></div>
+    <div class="card"><h3>${_t("h3_testi_notifiche", "✏️ Testi notifiche")}</h3>
+      <div class="inp"><span>${_t("lbl_nt_charge_title", "Titolo fine ricarica")}</span>
+        <input data-nt="charge_title" placeholder="🔋" style="flex:1;min-width:160px"></div>
+      <div class="inp" style="align-items:flex-start"><span>${_t("lbl_nt_charge_body", "Testo fine ricarica")}</span>
+        <textarea data-nt="charge_body" rows="5" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{zona} {kwh} {minuti} {soc_start} {soc_end} {costo}"></textarea></div>
+      <div class="inp"><span>${_t("lbl_nt_low_title", "Titolo batteria bassa")}</span>
+        <input data-nt="low_title" placeholder="⚠️" style="flex:1;min-width:160px"></div>
+      <div class="inp" style="align-items:flex-start"><span>${_t("lbl_nt_low_body", "Testo batteria bassa")}</span>
+        <textarea data-nt="low_body" rows="3" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{batteria} {autonomia}"></textarea></div>
+      <div class="btn" data-cmd="save_notify_texts">💾 ${_t("btn_salva", "Salva")}</div>
+      <div class="note" style="margin-top:8px">${_t("note_testi_notifiche", "Vuoto = testo predefinito nella lingua di Home Assistant.")}</div></div>
   </div>`,
 
   p12: `<h1>${_t("nav_p12", "Veicolo")} <span class="chip">${_POWERTRAIN}</span></h1>
@@ -6112,7 +6171,7 @@ const PAGES = () => ({
   p11: `<h1>Wallbox</h1>
   <div class="grid g3">
     <div class="card"><h3>${_t("h3_stato_wallbox", "🔌 Stato wallbox")}</h3>
-      <img src="/local/uconnect-ev-center/wallbox.png" alt="Wallbox" style="display:block;width:100%;max-width:230px;height:150px;object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.45))">
+      <img src="/uconnect_ev_center/images/wallbox.png" alt="Wallbox" style="display:block;width:100%;max-width:230px;height:150px;object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.45))">
       <div class="big" style="font-size:26px;color:var(--accent);text-align:center;margin-bottom:8px"><span data-wb="state">—</span></div>
       <div class="row"><span>${_t("lbl_potenza_ora", "Potenza ora")}</span><b><span data-wb="power">—</span></b></div>
       <div class="row"><span>${_t("lbl_corrente", "Corrente")}</span><b><span data-wb="current">—</span></b></div>

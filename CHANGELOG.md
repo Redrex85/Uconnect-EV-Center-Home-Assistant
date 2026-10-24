@@ -4,6 +4,28 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.11] - 2026-10-15
+
+### Modificato (breaking)
+- **Nessuna scrittura in `automations.yaml`**: rimossi `_automations_apply` e il servizio
+  `create_automations`. Il file resta in sola lettura (import del vecchio programma di ricarica).
+- **Avvio e fermo della carica programmata** li valuta il coordinatore, con un marker per
+  finestra che evita doppi comandi a ogni aggiornamento.
+- **Notifiche native**: fine ricarica e batteria bassa sono inviate dall'integrazione, con testi
+  modificabili dalla vista Automazioni o dal nuovo servizio `set_notify_texts`.
+- `async_cleanup_automations` non cancella nulla: segnala solo le automazioni legacy nel log.
+- Automazioni pronte (riassunto serale, aggiornamento posizione) spostate in `examples/`:
+  le importa chi le vuole.
+
+### Corretto
+- Card e pannello serviti dal pacchetto con `async_register_static_paths`
+  (`/uconnect_ev_center/www/…`, `/uconnect_ev_center/images/…`): niente più copie in
+  `/config/www`, nessun `rmtree` alla rimozione, foto auto risolta dal modello.
+- Le vecchie risorse `/local/uconnect-ev-center/…` vengono rimosse dal registro Lovelace.
+- Pannello: escape HTML dei valori interpolati (nomi entità, zone, località del geocoding,
+  note delle ricariche) — segnalazione di sicurezza della review HACS.
+- `export_trips_csv`: creazione cartella spostata in executor (niente blocco dell'event loop).
+
 ## [1.0.10] - 2026-10-15
 
 ### Corretto
