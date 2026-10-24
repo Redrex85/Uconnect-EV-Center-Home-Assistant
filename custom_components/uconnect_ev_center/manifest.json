@@ -8,7 +8,9 @@
     "@Redrex85"
   ],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": [
+    "http"
+  ],
   "documentation": "https://github.com/Redrex85/Uconnect-EV-Center-Home-Assistant",
   "integration_type": "device",
   "iot_class": "calculated",
