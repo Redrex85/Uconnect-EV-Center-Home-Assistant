@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.9";
+const REC_VER = "1.0.10";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -3390,7 +3390,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     <div class="app" data-theme="${this._theme}" data-mode="${this._mode}">
       <div class="sidebar">
         <div class="logo">
-          <svg class="ph" viewBox="-70 -70 140 140" aria-hidden="true"><path d="M0,-62 L40,0 L0,62 L-40,0 Z" fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="miter"/><path d="M0,-34 L21,0 L0,34 L-21,0 Z" fill="#FFCB00"/></svg>
+          <svg class="ph" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="82" fill="none" stroke="#3d8bfd" stroke-width="34" stroke-linecap="round" stroke-dasharray="429.3 85.9" stroke-dashoffset="14.2"/><path d="M272 168 L198 288 h50 l-20 84 116 -138 h-54 z" transform="translate(-46.2 -39.4) scale(0.62)" fill="currentColor"/></svg>
           <div><b>Uconnect EV<br>Center</b><span class="ver">v${REC_VER}</span><small>${c.name} · live</small></div>
         </div>
         <div class="nav" id="nav">

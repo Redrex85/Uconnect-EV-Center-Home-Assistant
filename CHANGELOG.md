@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.10] - 2026-10-15
+
+### Corretto
+- Pannello: logo della sidebar corretto — mostra il marchio **Uconnect EV Center** (arco blu + fulmine, come `brand/icon.png`) al posto del rombo Renault.
+
 ## [1.0.9] - 2026-10-15
 
 ### Corretto

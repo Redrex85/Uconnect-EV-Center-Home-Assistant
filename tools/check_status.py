@@ -773,7 +773,8 @@ try:
     assert '<div class="logo">' in js, "manca la sidebar"
     assert '<div class="ph">🚗</div>' not in js.split('<div class="logo">')[1][:400], \
         "la sidebar usa ancora la macchinina 🚗"
-    assert 'stroke="currentColor"' in js and '#FFCB00' in js, \
+    _logo = js.split('<div class="logo">')[1][:1600]
+    assert '#3d8bfd' in _logo and 'fill="currentColor"' in _logo, \
         "il logo Uconnect EV Center non è nella sidebar"
     ok("fix 1.0.24.4: logo Uconnect EV Center nella sidebar")
 except Exception as e:
