@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.12] - 2026-10-15
+
+### Corretto
+- `manifest.json`: dichiarata la dipendenza `http` (servono gli static path del pannello) —
+  hassfest verde.
+- Pannello: escape HTML completato sui valori interpolati rimasti — colore/valore/etichetta
+  dei grafici SVG a barre, etichette delle scadenze, storico tagliandi (data, tipo, id usato
+  per l'eliminazione).
+
 ## [1.0.11] - 2026-10-15
 
 ### Modificato (breaking)
