@@ -4274,7 +4274,7 @@ class UconnectEvCenterPanel extends HTMLElement {
         const val = haKm ? `${this._i(parseFloat(r.km))} km` : (isNaN(g) ? "—" : g + " gg");
         const ref = haKm ? parseFloat(r.km) : g;
         const col = isNaN(ref) ? "var(--muted)" : (ref <= 15 ? "var(--bad)" : ref <= 45 ? "var(--warn)" : "var(--good)");
-        return `<div class="row"><span>${r.tipo ?? r.nome ?? "—"}</span>` +
+        return `<div class="row"><span>${this._esc(r.tipo ?? r.nome ?? "—")}</span>` +
           `<b style="color:${col}">${val}</b></div>`;
       }).join("") || `<div style="color:var(--muted);font-size:12px">Nessuna scadenza</div>`;
     }
@@ -4314,7 +4314,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     if (tbTag) {
       const rows = this._list(this._sid("tagliandi"));
       tbTag.innerHTML = rows.slice(0, 12).map((r) =>
-        `<tr><td>${this._d(r.data)}</td><td>${this._i(parseFloat(r.km) || 0)}</td><td>${r.tipo ?? "—"}</td><td><b>${this._fmt(parseFloat(r.costo ?? r.euro ?? 0), 0)} €</b></td><td><span class="dchip" data-mdel="${r.id}" title="Elimina">🗑</span></td></tr>`).join("")
+        `<tr><td>${this._esc(this._d(r.data))}</td><td>${this._i(parseFloat(r.km) || 0)}</td><td>${this._esc(r.tipo ?? "—")}</td><td><b>${this._fmt(parseFloat(r.costo ?? r.euro ?? 0), 0)} €</b></td><td><span class="dchip" data-mdel="${this._esc(r.id)}" title="Elimina">🗑</span></td></tr>`).join("")
         || `<tr><td colspan="5" style="color:var(--muted)">Nessun intervento registrato</td></tr>`;
     }
     // righe top/stop da attributi oggetto: [data-topstop="migliore|kwh_per_100km"]
@@ -4781,11 +4781,11 @@ class UconnectEvCenterPanel extends HTMLElement {
       const dec = r.dec !== undefined ? r.dec : 1;
       const vtxt = this._fmt(r.v, dec);
       const tip = r.l + ": " + vtxt + (r.u || "") + (r.n !== undefined ? " (" + r.n + ")" : "");
-      svg += `<rect x="${x}" y="${y}" width="${bw * 0.7}" height="${h}" rx="4" fill="${r.color || "#3ea6ff"}" fill-opacity="0.85"><title>${this._esc(tip)}</title></rect>`;
-      svg += `<text x="${x + bw * 0.35}" y="${y - 5}" fill="var(--txt)" font-size="10" text-anchor="middle">${vtxt}</text>`;
+      svg += `<rect x="${x}" y="${y}" width="${bw * 0.7}" height="${h}" rx="4" fill="${this._esc(r.color || "#3ea6ff")}" fill-opacity="0.85"><title>${this._esc(tip)}</title></rect>`;
+      svg += `<text x="${x + bw * 0.35}" y="${y - 5}" fill="var(--txt)" font-size="10" text-anchor="middle">${this._esc(vtxt)}</text>`;
       svg += `<text x="${x + bw * 0.35}" y="${pt + ih + 14}" fill="var(--muted)" font-size="9" text-anchor="middle">${this._esc(r.l)}</text>`;
     });
-    if (xLabel) svg += `<text x="${pl + iw / 2}" y="${H - 3}" fill="var(--muted)" font-size="10" text-anchor="middle">${xLabel}</text>`;
+    if (xLabel) svg += `<text x="${pl + iw / 2}" y="${H - 3}" fill="var(--muted)" font-size="10" text-anchor="middle">${this._esc(xLabel)}</text>`;
     if (yLabel) svg += `<text x="13" y="${pt + ih / 2}" fill="var(--muted)" font-size="10" text-anchor="middle" transform="rotate(-90 13 ${pt + ih / 2})">${yLabel}</text>`;
     svg += `</svg>`;
     box.innerHTML = svg;
