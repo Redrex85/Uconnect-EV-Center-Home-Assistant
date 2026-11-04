@@ -149,6 +149,7 @@ DEFAULT_WB_START_W,
     WALLBOX_CHARGING_STATES,
     WALLBOX_FINISHED_TOKENS,
     CHARGE_STOP_CLOSE_S,
+    CHARGE_MERGE_WINDOW_S,
 )
 from .meters import DeltaMeter, PeriodMeter, period_keys
 from .store import MateStore
@@ -2172,7 +2173,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             del sessions[:-100]
 
         # --- fusione ricariche frammentate: la wallbox può spezzare la STESSA ricarica ---
-        # (load-balancing / surplus). Se la precedente è finita da poco (<360 s), stessa
+        # (load-balancing / surplus). Se la precedente è finita da poco (<20 min), stessa
         # zona, nessun viaggio nel mezzo e non è stata separata a mano → ESTENDI quella.
         merged_into = None
         _charges = self.store.data["charges"]
@@ -2180,7 +2181,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             last = _charges[-1]
             if (not last.get("separata")
                     and _f(last.get("end_ts")) > 0
-                    and 0 <= (record["end_ts"] - _f(last.get("end_ts"))) < 360
+                    and 0 <= (record["end_ts"] - _f(last.get("end_ts"))) < CHARGE_MERGE_WINDOW_S
                     and str(last.get("zona", "")) == str(record.get("zona", ""))
                     and not self._trip_between(_f(last.get("end_ts")), s["start_ts"])):
                 merged_into = self._merge_charge(last, record)
