@@ -10,12 +10,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MESI_FILTRO
+from .const import DOMAIN, MESI_FILTRO, ZONE_TIPI
 from .coordinator import UconnectMateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-TIPI = ["Tutte", "Casa", "Fotovoltaico", "Pubblica"]
+TIPI = ["Tutte", *ZONE_TIPI]   # solo fallback: le opzioni reali arrivano dal coordinatore
 PERIODI = ["Settimana", "Mese", "Anno", "Tutto"]
 MESI = MESI_FILTRO
 ANNI = ["Tutti"] + [str(a) for a in range(2024, 2033)]
@@ -32,7 +32,8 @@ async def async_setup_entry(
     # (Settimana/Mese/Anno/Tutto, di default il mese corrente) e il mese resta
     # un'eccezione che la sostituisce solo quando scelto a mano.
     async_add_entities([
-        MateSelect(coordinator, f"{name} Filtro Tipo Ricarica", "filtro_tipo", TIPI, "Tutte", "mdi:filter-variant"),
+        MateSelect(coordinator, f"{name} Filtro Tipo Ricarica", "filtro_tipo",
+                   coordinator.filter_tipo_options, "Tutte", "mdi:filter-variant"),
         MateSelect(coordinator, f"{name} Filtro Periodo Ricariche", "filtro_periodo", PERIODI, "Mese", "mdi:calendar-range"),
         MateSelect(coordinator, f"{name} Filtro Mese Ricariche", "filtro_mese", MESI, "Tutti", "mdi:calendar-month"),
         MateSelect(coordinator, f"{name} Filtro Anno Ricariche", "filtro_anno", ANNI, "Tutti", "mdi:calendar-multiple"),
@@ -51,20 +52,43 @@ class MateSelect(CoordinatorEntity[UconnectMateCoordinator], RestoreEntity, Sele
         self._attr_unique_id = f"{coordinator.entry.entry_id}_sel_{key}"
         self._attr_name = label
         self._attr_icon = icon
-        self._attr_options = options
         self._attr_current_option = default
+        self._attr_options = self._option_list()
+
+    def _option_list(self) -> list[str]:
+        """Opzioni attuali: lista fissa oppure funzione (zone di ricarica)."""
+        if callable(self._options):
+            try:
+                opts = [str(o) for o in self._options()]
+            except Exception:  # noqa: BLE001
+                opts = list(TIPI)
+        else:
+            opts = list(self._options)
+        return opts or list(TIPI)
+
+    def _sync_options(self) -> None:
+        opts = self._option_list()
+        self._attr_options = opts
+        # valore scelto non piu' esistente (zona rinominata/eliminata) -> default
+        if self._attr_current_option not in opts:
+            self._attr_current_option = self._default
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         # il filtro mese NON si ripristina: parte sempre da "Tutti"
         if self._key != "filtro_mese":
             last = await self.async_get_last_state()
-            if last is not None and last.state in self._options:
+            if last is not None and last.state in self._attr_options:
                 self._attr_current_option = last.state
         self.coordinator.register_setting("select", self._key, self.entity_id)
 
+    def _handle_coordinator_update(self) -> None:
+        self._sync_options()
+        super()._handle_coordinator_update()
+
     async def async_select_option(self, option: str) -> None:
-        if option in self._options:
+        self._sync_options()
+        if option in self._attr_options:
             self._attr_current_option = option
             self.async_write_ha_state()
             await self.coordinator.async_request_refresh()

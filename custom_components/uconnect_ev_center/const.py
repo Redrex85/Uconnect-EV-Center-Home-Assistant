@@ -131,6 +131,13 @@ DEFAULT_BOLLO_TERMICO = 350.0
 DEFAULT_BOLLO_EV = 0.0
 DEFAULT_TAGLIANDO_INTERVALLO = 15000
 
+# zone di ricarica: etichetta libera + prezzo proprio (lista salvata nello store)
+ZONE_SLOTS = 8                 # righe configurabili
+ZONE_MAX_LEN = 40              # lunghezza massima del nome
+ZONE_TIPI = ("Casa", "Fotovoltaico", "Pubblica")   # "tipo" resta a 3 valori
+ZONE_FUORI = "Fuori"           # zona tariffaria quando non si riconosce la posizione
+ZONE_GPS_RADIUS_M = 300        # raggio per abbinare il GPS a una zona con coordinate
+
 # notifiche scadenze
 CONF_NOTIFY_SERVICE = "notify_service"
 CONF_NOTIFY_DAYS = "notify_days"

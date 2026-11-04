@@ -708,6 +708,15 @@
         }
       }
     },
+    "set_zone_ricarica": {
+      "name": "Zone di ricarica",
+      "description": "Salva le zone di ricarica (nome + prezzo €/kWh; il prezzo della zona vince sul predefinito).",
+      "fields": {
+        "zones": {
+          "name": "Zone"
+        }
+      }
+    },
     "create_dashboard": {
       "name": "Crea dashboard",
       "description": "(Ri)crea la dashboard laterale con tutte le viste."

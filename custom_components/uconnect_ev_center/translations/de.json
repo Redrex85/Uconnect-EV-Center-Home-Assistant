@@ -708,6 +708,15 @@
         }
       }
     },
+    "set_zone_ricarica": {
+      "name": "Ladezonen",
+      "description": "Speichert die Ladezonen (Name + €/kWh).",
+      "fields": {
+        "zones": {
+          "name": "Zonen"
+        }
+      }
+    },
     "create_dashboard": {
       "name": "Dashboard erstellen",
       "description": "Erstellt/aktualisiert das Seitenleisten-Dashboard mit allen enthaltenen Ansichten."

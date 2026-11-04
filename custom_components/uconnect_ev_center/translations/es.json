@@ -708,6 +708,15 @@
         }
       }
     },
+    "set_zone_ricarica": {
+      "name": "Zonas de recarga",
+      "description": "Guarda las zonas de recarga (nombre + precio €/kWh).",
+      "fields": {
+        "zones": {
+          "name": "Zonas"
+        }
+      }
+    },
     "create_dashboard": {
       "name": "Crear panel",
       "description": "Crea/actualiza el panel de la barra lateral con todas las vistas incluidas."

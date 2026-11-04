@@ -708,6 +708,15 @@
         }
       }
     },
+    "set_zone_ricarica": {
+      "name": "Zones de recharge",
+      "description": "Enregistre les zones de recharge (nom + prix €/kWh).",
+      "fields": {
+        "zones": {
+          "name": "Zones"
+        }
+      }
+    },
     "create_dashboard": {
       "name": "Créer tableau de bord",
       "description": "Créer/mettre à jour le tableau de bord latéral avec toutes les vues."

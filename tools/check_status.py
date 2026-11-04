@@ -1613,6 +1613,48 @@ try:
 except Exception as e:
     bad(f"date configurazione: {e}")
 
+# ---------------------------------------------------------------- [66] zone di ricarica
+print("\n[66] Zone di ricarica: servizio, prezzo per zona e filtro dinamico")
+try:
+    zsrc = open(os.path.join(CC, "zones.py"), encoding="utf-8").read()
+    for needle in ("def validate_zones", "def nearest_zone", "def zone_for_session",
+                   "def zone_price", "def filter_options", "def zone_of"):
+        assert needle in zsrc, f"manca {needle} in zones.py"
+    assert "ZONE_SLOTS" in zsrc and "ZONE_GPS_RADIUS_M" in zsrc, "limiti zona non applicati"
+
+    src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
+    assert "zones_mod.zone_price(self.zones(), nome, self.price_home)" in src, \
+        "il costo non usa la zona: prezzo zona ignorato"
+    assert '"zona_tariffa": self._zone_for_session(' in src, \
+        "la zona non viene registrata all'avvio sessione"
+    assert 'prezzo_rete = self._zone_price(zona_tariffa)' in src, \
+        "il costo finale non usa il prezzo della zona"
+    assert "zones_mod.filter_options(nomi)" in src, "filtro ricariche non include le zone"
+
+    ini = open(os.path.join(CC, "__init__.py"), encoding="utf-8").read()
+    assert '"set_zone_ricarica"' in ini and 'vol.Required("zones")' in ini, \
+        "servizio set_zone_ricarica non registrato o senza campo zones"
+    svc = open(os.path.join(CC, "services.yaml"), encoding="utf-8").read()
+    assert "set_zone_ricarica:" in svc, "set_zone_ricarica manca da services.yaml"
+    for lang in ("strings.json", "translations/it.json", "translations/en.json",
+                 "translations/fr.json", "translations/es.json", "translations/de.json"):
+        txt = open(os.path.join(CC, lang), encoding="utf-8").read()
+        assert '"set_zone_ricarica"' in txt, f"traduzione mancante in {lang}"
+
+    sel = open(os.path.join(CC, "select.py"), encoding="utf-8").read()
+    assert "coordinator.filter_tipo_options" in sel, \
+        "il select filtro tipo non usa piu' le opzioni dinamiche"
+
+    panel = open(os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read()
+    assert 'data-cmd="save_zones"' in panel, "manca il salvataggio zone nel pannello"
+    assert 'data-c="tab-zone-stats"' in panel, "manca la tabella costi per zona"
+    assert "zona_tariffa" in panel, "la zona non compare nel dettaglio ricarica"
+    for key in ("h3_zone_ricarica", "lbl_per_zona", "note_zone_ricarica"):
+        assert panel.count(key) >= 5, f"chiave i18n {key} non tradotta in 5 lingue"
+    ok("servizio, prezzo per zona, filtro dinamico ed editor del pannello presenti")
+except Exception as e:
+    bad(f"zone di ricarica: {e}")
+
 # ---------------------------------------------------------------- esito
 print("\n" + "=" * 62)
 if problemi:

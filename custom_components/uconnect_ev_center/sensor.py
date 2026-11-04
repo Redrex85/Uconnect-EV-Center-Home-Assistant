@@ -934,6 +934,7 @@ class ListaRicariche(MateSensor):
             "totale_kwh": cf["kwh"],
             "totale_costo": cf["costo"],
             "stats": self.coordinator.data.get("charges_stats", {}),
+            "per_zona": cf.get("per_zona", []),
         }
 
 
@@ -1316,7 +1317,9 @@ class Programmazione(MateSensor):
             "max_amps": c.home_max_amps,
             "reduce_amps": c.home_reduce_amps,
         }
-        return {"schedule": dict(sch), "gse": gse, "home": home, "notify": c.notify_service}
+        return {"schedule": dict(sch), "gse": gse, "home": home, "notify": c.notify_service,
+                "zones": [dict(z) for z in c.zones()],
+                "notify_texts": dict(c.store.data.get("notify_texts") or {})}
 
 
 class Percorrenza(MateSensor):

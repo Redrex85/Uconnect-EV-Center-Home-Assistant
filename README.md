@@ -275,6 +275,11 @@ service: uconnect_ev_center.create_dashboard
 service: uconnect_ev_center.set_notify_texts
 data: { texts: { charge_title: "Ricarica completata", low_title: "Batteria bassa" } }
 
+# Zone di ricarica: nome libero + prezzo €/kWh (max 8). lat/lon opzionali:
+# la zona viene assegnata da sola quando la ricarica parte nel raggio di 300 m.
+service: uconnect_ev_center.set_zone_ricarica
+data: { zones: [{ nome: Casa, prezzo: 0.25 }, { nome: "B&B", prezzo: 0.40, lat: 45.46, lon: 9.19 }] }
+
 # Manutenzione e assicurazione
 service: uconnect_ev_center.add_maintenance
 data: { data: "2026-08-20", km: 68718, costo: 85, tipo: "Tagliando" }
@@ -565,6 +570,11 @@ service: uconnect_ev_center.create_dashboard
 # Texts of the native notifications (charge complete, low battery)
 service: uconnect_ev_center.set_notify_texts
 data: { texts: { charge_title: "Charging complete", low_title: "Low battery" } }
+
+# Charging zones: free name + €/kWh price (max 8). Optional lat/lon:
+# the zone is picked automatically when a charge starts within 300 m.
+service: uconnect_ev_center.set_zone_ricarica
+data: { zones: [{ nome: Home, prezzo: 0.25 }, { nome: "B&B", prezzo: 0.40, lat: 45.46, lon: 9.19 }] }
 
 # Maintenance and insurance
 service: uconnect_ev_center.add_maintenance
@@ -860,6 +870,11 @@ service: uconnect_ev_center.create_dashboard
 # Textes des notifications natives (recharge terminée, batterie faible)
 service: uconnect_ev_center.set_notify_texts
 data: { texts: { charge_title: "Recharge terminée", low_title: "Batterie faible" } }
+
+# Zones de recharge : nom libre + prix €/kWh (max 8). lat/lon optionnels :
+# la zone est choisie automatiquement si la recharge démarre dans 300 m.
+service: uconnect_ev_center.set_zone_ricarica
+data: { zones: [{ nome: Maison, prezzo: 0.25 }, { nome: "B&B", prezzo: 0.40, lat: 45.46, lon: 9.19 }] }
 
 # Entretien et assurance
 service: uconnect_ev_center.add_maintenance

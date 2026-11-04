@@ -18,6 +18,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from . import zones as zones_mod
 from .const import (
     CHARGE_STATE_ON_VALUES,
     PLUG_CONNECTED_VALUES,
@@ -99,6 +100,8 @@ DEFAULT_WB_START_W,
     CONF_PLUG_ENTITY,
     CONF_POLL_INTERVAL,
     CONF_PRICE_HOME,
+    ZONE_TIPI,
+    ZONE_FUORI,
     CONF_PRICE_PUBLIC,
     CONF_PRICE_SOLAR,
     CONF_PRE_KWH,
@@ -720,6 +723,39 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             return self.price_solar
         return self.price_public
 
+    # ------------------------------------------------------------ zone di ricarica
+    # La logica pura (validazione, distanza, opzioni filtro) sta in zones.py.
+    def zones(self) -> list[dict[str, Any]]:
+        """Zone configurate: {nome, prezzo, lat, lon}."""
+        return zones_mod.norm_zones(self.store.data.get("zone_ricarica"))
+
+    def _zone_default(self) -> str:
+        return zones_mod.default_zone(self.zones())
+
+    def _zone_price(self, nome: str) -> float:
+        return zones_mod.zone_price(self.zones(), nome, self.price_home)
+
+    def _zone_for_session(self, lat: float | None, lon: float | None, location: str) -> str:
+        """Zona tariffaria della ricarica che inizia: GPS > a casa > Fuori."""
+        return zones_mod.zone_for_session(self.zones(), lat, lon, location)
+
+    def service_set_zones(self, zones: list[dict]) -> list[dict]:
+        """Valida e salva le zone (nome unico, prezzo >= 0, max 8)."""
+        out = zones_mod.validate_zones(zones, self.store.data.get("zone_ricarica"))
+        self.store.data["zone_ricarica"] = out
+        self.persist(force=True)
+        return out
+
+    def _zone_of(self, rec: dict) -> str:
+        """Zona tariffaria di una ricarica: default per i record vecchi."""
+        return zones_mod.zone_of(rec, self._zone_default())
+
+    def filter_tipo_options(self) -> list[str]:
+        """Opzioni filtro ricariche: tipi + zone configurate + zone presenti nei dati."""
+        nomi = [z["nome"] for z in self.zones()]
+        nomi += [self._zone_of(c) for c in self.store.data["charges"]]
+        return zones_mod.filter_options(nomi)
+
     @staticmethod
     def _is_charging(value: str) -> bool:
         v = (value or "").lower()
@@ -1088,6 +1124,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     "power_max_kw": 0.0,
                     "odometro_inizio": odometer,
                     "prezzo": self._price_for_zone(location or "home"),
+                    # zona tariffaria decisa all'avvio della sessione (GPS > casa > Fuori)
+                    "zona_tariffa": self._zone_for_session(lat, lon, location or ""),
                     # posizione all'avvio della ricarica (per l'indirizzo, opzionale)
                     "gps": ({"lat": round(lat, 5), "lon": round(lon, 5)}
                             if lat is not None and lon is not None else {}),
@@ -1913,6 +1951,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "mesi_storico": mesi_storico,
             "charges_filtered": charges_filtered,
             "charges_stats": cstats,
+            "zones": self.zones(),
+            "charges_by_zone": charges_filtered.get("per_zona", []),
             "consumi_temp": consumi_temp,
             "schedule": dict(self.store.data.get("schedule", {})),
             "notify_texts": dict(self.store.data.get("notify_texts") or {}),
@@ -2013,7 +2053,9 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 "Ricarica a casa senza misura wallbox: energia stimata dal SoC "
                 "(mappa i contatori in Configura → Wallbox)"
             )
-        prezzo_rete = _f(s.get("prezzo"), self._price_for_zone(z))
+        zona_tariffa = str(s.get("zona_tariffa") or self._zone_for_session(
+            None, None, z)) or ZONE_FUORI
+        prezzo_rete = self._zone_price(zona_tariffa)
         # ripartizione per sorgente (solo ricariche a casa con sensore rete mappato)
         src_fv = src_bat = src_rete = 0.0
         _tot_src = _f(s.get("fv_accum")) + _f(s.get("bat_accum")) + _f(s.get("rete_accum"))
@@ -2044,6 +2086,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                                        kwh / (durata_min / 60.0) if durata_min > 5 else 0.0),
             "costo": costo,
             "tipo": tipo,
+            # zona tariffaria (nome, non id: rinominare non riscrive lo storico)
+            "zona_tariffa": zona_tariffa,
             # posizione della ricarica (per la notifica di fine carica)
             "zona": self._zone_label(str(s.get("zone") or zone or "")),
             # GPS della ricarica (indirizzo risolto dopo via reverse-geocode, cache condivisa)
@@ -2388,9 +2432,15 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         else:
             start = ""
         items = []
+        tipi = {t.lower() for t in ZONE_TIPI}
         for c in charges:
-            if tipo != "Tutte" and c.get("tipo") != tipo:
-                continue
+            if tipo != "Tutte":
+                if tipo.lower() in tipi:
+                    # un nome zona uguale a un tipo noto: vince il tipo
+                    if c.get("tipo") != tipo:
+                        continue
+                elif self._zone_of(c) != tipo:
+                    continue
             if anno != "Tutti" and str(c.get("data", ""))[:4] != anno:
                 continue
             if num_mese and str(c.get("data", ""))[5:7] != f"{num_mese:02d}":
@@ -2399,6 +2449,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 continue
             items.append(c)
         items.sort(key=lambda c: (str(c.get("data", "")), str(c.get("ora_inizio", ""))), reverse=True)
+        per_zona: dict[str, dict[str, Any]] = {}
+        for c in items:
+            k = self._zone_of(c)
+            row = per_zona.setdefault(k, {"zona": k, "n": 0, "kwh": 0.0, "costo": 0.0})
+            row["n"] += 1
+            row["kwh"] += _f(c.get("kwh"))
+            row["costo"] += _f(c.get("costo"))
         return {
             "items": items[:300],
             "n": len(items),
@@ -2408,6 +2465,10 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "periodo": periodo,
             "mese": mese,
             "anno": anno,
+            "per_zona": [
+                {**r, "kwh": round(r["kwh"], 2), "costo": round(r["costo"], 2)}
+                for r in sorted(per_zona.values(), key=lambda r: -r["kwh"])
+            ],
         }
 
     def _build_report(self, now, keys: dict[str, str], today_key: str) -> dict[str, Any]:

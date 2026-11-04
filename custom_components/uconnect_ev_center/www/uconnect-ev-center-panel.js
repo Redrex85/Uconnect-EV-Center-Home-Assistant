@@ -32,6 +32,11 @@ const I18N = {
     nav_p8: "Extra", nav_p9: "Automazioni", nav_p10: "Impostazioni",
   },
   en: {
+    h3_zone_ricarica: "\u{1F50C} Charging zones",
+    lbl_zona_ricarica: "Charging zone",
+    lbl_per_zona: "Energy and cost per zone",
+    lbl_sessioni: "Sessions",
+    note_zone_ricarica: "Free name + €/kWh price. The first zone is the default at home; a zone named after a type (Casa, Fotovoltaico, Pubblica) overrides that price.",
     note_auto_native: "Schedule start/stop, charge-complete and low-battery notifications are handled by the integration: no automations in <code>automations.yaml</code> are needed.",
     h3_testi_notifiche: "\u270F\uFE0F Notification texts",
     lbl_nt_charge_title: "Charge complete title",
@@ -292,6 +297,11 @@ const I18N = {
     toast_no_stop: "⚠️ Charge stop not mapped (Settings → Wallbox)",
   },
   fr: {
+    h3_zone_ricarica: "\u{1F50C} Zones de recharge",
+    lbl_zona_ricarica: "Zone de recharge",
+    lbl_per_zona: "Énergie et coût par zone",
+    lbl_sessioni: "Sessions",
+    note_zone_ricarica: "Nom libre + prix €/kWh. La première zone est celle par défaut à la maison ; une zone nommée comme un type (Casa, Fotovoltaico, Pubblica) en remplace le prix.",
     note_auto_native: "Le démarrage/l'arrêt programmés et les notifications de fin de recharge et de batterie faible sont gérés par l'intégration : aucune automatisation dans <code>automations.yaml</code> n'est nécessaire.",
     h3_testi_notifiche: "\u270F\uFE0F Textes des notifications",
     lbl_nt_charge_title: "Titre fin de recharge",
@@ -552,6 +562,11 @@ const I18N = {
     toast_no_stop: "⚠️ Arrêt recharge non mappé (Réglages → Wallbox)",
   },
   es: {
+    h3_zone_ricarica: "\u{1F50C} Zonas de recarga",
+    lbl_zona_ricarica: "Zona de recarga",
+    lbl_per_zona: "Energía y coste por zona",
+    lbl_sessioni: "Sesiones",
+    note_zone_ricarica: "Nombre libre + precio €/kWh. La primera zona es la predeterminada en casa; una zona con el nombre de un tipo (Casa, Fotovoltaico, Pubblica) sustituye ese precio.",
     note_auto_native: "El inicio/parada programados y las notificaciones de recarga completada y batería baja los gestiona la integración: no hacen falta automatizaciones en <code>automations.yaml</code>.",
     h3_testi_notifiche: "\u270F\uFE0F Textos de notificaciones",
     lbl_nt_charge_title: "Título recarga completada",
@@ -820,6 +835,11 @@ const I18N = {
     toast_no_stop: "⚠️ Parada de recarga no mapeada (Ajustes → Wallbox)",
   },
   de: {
+    h3_zone_ricarica: "\u{1F50C} Ladezonen",
+    lbl_zona_ricarica: "Ladezone",
+    lbl_per_zona: "Energie und Kosten pro Zone",
+    lbl_sessioni: "Sitzungen",
+    note_zone_ricarica: "Freier Name + €/kWh. Die erste Zone ist die Standardzone zu Hause; eine Zone mit dem Namen eines Typs (Casa, Fotovoltaico, Pubblica) überschreibt dessen Preis.",
     note_auto_native: "Geplanter Start/Stopp sowie Ladeende- und Batteriewarnungen verwaltet die Integration: keine Automatisierungen in <code>automations.yaml</code> nötig.",
     h3_testi_notifiche: "\u270F\uFE0F Benachrichtigungstexte",
     lbl_nt_charge_title: "Titel Ladung abgeschlossen",
@@ -3944,6 +3964,16 @@ class UconnectEvCenterPanel extends HTMLElement {
       case "close_trip": this._call(D, "close_trip", {}, "🏁 Viaggio chiuso"); break;
       case "openmap": this._moreInfo(this._car("device_tracker", "posizione") || "device_tracker.uconnect_posizione"); break;
       case "csv": this._call(D, "export_trips_csv", {}, "📥 CSV esportato"); break;
+      case "save_zones": {
+        const zones = [];
+        for (let i = 0; i < 8; i++) {
+          const nome = (this.shadowRoot.querySelector(`[data-zn="${i}"]`) || {}).value || "";
+          const prezzo = (this.shadowRoot.querySelector(`[data-zp="${i}"]`) || {}).value || "";
+          if (nome.trim()) zones.push({ nome: nome.trim(), prezzo: parseFloat(prezzo) || 0 });
+        }
+        this._call(D, "set_zone_ricarica", { zones }, "💾 Zone salvate");
+        break;
+      }
       case "save_notify_texts": {
         const texts = {};
         this.shadowRoot.querySelectorAll("[data-nt]").forEach((el) => { texts[el.dataset.nt] = el.value; });
@@ -4158,6 +4188,18 @@ class UconnectEvCenterPanel extends HTMLElement {
         if (v !== undefined && el.getRootNode().activeElement !== el && el.value !== v) el.value = v;
       });
     }
+    // zone di ricarica: popola le 8 righe dai valori salvati
+    const _zn = _prog && _prog.attributes && Array.isArray(_prog.attributes.zones)
+      ? _prog.attributes.zones : [];
+    for (let i = 0; i < 8; i++) {
+      const z = _zn[i] || {};
+      const nome = root.querySelector(`[data-zn="${i}"]`);
+      const prezzo = root.querySelector(`[data-zp="${i}"]`);
+      if (nome && nome.getRootNode().activeElement !== nome) nome.value = z.nome || "";
+      if (prezzo && prezzo.getRootNode().activeElement !== prezzo) {
+        prezzo.value = (z.prezzo === undefined || z.prezzo === null) ? "" : z.prezzo;
+      }
+    }
     // chips stato
     const chipLoc = root.querySelector('[data-c="loc"]');
     if (chipLoc) chipLoc.textContent = `📍 ${this._f("loc")}`;
@@ -4330,6 +4372,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     // tabelle dati dinamici
     this._tableViaggi(root);
     this._tableRicariche(root);
+    this._tableZoneStats(root);
     this._calendarRicariche(root);
     this._tableSalute(root);
     this._tableMesi(root);
@@ -5296,6 +5339,22 @@ class UconnectEvCenterPanel extends HTMLElement {
       '<b style="text-transform:capitalize">' + monthLabel + "</b>" + clear + "</div>" +
       '<table style="width:auto"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table>";
   }
+  /** Energia e costo per zona tariffaria (attributo per_zona della lista ricariche). */
+  _tableZoneStats(root) {
+    const tb = root.querySelector('[data-c="tab-zone-stats"]');
+    if (!tb) return;
+    const s = this._st(this._sid("lista_ricariche"));
+    const rows = (s && Array.isArray(s.attributes.per_zona)) ? s.attributes.per_zona : [];
+    tb.innerHTML = rows.map((r) => {
+      const kwh = parseFloat(r.kwh ?? 0) || 0;
+      const cost = parseFloat(r.costo ?? 0) || 0;
+      const pr = kwh > 0 ? cost / kwh : NaN;
+      return `<tr><td>${this._esc(r.zona ?? "—")}</td><td>${r.n ?? 0}</td>
+        <td>${this._fmt(kwh, 2)}</td><td><b>${this._fmt(cost, 2)} €</b></td>
+        <td>${isNaN(pr) ? "—" : this._fmt(pr, 3)}</td></tr>`;
+    }).join("") || `<tr><td colspan="5" style="color:var(--muted)">Nessuna ricarica nel filtro</td></tr>`;
+  }
+
   _tableRicariche(root) {
     const q = (this._ricQuery || "").trim().toLowerCase();
     let rows = this._list(this._sid("lista_ricariche"));
@@ -5315,7 +5374,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       const sep = merged ? ` <span class="dchip" data-ricsep="${r.id}" title="Separa (annulla fusione)">✂️</span>` : "";
       const act = (manual ? ` <span class="dchip" data-ricedit="${r.id}" title="Modifica">✏️</span><span class="dchip" data-ricdel="${r.id}" title="Elimina">🗑</span>` : "") + sep;
       return `<tr><td>${this._d(r.data)}${r.ora_inizio ? " · " + r.ora_inizio : ""}${merged ? ' <span title="Ricarica fusa">🔗</span>' : ""}${act}</td>
-        <td>${this._esc(r.tipo ?? "—")}${r.luogo ? `<br><span style="color:var(--muted);font-size:11px">📍 ${this._esc(r.luogo)}${r.paese ? ", " + this._esc(r.paese) : ""}</span>` : ""}${r.note ? `<br><span style="color:var(--muted);font-size:11px">${this._esc(r.note)}</span>` : ""}</td><td>${dur}</td>
+        <td>${this._esc(r.tipo ?? "—")}${r.zona_tariffa ? ` <span class="dchip" title="${_t("lbl_zona_ricarica", "Zona di ricarica")}">${this._esc(r.zona_tariffa)}</span>` : ""}${r.luogo ? `<br><span style="color:var(--muted);font-size:11px">📍 ${this._esc(r.luogo)}${r.paese ? ", " + this._esc(r.paese) : ""}</span>` : ""}${r.note ? `<br><span style="color:var(--muted);font-size:11px">${this._esc(r.note)}</span>` : ""}</td><td>${dur}</td>
         <td><b>${dsoc}</b></td>
         <td>${this._fmt(parseFloat(r.kwh ?? r.energia ?? 0), 2)}</td>
         <td>${this._fmt(parseFloat(r.potenza_media_kw ?? r.kw_medio ?? 0), 2)}</td>
@@ -5808,7 +5867,10 @@ const PAGES = () => ({
       <div class="tile"><div><div class="v" data-cs="picco">—</div><div class="l">Potenza picco kW</div></div></div>
       <div class="tile"><div><div class="v" data-cs="costo">—</div><div class="l">Costo totale €</div></div></div>
       <div class="tile"><div><div class="v" data-cs="prezzo">—</div><div class="l">Prezzo medio €/kWh</div></div></div>
-    </div></div>
+    </div>
+    <div style="margin-top:14px"><div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${_t("lbl_per_zona", "Energia e costo per zona")}</div>
+      <table><tr><th>${_t("lbl_zona_ricarica", "Zona")}</th><th>${_t("lbl_sessioni", "Sessioni")}</th><th>kWh</th><th>€</th><th>€/kWh</th></tr>
+      <tbody data-c="tab-zone-stats"></tbody></table></div></div>
   <div class="card" style="margin-top:16px"><h3>${_t("h3_storico_ricariche", "Storico ricariche")}</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <select data-sel="sel_tipo"></select>
@@ -6095,6 +6157,17 @@ const PAGES = () => ({
     <div class="card"><h3>${_t("h3_automazioni", "🤖 Automazioni")}</h3>
       <div style="color:var(--muted);font-size:12px">${_t("note_auto_native", "Avvio/stop della ricarica programmata, notifica di fine ricarica e avviso batteria bassa sono gestiti dall'integrazione: non servono automazioni in <code>automations.yaml</code>.")}</div>
       <div data-c="autos-created" style="display:flex;flex-direction:column;gap:2px;margin-top:8px"></div></div>
+    <div class="card"><h3>${_t("h3_zone_ricarica", "🔌 Zone di ricarica")}</h3>
+      <div style="color:var(--muted);font-size:11.5px;margin-bottom:8px">${_t("note_zone_ricarica", "Nome libero + prezzo €/kWh. La prima zona è quella predefinita a casa; una zona chiamata come un tipo (Casa, Fotovoltaico, Pubblica) sovrascrive quel prezzo.")}</div>
+      <div class="row" style="gap:8px"><input data-zn="0" placeholder="1" style="flex:1;min-width:120px"><input data-zp="0" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="1" placeholder="2" style="flex:1;min-width:120px"><input data-zp="1" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="2" placeholder="3" style="flex:1;min-width:120px"><input data-zp="2" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="3" placeholder="4" style="flex:1;min-width:120px"><input data-zp="3" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="4" placeholder="5" style="flex:1;min-width:120px"><input data-zp="4" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="5" placeholder="6" style="flex:1;min-width:120px"><input data-zp="5" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="6" placeholder="7" style="flex:1;min-width:120px"><input data-zp="6" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="row" style="gap:8px"><input data-zn="7" placeholder="8" style="flex:1;min-width:120px"><input data-zp="7" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
+      <div class="btn" data-cmd="save_zones">💾 ${_t("btn_salva", "Salva")}</div></div>
     <div class="card"><h3>${_t("h3_testi_notifiche", "✏️ Testi notifiche")}</h3>
       <div class="inp"><span>${_t("lbl_nt_charge_title", "Titolo fine ricarica")}</span>
         <input data-nt="charge_title" placeholder="🔋" style="flex:1;min-width:160px"></div>

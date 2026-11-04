@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.13] - 2026-10-25
+
+### Aggiunto
+- **Zone di ricarica**: fino a 8 zone con nome libero e prezzo €/kWh proprio
+  (`set_zone_ricarica`, editor in Impostazioni). La zona della sessione si sceglie
+  da sola: GPS entro 300 m > zona predefinita a casa > `Fuori`.
+- Costo della ricarica calcolato con il prezzo della zona (fallback: prezzo casa);
+  la zona assegnata resta salvata nel record di ogni ricarica.
+- Filtro ricariche per zona: le voci compaiono solo per le zone esistenti nei dati,
+  le opzioni del select si aggiornano da sole e un valore sparito torna a `Tutte`.
+- Tabella "Energia e costo per zona" in Distribuzione ricariche (kWh, €, €/kWh).
+
+### Note
+- `zona` continua a indicare la posizione (indirizzo/geocoding); la zona tariffaria
+  e' il nuovo campo `zona_tariffa`, quindi i record vecchi restano validi.
+- Logica pura in `zones.py` con self-check `tools/test_zones.py` (nessun bisogno di Home
+  Assistant per eseguirlo).
+
 ## [1.0.12] - 2026-10-15
 
 ### Corretto

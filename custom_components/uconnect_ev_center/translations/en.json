@@ -708,6 +708,15 @@
         }
       }
     },
+    "set_zone_ricarica": {
+      "name": "Charging zones",
+      "description": "Save the charging zones (name + €/kWh price).",
+      "fields": {
+        "zones": {
+          "name": "Zones"
+        }
+      }
+    },
     "create_dashboard": {
       "name": "Create dashboard",
       "description": "Create/update the sidebar dashboard with all bundled views."
