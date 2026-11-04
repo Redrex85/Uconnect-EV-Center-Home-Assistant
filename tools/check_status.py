@@ -1625,8 +1625,10 @@ try:
     src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
     assert "zones_mod.zone_price(self.zones(), nome, self.price_home)" in src, \
         "il costo non usa la zona: prezzo zona ignorato"
-    assert '"zona_tariffa": self._zone_for_session(' in src, \
+    assert '"zona_tariffa": _zona' in src and "_zona = self._zone_for_session(" in src, \
         "la zona non viene registrata all'avvio sessione"
+    assert '"prezzo": self._zone_price(_zona)' in src, \
+        "il prezzo iniziale della sessione non usa la zona"
     assert 'prezzo_rete = self._zone_price(zona_tariffa)' in src, \
         "il costo finale non usa il prezzo della zona"
     assert "zones_mod.filter_options(nomi)" in src, "filtro ricariche non include le zone"
