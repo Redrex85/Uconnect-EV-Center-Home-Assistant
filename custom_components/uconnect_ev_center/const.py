@@ -300,7 +300,12 @@ PLUG_CONNECTED_VALUES = {"connected", "completed", "plugged", "plugged_in",
 # token nello stato della wallbox (CONF_WB_STATE) che significano "ricarica finita/ferma":
 # chiudono la sessione ANCHE con la spina ancora collegata (utile alle colonnine pubbliche)
 WALLBOX_FINISHED_TOKENS = ("finish", "charged", "complete", "full", "ended",
-                           "stopped", "no_vehicle", "not_connected", "error", "fault")
+                           "stopped", "no_vehicle", "not_connected", "error", "fault",
+                           # Lektrico e altre wallbox restano in questi stati a fine carica
+                           "need_auth", "available", "idle", "ready", "paused")
+# carica ferma per 15 min = sessione chiusa, anche con la spina inserita e uno stato
+# wallbox non riconosciuto: senza questo la ricarica restava appesa e non veniva registrata
+CHARGE_STOP_CLOSE_S = 900
 
 TRIP_MIN_KM = 0.5
 TRIP_MIN_MINUTES = 2
