@@ -708,6 +708,23 @@
         }
       }
     },
+    "export_data": {
+      "name": "Export all data",
+      "description": "Writes trips, charges, history and counters to a single JSON.",
+      "fields": {}
+    },
+    "import_data": {
+      "name": "Import all data",
+      "description": "Replaces the data with an exported file (irreversible).",
+      "fields": {
+        "path": {
+          "name": "File JSON"
+        },
+        "data": {
+          "name": "Dati"
+        }
+      }
+    },
     "set_zone_ricarica": {
       "name": "Charging zones",
       "description": "Save the charging zones (name + €/kWh price).",

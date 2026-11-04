@@ -306,6 +306,9 @@ WALLBOX_FINISHED_TOKENS = ("finish", "charged", "complete", "full", "ended",
                            "need_auth", "available", "idle", "ready", "paused")
 # finestra massima fra due sessioni da fondere (20 min: copre il top-off dopo il
 # target, 80% -> 81%, che altrimenti finiva in una riga separata)
+# cartella (sotto config/) per CSV ed export/import JSON completi
+EXPORT_DIR = "uconnect_ev_center_export"
+
 CHARGE_MERGE_WINDOW_S = 1200
 # carica ferma per 15 min = sessione chiusa, anche con la spina inserita e uno stato
 # wallbox non riconosciuto: senza questo la ricarica restava appesa e non veniva registrata

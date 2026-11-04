@@ -708,6 +708,23 @@
         }
       }
     },
+    "export_data": {
+      "name": "Exportar todos los datos",
+      "description": "Escribe viajes, recargas, historial y contadores en un solo JSON.",
+      "fields": {}
+    },
+    "import_data": {
+      "name": "Importar todos los datos",
+      "description": "Sustituye los datos por un archivo exportado (irreversible).",
+      "fields": {
+        "path": {
+          "name": "File JSON"
+        },
+        "data": {
+          "name": "Dati"
+        }
+      }
+    },
     "set_zone_ricarica": {
       "name": "Zonas de recarga",
       "description": "Guarda las zonas de recarga (nombre + precio €/kWh).",

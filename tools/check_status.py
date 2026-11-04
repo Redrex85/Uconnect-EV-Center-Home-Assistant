@@ -1657,6 +1657,26 @@ try:
 except Exception as e:
     bad(f"zone di ricarica: {e}")
 
+# ---------------------------------------------------------------- [67] export/import
+print("\n[67] Backup JSON completo (export_data / import_data)")
+try:
+    src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
+    assert "async def service_export_data" in src, "manca service_export_data"
+    assert "def service_import_data" in src, "manca service_import_data"
+    assert "EXPORT_DIR" in src, "la cartella export non e' una costante"
+    sto = open(os.path.join(CC, "store.py"), encoding="utf-8").read()
+    assert "def apply_data" in sto and "def _apply" in sto, \
+        "import senza sanificazione condivisa col load"
+    ini = open(os.path.join(CC, "__init__.py"), encoding="utf-8").read()
+    assert "async_register_admin_service" in ini, "import_data non riservato agli admin"
+    assert "os.path.commonpath" in ini, "percorso di import non validato"
+    svc = open(os.path.join(CC, "services.yaml"), encoding="utf-8").read()
+    for name in ("export_data:", "import_data:"):
+        assert name in svc, f"{name} manca da services.yaml"
+    ok("export/import JSON con path validato e import riservato agli admin")
+except Exception as e:
+    bad(f"export/import: {e}")
+
 # ---------------------------------------------------------------- esito
 print("\n" + "=" * 62)
 if problemi:

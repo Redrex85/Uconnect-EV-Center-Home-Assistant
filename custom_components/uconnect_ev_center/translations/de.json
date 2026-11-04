@@ -708,6 +708,23 @@
         }
       }
     },
+    "export_data": {
+      "name": "Alle Daten exportieren",
+      "description": "Schreibt Fahrten, Ladevorgänge, Verlauf und Zähler in eine JSON-Datei.",
+      "fields": {}
+    },
+    "import_data": {
+      "name": "Alle Daten importieren",
+      "description": "Ersetzt die Daten durch eine exportierte Datei (nicht umkehrbar).",
+      "fields": {
+        "path": {
+          "name": "File JSON"
+        },
+        "data": {
+          "name": "Dati"
+        }
+      }
+    },
     "set_zone_ricarica": {
       "name": "Ladezonen",
       "description": "Speichert die Ladezonen (Name + €/kWh).",

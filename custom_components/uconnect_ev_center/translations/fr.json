@@ -708,6 +708,23 @@
         }
       }
     },
+    "export_data": {
+      "name": "Exporter toutes les données",
+      "description": "Écrit trajets, recharges, historique et compteurs dans un seul JSON.",
+      "fields": {}
+    },
+    "import_data": {
+      "name": "Importer toutes les données",
+      "description": "Remplace les données par un fichier exporté (irréversible).",
+      "fields": {
+        "path": {
+          "name": "File JSON"
+        },
+        "data": {
+          "name": "Dati"
+        }
+      }
+    },
     "set_zone_ricarica": {
       "name": "Zones de recharge",
       "description": "Enregistre les zones de recharge (nom + prix €/kWh).",

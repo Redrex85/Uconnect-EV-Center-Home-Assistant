@@ -275,6 +275,12 @@ service: uconnect_ev_center.create_dashboard
 service: uconnect_ev_center.set_notify_texts
 data: { texts: { charge_title: "Ricarica completata", low_title: "Batteria bassa" } }
 
+# Backup completo: un JSON con viaggi, ricariche, storico e contatori
+# (config/uconnect_ev_center_export/), e ripristino (solo admin, file .json di quella cartella)
+service: uconnect_ev_center.export_data
+service: uconnect_ev_center.import_data
+data: { path: /config/uconnect_ev_center_export/uconnect_ev_center_data_20260101_120000.json }
+
 # Zone di ricarica: nome libero + prezzo €/kWh (max 8). lat/lon opzionali:
 # la zona viene assegnata da sola quando la ricarica parte nel raggio di 300 m.
 service: uconnect_ev_center.set_zone_ricarica
@@ -570,6 +576,12 @@ service: uconnect_ev_center.create_dashboard
 # Texts of the native notifications (charge complete, low battery)
 service: uconnect_ev_center.set_notify_texts
 data: { texts: { charge_title: "Charging complete", low_title: "Low battery" } }
+
+# Full backup: one JSON with trips, charges, history and counters
+# (config/uconnect_ev_center_export/), and restore (admin only, .json in that folder)
+service: uconnect_ev_center.export_data
+service: uconnect_ev_center.import_data
+data: { path: /config/uconnect_ev_center_export/uconnect_ev_center_data_20260101_120000.json }
 
 # Charging zones: free name + €/kWh price (max 8). Optional lat/lon:
 # the zone is picked automatically when a charge starts within 300 m.
@@ -870,6 +882,12 @@ service: uconnect_ev_center.create_dashboard
 # Textes des notifications natives (recharge terminée, batterie faible)
 service: uconnect_ev_center.set_notify_texts
 data: { texts: { charge_title: "Recharge terminée", low_title: "Batterie faible" } }
+
+# Sauvegarde complète : un JSON avec trajets, recharges, historique et compteurs
+# (config/uconnect_ev_center_export/), et restauration (admins, .json de ce dossier)
+service: uconnect_ev_center.export_data
+service: uconnect_ev_center.import_data
+data: { path: /config/uconnect_ev_center_export/uconnect_ev_center_data_20260101_120000.json }
 
 # Zones de recharge : nom libre + prix €/kWh (max 8). lat/lon optionnels :
 # la zone est choisie automatiquement si la recharge démarre dans 300 m.
