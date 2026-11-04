@@ -4,9 +4,26 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
-## [1.0.13] - 2026-10-25
+## [1.0.13] - 2026-11-04
+
+### Corretto
+- **Ricariche mai registrate con wallbox Lektrico**: lo stato finisce in `need_auth`
+  mentre la spina resta `plugged`, quindi la chiusura della sessione non scattava mai.
+  Aggiunti i token `need_auth`/`available`/`idle`/`ready`/`paused` e una chiusura di
+  sicurezza dopo 15 minuti (`CHARGE_STOP_CLOSE_S`) di potenza ~0; se la wallbox sta
+  ancora erogando (>0,2 kW) la sessione resta aperta anche se l'auto dice "ferma".
+- **Sessione di ricarica persa al riavvio**: ora e' salvata nello store (`charge_session`)
+  e ripresa al primo poll; il buco del riavvio non entra nell'integrale della potenza.
+- **Ricariche spezzate**: la finestra di fusione passa da 6 a 20 minuti
+  (`CHARGE_MERGE_WINDOW_S`), cosi' il top-off dopo il target finisce nella stessa riga.
+- **Filtro per tipo**: confronto normalizzato (`_norm_tipo`), un tipo scritto con
+  maiuscole/spazi diversi non sfugge piu' al filtro; la tabella ricariche mostra
+  30 righe invece di 8.
 
 ### Aggiunto
+- Servizi `export_data` e `import_data`: backup/ripristino completo in
+  `config/uconnect_ev_center_export/*.json` (import riservato agli amministratori,
+  solo file `.json` di quella cartella).
 - **Zone di ricarica**: fino a 8 zone con nome libero e prezzo €/kWh proprio
   (`set_zone_ricarica`, editor in Impostazioni). La zona della sessione si sceglie
   da sola: GPS entro 300 m > zona predefinita a casa > `Fuori`.
