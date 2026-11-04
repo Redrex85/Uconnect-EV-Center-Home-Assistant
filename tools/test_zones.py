@@ -59,6 +59,8 @@ def test_zone_for_session():
     assert Z.zone_for_session(zone, 41.9102, 12.5001, "not_home") == "Fuori"
     assert Z.zone_for_session(zone, 41.9102, 12.5001, "") == "Fuori"
     assert Z.zone_for_session([], None, None, "home") == Z.ZONE_TIPI[0]
+    # tracker dice "home" ma il GPS e' lontano: non fidarsi
+    assert Z.zone_for_session(zone, None, None, "home", home_far=True) == "Fuori"
 
 
 def test_price_and_filter():

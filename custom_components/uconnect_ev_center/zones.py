@@ -87,13 +87,17 @@ def nearest_zone(zones: list[dict[str, Any]], lat: float, lon: float,
 
 
 def zone_for_session(zones: list[dict[str, Any]], lat: float | None, lon: float | None,
-                     location: str) -> str:
-    """Zona della ricarica che inizia: GPS > a casa (default) > Fuori."""
+                     location: str, home_far: bool = False) -> str:
+    """Zona della ricarica che inizia: GPS > a casa (default) > Fuori.
+
+    `home_far` e' True quando il GPS e' chiaramente lontano da casa: in quel caso
+    il tracker dice "home" perche' e' in ritardo e non va creduto.
+    """
     if lat is not None and lon is not None:
         found = nearest_zone(zones, float(lat), float(lon))
         if found:
             return found
-    if str(location or "").lower() == "home":
+    if str(location or "").lower() == "home" and not home_far:
         return default_zone(zones)
     return ZONE_FUORI
 

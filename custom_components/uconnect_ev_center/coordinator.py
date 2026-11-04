@@ -755,7 +755,20 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
     def _zone_for_session(self, lat: float | None, lon: float | None, location: str) -> str:
         """Zona tariffaria della ricarica che inizia: GPS > a casa > Fuori."""
-        return zones_mod.zone_for_session(self.zones(), lat, lon, location)
+        return zones_mod.zone_for_session(self.zones(), lat, lon, location,
+                                          home_far=self._gps_outside_home(lat, lon))
+
+    def _gps_outside_home(self, lat: float | None, lon: float | None) -> bool:
+        """True se il GPS e' chiaramente fuori dalla zona casa (tracker in ritardo)."""
+        if lat is None or lon is None:
+            return False
+        home = self.hass.states.get("zone.home")
+        a = home.attributes if home is not None else {}
+        zlat, zlon = a.get("latitude"), a.get("longitude")
+        if zlat is None or zlon is None:
+            return False
+        d = zones_mod.dist_m(float(lat), float(lon), _f(zlat), _f(zlon))
+        return d > max(_f(a.get("radius"), 100.0), 100.0) + 500.0
 
     def service_set_zones(self, zones: list[dict]) -> list[dict]:
         """Valida e salva le zone (nome unico, prezzo >= 0, max 8)."""
@@ -1129,6 +1142,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     self._queue_geocode(chiuso_verifica)
                     closed_trip = chiuso_verifica
             if self.charge_session is None:
+                _zona = self._zone_for_session(lat, lon, location or "")
                 self.charge_session = {
                     "id": int(time.time()),
                     "start_ts": time.time(),
@@ -1147,9 +1161,11 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     "ts_last": time.time(),
                     "power_max_kw": 0.0,
                     "odometro_inizio": odometer,
-                    "prezzo": self._price_for_zone(location or "home"),
-                    # zona tariffaria decisa all'avvio della sessione (GPS > casa > Fuori)
-                    "zona_tariffa": self._zone_for_session(lat, lon, location or ""),
+                    # zona tariffaria decisa all'avvio della sessione (GPS > casa > Fuori):
+                    # se il tracker e' in ritardo, il GPS decide (una ricarica al B&B
+                    # risultava "Casa" e veniva prezzata come tale)
+                    "zona_tariffa": _zona,
+                    "prezzo": self._zone_price(_zona),
                     # posizione all'avvio della ricarica (per l'indirizzo, opzionale)
                     "gps": ({"lat": round(lat, 5), "lon": round(lon, 5)}
                             if lat is not None and lon is not None else {}),
