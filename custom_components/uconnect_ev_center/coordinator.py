@@ -101,6 +101,7 @@ DEFAULT_WB_START_W,
     CONF_POLL_INTERVAL,
     CONF_PRICE_HOME,
     ZONE_TIPI,
+    TIPI_RICARICA,
     ZONE_FUORI,
     CONF_PRICE_PUBLIC,
     CONF_PRICE_SOLAR,
@@ -165,6 +166,19 @@ def _f(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _norm_tipo(value: Any) -> str:
+    """Normalizza il tipo di ricarica: 'fotovoltaico ' -> 'Fotovoltaico'.
+
+    I tipi arrivano anche dall'esterno (servizi, form del pannello): senza
+    normalizzazione un valore con maiuscole/spazi diversi non entra nel filtro.
+    """
+    v = str(value or "").strip()
+    for t in TIPI_RICARICA:
+        if v.lower() == t.lower():
+            return t
+    return v
 
 
 def _merge_history(history: list[dict], days_grouped: list[dict]) -> list[dict]:
@@ -2479,7 +2493,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             if tipo != "Tutte":
                 if tipo.lower() in tipi:
                     # un nome zona uguale a un tipo noto: vince il tipo
-                    if c.get("tipo") != tipo:
+                    if _norm_tipo(c.get("tipo")) != _norm_tipo(tipo):
                         continue
                 elif self._zone_of(c) != tipo:
                     continue
@@ -2693,7 +2707,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "soc_end": 0.0,
             "potenza_media_kw": 0.0,
             "costo": round(costo, 2),
-            "tipo": tipo or "Manuale",
+            "tipo": _norm_tipo(tipo or "Manuale"),
             "note": str(descrizione or "").strip(),
             "manuale": True,
         }
@@ -2731,7 +2745,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         if costo is not None:
             rec["costo"] = round(float(costo), 2)
         if tipo is not None:
-            rec["tipo"] = str(tipo)
+            rec["tipo"] = _norm_tipo(tipo)
         if descrizione is not None:
             rec["note"] = str(descrizione).strip()
         if durata_min is not None:

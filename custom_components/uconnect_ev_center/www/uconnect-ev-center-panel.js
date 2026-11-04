@@ -5363,7 +5363,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       .some((v) => String(v ?? "").toLowerCase().includes(q)));
     const tb = root.querySelector('[data-c="tab-ricariche"]');
     if (!tb) return;
-    const vis = rows.slice(0, 8);
+    const vis = rows.slice(0, 30);
     const cells = vis.map((r) => {
       const dm = parseFloat(r.durata_min ?? r.durata ?? 0);
       const dur = dm > 0 ? this._fmt(dm / 60, 1) + " h" : "—";

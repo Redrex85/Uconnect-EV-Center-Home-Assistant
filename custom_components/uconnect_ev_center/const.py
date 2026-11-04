@@ -135,6 +135,7 @@ DEFAULT_TAGLIANDO_INTERVALLO = 15000
 ZONE_SLOTS = 8                 # righe configurabili
 ZONE_MAX_LEN = 40              # lunghezza massima del nome
 ZONE_TIPI = ("Casa", "Fotovoltaico", "Pubblica")   # "tipo" resta a 3 valori
+TIPI_RICARICA = ZONE_TIPI      # alias usato da _norm_tipo / filtro ricariche
 ZONE_FUORI = "Fuori"           # zona tariffaria quando non si riconosce la posizione
 ZONE_GPS_RADIUS_M = 300        # raggio per abbinare il GPS a una zona con coordinate
 
