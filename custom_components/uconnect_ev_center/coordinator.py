@@ -3655,7 +3655,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 f"Tipo: {zona}\nBatteria: {data.get('battery')}%"
             )
         # notifica di FINE ricarica: NATIVA (testi modificabili dal pannello).
-        if events.get("charge_finished"):
+        if events.get("charge_finished") and self._switch_on("notify_end"):
             rec = events["charge_finished"] or {}
             await self._notify_charge_finished(rec)
 

@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.15";
+const REC_VER = "1.0.16";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -47,6 +47,11 @@ const I18N = {
     toast_notify_test: "Test notification sent",
     lbl_nt_attive: "Active notifications",
     note_nt_vars: "Variables: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Empty = default text.",
+    lbl_notif_switches: "Notifications — on/off",
+    nts_sum: "📊 Daily summary",
+    nts_start: "⚡ Charging started notification",
+    nts_end: "🔋 Charging finished notification",
+    nts_low: "⚠️ Low battery reminder",
     nt_cs: "Charge start",
     nt_cc: "Charge end",
     nt_lb: "Low battery",
@@ -326,6 +331,11 @@ const I18N = {
     toast_notify_test: "Notification de test envoyée",
     lbl_nt_attive: "Notifications actives",
     note_nt_vars: "Variables : {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Vide = texte par défaut.",
+    lbl_notif_switches: "Notifications — activer/désactiver",
+    nts_sum: "📊 Résumé quotidien",
+    nts_start: "⚡ Notification début de charge",
+    nts_end: "🔋 Notification fin de charge",
+    nts_low: "⚠️ Rappel batterie faible",
     nt_cs: "Début de recharge",
     nt_cc: "Fin de recharge",
     nt_lb: "Batterie faible",
@@ -605,6 +615,11 @@ const I18N = {
     toast_notify_test: "Notificación de prueba enviada",
     lbl_nt_attive: "Notificaciones activas",
     note_nt_vars: "Variables: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Vacío = texto predeterminado.",
+    lbl_notif_switches: "Notificaciones — activar/desactivar",
+    nts_sum: "📊 Resumen diario",
+    nts_start: "⚡ Notificación inicio de carga",
+    nts_end: "🔋 Notificación fin de carga",
+    nts_low: "⚠️ Recordatorio batería baja",
     nt_cs: "Inicio de recarga",
     nt_cc: "Fin de recarga",
     nt_lb: "Batería baja",
@@ -892,6 +907,11 @@ const I18N = {
     toast_notify_test: "Testbenachrichtigung gesendet",
     lbl_nt_attive: "Aktive Benachrichtigungen",
     note_nt_vars: "Variablen: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Leer = Standardtext.",
+    lbl_notif_switches: "Benachrichtigungen — ein/aus",
+    nts_sum: "📊 Tageszusammenfassung",
+    nts_start: "⚡ Benachrichtigung Ladebeginn",
+    nts_end: "🔋 Benachrichtigung Ladeende",
+    nts_low: "⚠️ Erinnerung niedrige Batterie",
     nt_cs: "Ladestart",
     nt_cc: "Ladeende",
     nt_lb: "Batterie schwach",
@@ -3948,6 +3968,34 @@ class UconnectEvCenterPanel extends HTMLElement {
     if (/programma|ricarica/.test(t)) return "⏰";
     return "🤖";
   }
+  /** Interruttori on/off delle notifiche (pagina Automazioni). */
+  _drawNotifSwitches(root) {
+    const host = root.querySelector('[data-c="notif-switches"]');
+    if (!host) return;
+    const S = this;
+    const rows = [
+      ["sw_daily", _t("nts_sum", "📊 Riepilogo giornaliero")],
+      ["sw_start", _t("nts_start", "⚡ Notifica avvio ricarica")],
+      ["sw_end", _t("nts_end", "🔋 Notifica fine ricarica")],
+      ["sw_low", _t("nts_low", "⚠️ Promemoria batteria bassa")],
+      ["sw_scad", _t("nt_dead", "Scadenze")],
+    ];
+    const sig = rows.map(([k]) => S._field(k)).join("|");
+    if (host.dataset.sig !== sig) {
+      host.dataset.sig = sig;
+      host.innerHTML = rows.map(([k, label]) => {
+        const id = S._field(k);
+        return `<div class="row"><span>${label}</span><label class="switch"><input type="checkbox" data-nsw="${S._esc(id)}"><span></span></label></div>`;
+      }).join("");
+    }
+    rows.forEach(([k]) => {
+      const id = S._field(k);
+      const el = host.querySelector(`[data-nsw="${id}"]`);
+      const st = S._hass.states[id];
+      if (el && st && el.getRootNode().activeElement !== el) el.checked = st.state === "on";
+    });
+  }
+
   _drawAutoToggles(root) {
     const host = root.querySelector('[data-c="autos-created"]');
     if (!host) return;
@@ -4357,6 +4405,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       this._drawAutos(root);
       this._drawPosHistory(root);
     this._drawAutoToggles(root);
+    this._drawNotifSwitches(root);
     // statistiche ricariche (ciambelle + tile) e grafico potenza wallbox
     this._drawChargesStats(root);
     if (root.querySelector("#wbchart")) {
@@ -5658,9 +5707,14 @@ h1{font-size:26px;margin-bottom:4px}
 .page{display:none}.page.active{display:block}
 .grid{display:grid;gap:16px}
 .g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1200px){.g4{grid-template-columns:repeat(2,1fr)}}
+.compact .card{padding:14px}.compact .card h3{margin-bottom:8px}
+.compact .row{padding:5px 0;font-size:13.5px}.compact .inp{margin:5px 0;font-size:13.5px}
+.compact .btn{padding:7px 12px;font-size:13px}.compact .grid{gap:12px}
 .g2{grid-template-columns:repeat(2,1fr)}
 @media(max-width:1100px){.g3{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:700px){.g3,.g2{grid-template-columns:1fr}.sidebar{display:none}.app{flex-direction:column;min-height:0}.main{margin-left:0;width:100%}}
+@media(max-width:700px){.g3,.g2,.g4{grid-template-columns:1fr}.sidebar{display:none}.app{flex-direction:column;min-height:0}.main{margin-left:0;width:100%}}
 .mobilenav{display:none;position:sticky;top:0;z-index:30;background:var(--panel2)}
   @media(max-width:700px){
     .card{overflow-x:auto}
@@ -6198,6 +6252,7 @@ const PAGES = () => ({
       ("Uconnect EV Center" → switch).</div></div>`,
 
   p10: `<h1>Impostazioni</h1>
+  <div class="compact">
   <div class="grid g3">
     <div class="card"><h3>${_t("h3_prezzi_energia", "Prezzi energia")}</h3>
       <div class="inp"><span>${_t("lbl_costo_casa", "Costo casa")}</span><input data-n="n_price_home"><span class="u">€/kWh</span></div>
@@ -6215,28 +6270,12 @@ const PAGES = () => ({
         <div class="btn" data-cmd="reset_km">🔄 Reset contatori Km</div>
         <div class="btn" data-cmd="reset_energia">🔄 Reset contatori Energia</div>
         <div class="btn" data-cmd="reset_costi">🔄 Reset contatori Costi</div>
-        <div class="btn" data-cmd="csv">📥 Esporta viaggi CSV</div></div></div></div>
-  <div class="grid g3" style="margin-top:16px">
-    <div class="card palette"><h3>${_t("h3_palette_colori_uconnect", "🎨 Palette (colori Uconnect)")}</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${THEMES.map(([id, dot, label]) => `<button class="btn" data-palette="${id}"><span class="sw" style="background:${dot}"></span> ${_t("theme_" + id, label)}</button>`).join("")}</div>
-      <div style="color:var(--muted);font-size:11.5px;margin-top:10px">Temi HA in /themes: uconnect-blu, giallo, verde, aviation</div></div>
-    <div class="card"><h3>${_t("h3_notifiche", "🔔 Notifiche")}</h3>
-      <div class="inp"><span>${_t("lbl_servizio_notify_2", "Servizio notify")}</span><input data-ls="rec_notify" data-f="notify" style="width:140px"><span class="u"></span></div>
-      <div class="inp"><span>${_t("lbl_preavviso_scadenze", "Preavviso scadenze")}</span><input data-ls="rec_preavviso" value="30"><span class="u">gg</span></div></div>
-    <div class="card"><h3>${_t("h3_lingua", "🌐 Lingua")}</h3>
-      <div class="inp"><span>${_t("lbl_lingua_pannello", "Lingua pannello")}</span>
-        <select data-lang style="width:150px">
-          <option value="">🌐 ${_t("opt_automatica_home_assistant", "Automatica (Home Assistant)")}</option>
-          <option value="it">🇮🇹 Italiano</option>
-          <option value="en">🇬🇧 English</option>
-          <option value="fr">🇫🇷 Français</option>
-          <option value="es">🇪🇸 Español</option>
-          <option value="de">🇩🇪 Deutsch</option>
-        </select></div>
-      <div style="color:var(--muted);font-size:11.5px;margin-top:4px">"Automatica" segue la lingua di HA.</div></div>
-    <div class="card"><h3>${_t("h3_automazioni", "🤖 Automazioni")}</h3>
-      <div style="color:var(--muted);font-size:12px">${_t("note_auto_native", "Avvio/stop della ricarica programmata, notifica di fine ricarica e avviso batteria bassa sono gestiti dall'integrazione: non servono automazioni in <code>automations.yaml</code>.")}</div>
-      <div data-c="autos-created" style="display:flex;flex-direction:column;gap:2px;margin-top:8px"></div></div>
+        <div class="btn" data-cmd="export_data">⬇️ ${_t("btn_export_data", "Esporta tutti i dati")}</div>
+        <div class="btn" data-cmd="import_data">⬆️ ${_t("btn_import_data", "Importa da file")}</div>
+        <div class="btn" data-cmd="csv">📥 Esporta viaggi CSV</div></div>
+      <div style="color:var(--muted);font-size:11px;margin-top:8px">${_t("note_backup", "Un solo file JSON con viaggi, ricariche, storico e contatori. Importandolo su un'altra installazione i dati vengono sostituiti.")}</div></div></div>
+  <div class="grid g3" style="margin-top:16px"></div>
+  <div class="grid g4" style="margin-top:12px">
     <div class="card"><h3>${_t("h3_zone_ricarica", "🔌 Zone di ricarica")}</h3>
       <div style="color:var(--muted);font-size:11.5px;margin-bottom:8px">${_t("note_zone_ricarica", "Nome libero + prezzo €/kWh. La prima zona è quella predefinita a casa; una zona chiamata come un tipo (Casa, Fotovoltaico, Pubblica) sovrascrive quel prezzo.")}</div>
       <div class="row" style="gap:8px"><input data-zn="0" placeholder="1" style="flex:1;min-width:120px"><input data-zp="0" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
@@ -6248,13 +6287,37 @@ const PAGES = () => ({
       <div class="row" style="gap:8px"><input data-zn="6" placeholder="7" style="flex:1;min-width:120px"><input data-zp="6" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
       <div class="row" style="gap:8px"><input data-zn="7" placeholder="8" style="flex:1;min-width:120px"><input data-zp="7" type="number" step="0.001" min="0" placeholder="0.25 €/kWh" style="width:130px"></div>
       <div class="btn" data-cmd="save_zones">💾 ${_t("btn_salva", "Salva")}</div></div>
-    <div class="card"><h3>${_t("h3_testi_notifiche", "✏️ Testi notifiche")}</h3>
+    <div class="card palette"><h3>${_t("h3_palette_colori_uconnect", "🎨 Palette (colori Uconnect)")}</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${THEMES.map(([id, dot, label]) => `<button class="btn" data-palette="${id}"><span class="sw" style="background:${dot}"></span> ${_t("theme_" + id, label)}</button>`).join("")}</div>
+      <div style="color:var(--muted);font-size:11.5px;margin-top:10px">Temi HA in /themes: uconnect-blu, giallo, verde, aviation</div></div>
+    <div class="card"><h3>${_t("h3_lingua", "🌐 Lingua")}</h3>
+      <div class="inp"><span>${_t("lbl_lingua_pannello", "Lingua pannello")}</span>
+        <select data-lang style="width:150px">
+          <option value="">🌐 ${_t("opt_automatica_home_assistant", "Automatica (Home Assistant)")}</option>
+          <option value="it">🇮🇹 Italiano</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="de">🇩🇪 Deutsch</option>
+        </select></div>
+      <div style="color:var(--muted);font-size:11.5px;margin-top:4px">"Automatica" segue la lingua di HA.</div></div>
+    <div class="card"><h3>${_t("h3_notifiche", "🔔 Notifiche")}</h3>
+      <div class="inp"><span>${_t("lbl_servizio_notify_2", "Servizio notify")}</span><input data-ls="rec_notify" data-f="notify" style="width:110px"><span class="u"></span></div>
+      <div class="inp"><span>${_t("lbl_preavviso_scadenze", "Preavviso scadenze")}</span><input data-ls="rec_preavviso" value="30"><span class="u">gg</span></div></div></div>
+  <div style="margin-top:12px"><div class="card"><h3>${_t("h3_automazioni", "🤖 Automazioni")}</h3>
+      <div style="color:var(--muted);font-size:12px">${_t("note_auto_native", "Avvio/stop della ricarica programmata, notifica di fine ricarica e avviso batteria bassa sono gestiti dall'integrazione: non servono automazioni in <code>automations.yaml</code>.")}</div>
+      <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🔔 ${_t("lbl_notif_switches", "Notifiche — attiva/disattiva")}</div>
+        <div data-c="notif-switches" style="display:flex;flex-direction:column;gap:2px"></div>
+      </div>
+      <div data-c="autos-created" style="display:flex;flex-direction:column;gap:2px;margin-top:8px"></div></div></div>
+  <div style="margin-top:12px"><div class="card"><h3>${_t("h3_testi_notifiche", "✏️ Testi notifiche")}</h3>
       <div class="inp"><span>${_t("lbl_nt_charge_title", "Titolo fine ricarica")}</span>
-        <input data-nt="charge_title" placeholder="🔋" style="flex:1;min-width:160px"></div>
+        <input data-nt="charge_title" placeholder="🔋" style="flex:1;min-width:150px"></div>
       <div class="inp" style="align-items:flex-start"><span>${_t("lbl_nt_charge_body", "Testo fine ricarica")}</span>
-        <textarea data-nt="charge_body" rows="5" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{zona} {kwh} {minuti} {soc_start} {soc_end} {costo}"></textarea></div>
+        <textarea data-nt="charge_body" rows="4" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{zona} {kwh} {minuti} {soc_start} {soc_end} {costo}"></textarea></div>
       <div class="inp"><span>${_t("lbl_nt_low_title", "Titolo batteria bassa")}</span>
-        <input data-nt="low_title" placeholder="⚠️" style="flex:1;min-width:160px"></div>
+        <input data-nt="low_title" placeholder="⚠️" style="flex:1;min-width:150px"></div>
       <div class="inp" style="align-items:flex-start"><span>${_t("lbl_nt_low_body", "Testo batteria bassa")}</span>
         <textarea data-nt="low_body" rows="3" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{batteria} {autonomia}"></textarea></div>
       <div class="btn" data-cmd="save_notify_texts">💾 ${_t("btn_salva", "Salva")}</div>
@@ -6279,9 +6342,8 @@ const PAGES = () => ({
           <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="auto_start">⏰ ${_t("nt_auto_start", "Avvio programmato")}</div>
         </div>
         <div class="note" style="margin-top:8px">${_t("note_nt_vars", "Variabili: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Vuoto = testo predefinito.")}</div>
-      </details></div>
+      </details></div></div>
   </div>`,
-
   p12: `<h1>${_t("nav_p12", "Veicolo")} <span class="chip">${_POWERTRAIN}</span></h1>
   <div class="sub">${_t("sub_veicolo", "Stato e dati dell'auto letti dall'integrazione Uconnect. Le entità non mappate in Configura restano nascoste.")}</div>
   <div class="grid g3">

@@ -1657,6 +1657,31 @@ try:
 except Exception as e:
     bad(f"zone di ricarica: {e}")
 
+# ---------------------------------------------------------------- [69] notifiche on/off
+print("\n[69] Notifiche on/off (Automazioni) e Impostazioni compatte")
+try:
+    src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
+    assert 'if events.get("charge_finished") and self._switch_on("notify_end"):' in src, \
+        "la notifica di fine ricarica non rispetta lo switch notify_end"
+    assert "async def _notify_charge_finished" in src and \
+        'if not self._switch_on("notify_end"):' in src, \
+        "manca il gate anche dentro _notify_charge_finished"
+
+    panel = open(os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read()
+    assert 'data-c="notif-switches"' in panel, "manca il riquadro interruttori notifiche"
+    assert "  _drawNotifSwitches(root) {" in panel, "manca _drawNotifSwitches"
+    assert "    this._drawNotifSwitches(root);" in panel, "il metodo non viene chiamato al render"
+    assert ".g4{grid-template-columns:repeat(4,1fr)}" in panel, "manca la griglia g4"
+    assert ".compact .card{padding:14px}" in panel, "manca la densita' compatta"
+    assert '<div class="compact">' in panel, "la pagina Impostazioni non e' compatta"
+    for key in ("lbl_notif_switches", "nts_sum", "nts_start", "nts_end", "nts_low"):
+        assert panel.count(key) >= 5, f"{key} non tradotta in 5 lingue"
+    # niente ",," residui nelle mappe i18n
+    assert ',,' not in panel and ', ,' not in panel, "virgole doppie nelle mappe i18n"
+    ok("gate notify_end, interruttori in Automazioni, Impostazioni compatte")
+except Exception as e:
+    bad(f"notifiche on/off: {e}")
+
 # ---------------------------------------------------------------- [68] notifiche
 print("\n[68] Riepilogo giornaliero e notifiche di prova")
 try:

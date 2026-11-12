@@ -4,6 +4,22 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.16] - 2026-11-12
+
+### Corretto
+- **La notifica di fine ricarica ignorava il suo switch**: partiva anche con
+  `switch.<auto>_notifica_fine_ricarica` spento. Ora il gate e' sia nel ciclo degli
+  eventi sia dentro `_notify_charge_finished`, come per avvio, batteria bassa e
+  riepilogo giornaliero.
+
+### Modificato
+- **Automazioni → Notifiche — attiva/disattiva**: riquadro con gli interruttori di
+  riepilogo giornaliero, avvio ricarica, fine ricarica, batteria bassa e scadenze.
+- **Impostazioni compatte**: card piu' dense (.compact), griglia a 4 colonne
+  (Zone ricariche | Palette | Lingua | Notifiche), Backup dati dentro "Reset & export",
+  Automazioni e Testi notifiche a tutta larghezza.
+- Etichette degli interruttori tradotte IT/EN/FR/ES/DE.
+
 ## [1.0.15] - 2026-11-04
 
 ### Modificato
