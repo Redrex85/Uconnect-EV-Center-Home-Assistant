@@ -1685,6 +1685,13 @@ try:
     panel = open(os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read()
     assert panel.count('data-cmd="notify_test"') == 10, "servono 10 pulsanti di prova"
     assert panel.count("lbl_notify_test") >= 5, "etichetta dei pulsanti non tradotta"
+    assert panel.count("data-nsw=") >= 5, "mancano i toggle delle notifiche"
+    assert "<details" in panel and "lbl_nt_attive" in panel, \
+        "sezione di prova non richiudibile o senza toggle"
+    assert 'data-sw="sw_daily"' not in panel, \
+        "i toggle non devono usare data-sw: quel loop scrive ON/OFF sui chip"
+    assert '"notify_scadenze"' in sw and '_switch_on("notify_scadenze")' in src, \
+        "le notifiche di scadenza non hanno lo switch"
     ok("riepilogo serale con switch e dieci pulsanti di prova nel pannello")
 except Exception as e:
     bad(f"notifiche: {e}")

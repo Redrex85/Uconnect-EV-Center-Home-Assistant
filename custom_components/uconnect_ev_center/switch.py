@@ -41,8 +41,10 @@ async def async_setup_entry(
         MateSwitch(coordinator, "battery_night_only", f"{name} Batteria Solo Senza Sole",
                    False, "mdi:weather-night"),
         # nome dal translation_key (entity.switch.notify_daily): non tocca gli entity_id esistenti
-        MateSwitch(coordinator, "notify_daily", None, True, "mdi:calendar-today",
-                   translation_key="notify_daily"),
+        MateSwitch(coordinator, "notify_scadenze", f"{name} Notifica Scadenze",
+                   True, "mdi:calendar-alert"),
+        MateSwitch(coordinator, "notify_daily", f"{name} Riepilogo Giornaliero",
+                   True, "mdi:calendar-today", translation_key="notify_daily"),
     ])
 
 

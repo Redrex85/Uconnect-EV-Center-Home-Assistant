@@ -3107,6 +3107,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         """Invia una notifica al giorno se una scadenza rientra nel preavviso."""
         if not self.notify_service or not scadenze:
             return
+        if not self._switch_on("notify_scadenze"):
+            return
         counters = self.store.data["counters"]
         today_key = oggi.strftime("%Y-%m-%d")
         if counters.get("last_notify") == today_key:

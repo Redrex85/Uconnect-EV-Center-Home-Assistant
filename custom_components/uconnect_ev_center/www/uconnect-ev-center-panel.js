@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.14";
+const REC_VER = "1.0.15";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -43,8 +43,20 @@ const I18N = {
     lbl_nt_charge_body: "Charge complete text",
     lbl_nt_low_title: "Low battery title",
     lbl_nt_low_body: "Low battery text",
-    lbl_notify_test: "Test notification",
+    lbl_notify_test: "Send a test notification (sample data)",
     toast_notify_test: "Test notification sent",
+    lbl_nt_attive: "Active notifications",
+    note_nt_vars: "Variables: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Empty = default text.",
+    nt_cs: "Charge start",
+    nt_cc: "Charge end",
+    nt_lb: "Low battery",
+    nt_sum: "Daily summary",
+    nt_dead: "Deadlines",
+    nt_bal: "Home balancing",
+    nt_sol: "Solar balancing",
+    nt_gse_stop: "GSE stop",
+    nt_gse_go: "GSE resume",
+    nt_auto_start: "Scheduled start",
     btn_salva: "Save",
     note_testi_notifiche: "Empty = default text in the Home Assistant language.",
     note_nessuna_automazione: "No Uconnect automation active.",
@@ -310,8 +322,20 @@ const I18N = {
     lbl_nt_charge_body: "Texte fin de recharge",
     lbl_nt_low_title: "Titre batterie faible",
     lbl_nt_low_body: "Texte batterie faible",
-    lbl_notify_test: "Test de notification",
+    lbl_notify_test: "Envoyer une notification de test (données d'exemple)",
     toast_notify_test: "Notification de test envoyée",
+    lbl_nt_attive: "Notifications actives",
+    note_nt_vars: "Variables : {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Vide = texte par défaut.",
+    nt_cs: "Début de recharge",
+    nt_cc: "Fin de recharge",
+    nt_lb: "Batterie faible",
+    nt_sum: "Résumé quotidien",
+    nt_dead: "Échéances",
+    nt_bal: "Équilibrage maison",
+    nt_sol: "Équilibrage solaire",
+    nt_gse_stop: "GSE stop",
+    nt_gse_go: "GSE reprise",
+    nt_auto_start: "Démarrage programmé",
     btn_salva: "Enregistrer",
     note_testi_notifiche: "Vide = texte par défaut dans la langue de Home Assistant.",
     note_nessuna_automazione: "Aucune automatisation Uconnect active.",
@@ -577,8 +601,20 @@ const I18N = {
     lbl_nt_charge_body: "Texto recarga completada",
     lbl_nt_low_title: "Título batería baja",
     lbl_nt_low_body: "Texto batería baja",
-    lbl_notify_test: "Probar notificación",
+    lbl_notify_test: "Enviar una notificación de prueba (datos de ejemplo)",
     toast_notify_test: "Notificación de prueba enviada",
+    lbl_nt_attive: "Notificaciones activas",
+    note_nt_vars: "Variables: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Vacío = texto predeterminado.",
+    nt_cs: "Inicio de recarga",
+    nt_cc: "Fin de recarga",
+    nt_lb: "Batería baja",
+    nt_sum: "Resumen diario",
+    nt_dead: "Vencimientos",
+    nt_bal: "Balanceo casa",
+    nt_sol: "Balanceo solar",
+    nt_gse_stop: "GSE stop",
+    nt_gse_go: "GSE reanudar",
+    nt_auto_start: "Inicio programado",
     btn_salva: "Guardar",
     note_testi_notifiche: "Vacío = texto predeterminado en el idioma de Home Assistant.",
     note_nessuna_automazione: "Ninguna automatización Uconnect activa.",
@@ -852,8 +888,20 @@ const I18N = {
     lbl_nt_charge_body: "Text Ladung abgeschlossen",
     lbl_nt_low_title: "Titel Batterie schwach",
     lbl_nt_low_body: "Text Batterie schwach",
-    lbl_notify_test: "Testbenachrichtigung",
+    lbl_notify_test: "Testbenachrichtigung senden (Beispieldaten)",
     toast_notify_test: "Testbenachrichtigung gesendet",
+    lbl_nt_attive: "Aktive Benachrichtigungen",
+    note_nt_vars: "Variablen: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Leer = Standardtext.",
+    nt_cs: "Ladestart",
+    nt_cc: "Ladeende",
+    nt_lb: "Batterie schwach",
+    nt_sum: "Tageszusammenfassung",
+    nt_dead: "Fristen",
+    nt_bal: "Hausausgleich",
+    nt_sol: "Solarausgleich",
+    nt_gse_stop: "GSE-Stopp",
+    nt_gse_go: "GSE-Fortsetzung",
+    nt_auto_start: "Geplanter Start",
     btn_salva: "Speichern",
     note_testi_notifiche: "Leer = Standardtext in der Sprache von Home Assistant.",
     note_nessuna_automazione: "Keine aktive Uconnect-Automatisierung.",
@@ -3275,6 +3323,8 @@ class UconnectEvCenterPanel extends HTMLElement {
       case "sw_night": return S._swid("batteria_solo_senza_sole");
       case "sw_home": return S._swid("bilanciamento_casa");
       case "sw_gse": return S._swid("sperimentazione_gse");
+    case "sw_daily": return S._swid("riepilogo_giornaliero");
+    case "sw_scad": return S._swid("notifica_scadenze");
       case "t_start": return S._tid("carica_orario_avvio");
       case "t_start_v": {
         // priorità alla PROGRAMMAZIONE salvata (quella dell'automazione), non all'entità time
@@ -3587,6 +3637,16 @@ class UconnectEvCenterPanel extends HTMLElement {
       });
     });
     this.shadowRoot.querySelectorAll("input[data-n]").forEach((inp) => { inp.dataset.ent = this._field(inp.dataset.n); });
+    // toggle delle notifiche (Riepilogo, Scadenze, ...): attributo dedicato, i chip
+    // [data-sw] piu' sotto scrivono ON/OFF e non vanno toccati
+    this.shadowRoot.querySelectorAll("input[data-nsw]").forEach((inp) => {
+      inp.dataset.ent = this._field(inp.dataset.nsw);
+      inp.addEventListener("change", () => {
+        if (!inp.dataset.ent) return;
+        this._call("switch", inp.checked ? "turn_on" : "turn_off",
+                   { entity_id: inp.dataset.ent });
+      });
+    });
     // select filtri storico (entità select.* Uconnect)
     this.shadowRoot.querySelectorAll("select[data-sel]").forEach((sel) => {
       sel.dataset.ent = this._field(sel.dataset.sel);
@@ -4244,6 +4304,12 @@ class UconnectEvCenterPanel extends HTMLElement {
     setV("cmd_tempo", this._f("tempo_ric"));
     setV("cmd_ora", this._f("ora_compl"));
     setV("cmd_wb", this._wb_state_txt());
+    // toggle notifiche: stato reale dell'entita'
+    root.querySelectorAll("input[data-nsw]").forEach((inp) => {
+      const ent = inp.dataset.ent || this._field(inp.dataset.nsw);
+      const st = ent ? this._hass.states[ent] : null;
+      if (st) inp.checked = st.state === "on";
+    });
     // chip switch: ON/OFF
     root.querySelectorAll("[data-sw]").forEach((el) => {
       const s = el.dataset.ent ? this._hass.states[el.dataset.ent] : null;
@@ -6193,19 +6259,27 @@ const PAGES = () => ({
         <textarea data-nt="low_body" rows="3" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{batteria} {autonomia}"></textarea></div>
       <div class="btn" data-cmd="save_notify_texts">💾 ${_t("btn_salva", "Salva")}</div>
       <div class="note" style="margin-top:8px">${_t("note_testi_notifiche", "Vuoto = testo predefinito nella lingua di Home Assistant.")}</div>
-      <div style="margin-top:12px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:6px">${_t("lbl_notify_test", "Prova notifica")}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="cs">cs</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="cc">cc</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="lb">lb</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="sum">sum</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="dead">dead</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="bal">bal</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="sol">sol</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="gse_stop">gse_stop</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="gse_go">gse_go</div>
-          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="auto_start">auto_start</div>
-        </div></div></div>
+      <div style="margin-top:14px"><div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${_t("lbl_nt_attive", "Notifiche attive")}</div>
+        <div class="row"><span>🟢 ${_t("nt_cs", "Avvio ricarica")}</span><label class="switch"><input type="checkbox" data-nsw="sw_start"><span></span></label></div>
+        <div class="row"><span>🔋 ${_t("nt_cc", "Fine ricarica")}</span><label class="switch"><input type="checkbox" data-nsw="sw_end"><span></span></label></div>
+        <div class="row"><span>⚠️ ${_t("nt_lb", "Batteria bassa")}</span><label class="switch"><input type="checkbox" data-nsw="sw_low"><span></span></label></div>
+        <div class="row"><span>📊 ${_t("nt_sum", "Riepilogo giornaliero")}</span><label class="switch"><input type="checkbox" data-nsw="sw_daily"><span></span></label></div>
+        <div class="row"><span>🔵 ${_t("nt_dead", "Scadenze")}</span><label class="switch"><input type="checkbox" data-nsw="sw_scad"><span></span></label></div>
+      </div>
+      <details style="margin-top:14px"><summary style="cursor:pointer;color:var(--muted);font-size:12px">▶ ${_t("lbl_notify_test", "Invia una notifica di prova (dati di esempio)")}</summary>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="cs">🟢 ${_t("nt_cs", "Avvio ricarica")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="cc">🔋 ${_t("nt_cc", "Fine ricarica")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="lb">⚠️ ${_t("nt_lb", "Batteria bassa")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="sum">📊 ${_t("nt_sum", "Riepilogo giornaliero")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="dead">🔵 ${_t("nt_dead", "Scadenze")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="bal">🏠 ${_t("nt_bal", "Bilanciamento casa")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="sol">☀️ ${_t("nt_sol", "Bilanciamento solare")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="gse_stop">⛔ ${_t("nt_gse_stop", "GSE stop")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="gse_go">▶️ ${_t("nt_gse_go", "GSE ripresa")}</div>
+          <div class="chip" style="cursor:pointer;padding:7px 12px" data-cmd="notify_test" data-ntype="auto_start">⏰ ${_t("nt_auto_start", "Avvio programmato")}</div>
+        </div>
+        <div class="note" style="margin-top:8px">${_t("note_nt_vars", "Variabili: {zona} {kwh} {minuti} {soc_start} {soc_end} {costo}. Vuoto = testo predefinito.")}</div>
+      </details></div>
   </div>`,
 
   p12: `<h1>${_t("nav_p12", "Veicolo")} <span class="chip">${_POWERTRAIN}</span></h1>

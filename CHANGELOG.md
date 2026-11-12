@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.15] - 2026-11-04
+
+### Modificato
+- Card Notifiche rifatta: in cima i **toggle** per accendere/spegnere ogni notifica
+  (avvio e fine ricarica, batteria bassa, riepilogo giornaliero, scadenze), sotto una
+  sezione richiudibile "Invia una notifica di prova (dati di esempio)" con i dieci
+  pulsanti colorati ed etichettati (icona + nome).
+- Nuovo switch **Notifica Scadenze** (`notify_scadenze`, default attivo): prima le
+  scadenze partivano senza poterle silenziare.
+- Etichette dei pulsanti di prova e nuove stringhe tradotte in IT/EN/FR/ES/DE.
+
 ## [1.0.14] - 2026-11-04
 
 ### Aggiunto

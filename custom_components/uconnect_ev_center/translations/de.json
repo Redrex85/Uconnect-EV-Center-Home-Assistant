@@ -598,6 +598,9 @@
   },
   "entity": {
     "switch": {
+      "notify_scadenze": {
+        "name": "Fristen-Benachrichtigungen"
+      },
       "notify_daily": {
         "name": "Tageszusammenfassung"
       }

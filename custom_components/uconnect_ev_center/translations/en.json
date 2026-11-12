@@ -598,6 +598,9 @@
   },
   "entity": {
     "switch": {
+      "notify_scadenze": {
+        "name": "Deadline notifications"
+      },
       "notify_daily": {
         "name": "Daily summary"
       }

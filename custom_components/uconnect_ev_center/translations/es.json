@@ -598,6 +598,9 @@
   },
   "entity": {
     "switch": {
+      "notify_scadenze": {
+        "name": "Notificaciones de vencimientos"
+      },
       "notify_daily": {
         "name": "Resumen diario"
       }
