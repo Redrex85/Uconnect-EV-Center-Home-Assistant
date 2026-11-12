@@ -4,6 +4,22 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.14] - 2026-11-04
+
+### Aggiunto
+- **Riepilogo giornaliero nativo**: dopo le 21, una volta al giorno, arriva una notifica
+  con km, energia consumata, costo stimato a tariffa casa, consumo e costo per km.
+  Si accende/spegne con lo switch "Riepilogo Giornaliero" (`notify_daily`, attivo di
+  default) e richiede il servizio notify configurato.
+- **Notifiche di prova**: servizio `test_notification` (`tipo`: cs, cc, lb, sum, dead,
+  bal, sol, gse_stop, gse_go, auto_start) e dieci pulsanti nella card Notifiche della
+  pagina Impostazioni. Serve a verificare subito il servizio notify senza aspettare
+  una ricarica.
+
+### Note
+- I testi del riepilogo e della prova hanno i default in IT/EN/FR/ES/DE; se un
+  placeholder non combacia viene inviato il testo grezzo (niente errori).
+
 ## [1.0.13] - 2026-11-04
 
 ### Corretto

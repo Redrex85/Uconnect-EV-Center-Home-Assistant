@@ -596,6 +596,13 @@
       }
     }
   },
+  "entity": {
+    "switch": {
+      "notify_daily": {
+        "name": "Daily summary"
+      }
+    }
+  },
   "services": {
     "close_trip": {
       "name": "Close trip now",
@@ -705,6 +712,16 @@
         },
         "valore": {
           "name": "Value"
+        }
+      }
+    },
+    "test_notification": {
+      "name": "Test notification",
+      "description": "Sends a test notification with fake values to check the configured notify service.",
+      "fields": {
+        "tipo": {
+          "name": "Type",
+          "description": "cs charge start, cc charge end, lb low battery, sum daily summary, dead dead battery, bal balancing, sol solar, gse_stop/gse_go GSE, auto_start scheduled charge."
         }
       }
     },

@@ -1657,6 +1657,38 @@ try:
 except Exception as e:
     bad(f"zone di ricarica: {e}")
 
+# ---------------------------------------------------------------- [68] notifiche
+print("\n[68] Riepilogo giornaliero e notifiche di prova")
+try:
+    src = open(os.path.join(CC, "coordinator.py"), encoding="utf-8").read()
+    assert "async def _check_daily_summary" in src, "manca il riepilogo giornaliero"
+    i = src.index("async def _async_update_data_inner")
+    j = src.index("return data", i)
+    assert "await self._check_daily_summary(now)" in src[i:j], \
+        "il riepilogo non e' chiamato a ogni poll dentro _async_update_data_inner"
+    assert 'counters.get("last_summary")' in src, "manca il guard una volta al giorno"
+    assert "ora < 21" in src or "oggi.hour < 21" in src, "manca la soglia delle 21"
+    assert 'NOTIFY_TEST_TYPES = ("cs", "cc", "lb", "sum", "dead", "bal", "sol",' in src, \
+        "NOTIFY_TEST_TYPES incompleto"
+    assert "async def service_test_notification" in src, "manca service_test_notification"
+    assert "def _tr(self, key: str, vals" in src, "manca _tr con fallback sul testo grezzo"
+    sw = open(os.path.join(CC, "switch.py"), encoding="utf-8").read()
+    assert '"notify_daily"' in sw and 'translation_key="notify_daily"' in sw, \
+        "switch notify_daily mancante o senza translation_key"
+    ini = open(os.path.join(CC, "__init__.py"), encoding="utf-8").read()
+    assert '"test_notification"' in ini, "servizio test_notification non registrato"
+    for lang in ("strings.json", "translations/it.json", "translations/en.json",
+                 "translations/fr.json", "translations/es.json", "translations/de.json"):
+        txt = open(os.path.join(CC, lang), encoding="utf-8").read()
+        assert '"test_notification"' in txt, f"servizio non tradotto in {lang}"
+        assert '"notify_daily"' in txt, f"nome dello switch non tradotto in {lang}"
+    panel = open(os.path.join(CC, "www", "uconnect-ev-center-panel.js"), encoding="utf-8").read()
+    assert panel.count('data-cmd="notify_test"') == 10, "servono 10 pulsanti di prova"
+    assert panel.count("lbl_notify_test") >= 5, "etichetta dei pulsanti non tradotta"
+    ok("riepilogo serale con switch e dieci pulsanti di prova nel pannello")
+except Exception as e:
+    bad(f"notifiche: {e}")
+
 # ---------------------------------------------------------------- [67] export/import
 print("\n[67] Backup JSON completo (export_data / import_data)")
 try:

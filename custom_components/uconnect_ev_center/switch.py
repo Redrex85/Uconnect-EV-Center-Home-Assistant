@@ -40,19 +40,26 @@ async def async_setup_entry(
                    False, "mdi:home-lightning-bolt"),
         MateSwitch(coordinator, "battery_night_only", f"{name} Batteria Solo Senza Sole",
                    False, "mdi:weather-night"),
+        # nome dal translation_key (entity.switch.notify_daily): non tocca gli entity_id esistenti
+        MateSwitch(coordinator, "notify_daily", None, True, "mdi:calendar-today",
+                   translation_key="notify_daily"),
     ])
 
 
 class MateSwitch(CoordinatorEntity[UconnectMateCoordinator], RestoreEntity, SwitchEntity):
     _attr_has_entity_name = False
 
-    def __init__(self, coordinator, key, label, default, icon) -> None:
+    def __init__(self, coordinator, key, label, default, icon, translation_key=None) -> None:
         super().__init__(coordinator)
         self._key = key
         self._default = default
         self._attr_device_info = coordinator.device_info
         self._attr_unique_id = f"{coordinator.entry.entry_id}_sw_{key}"
-        self._attr_name = label
+        if translation_key:
+            self._attr_translation_key = translation_key
+            self._attr_has_entity_name = True
+        else:
+            self._attr_name = label
         self._attr_icon = icon
         self._attr_is_on = default
 

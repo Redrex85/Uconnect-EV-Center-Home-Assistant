@@ -596,6 +596,13 @@
       }
     }
   },
+  "entity": {
+    "switch": {
+      "notify_daily": {
+        "name": "Tageszusammenfassung"
+      }
+    }
+  },
   "services": {
     "close_trip": {
       "name": "Fahrt jetzt schließen",
@@ -705,6 +712,16 @@
         },
         "valore": {
           "name": "Wert"
+        }
+      }
+    },
+    "test_notification": {
+      "name": "Testbenachrichtigung",
+      "description": "Sendet eine Testbenachrichtigung mit fiktiven Werten zur Prüfung des konfigurierten notify-Dienstes.",
+      "fields": {
+        "tipo": {
+          "name": "Typ",
+          "description": "cs Ladestart, cc Ladeende, lb Batterie schwach, sum Tageszusammenfassung, dead Batterie leer, bal Ausgleich, sol Solar, gse_stop/gse_go GSE, auto_start geplantes Laden."
         }
       }
     },

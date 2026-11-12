@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.13";
+const REC_VER = "1.0.14";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -43,6 +43,8 @@ const I18N = {
     lbl_nt_charge_body: "Charge complete text",
     lbl_nt_low_title: "Low battery title",
     lbl_nt_low_body: "Low battery text",
+    lbl_notify_test: "Test notification",
+    toast_notify_test: "Test notification sent",
     btn_salva: "Save",
     note_testi_notifiche: "Empty = default text in the Home Assistant language.",
     note_nessuna_automazione: "No Uconnect automation active.",
@@ -308,6 +310,8 @@ const I18N = {
     lbl_nt_charge_body: "Texte fin de recharge",
     lbl_nt_low_title: "Titre batterie faible",
     lbl_nt_low_body: "Texte batterie faible",
+    lbl_notify_test: "Test de notification",
+    toast_notify_test: "Notification de test envoyée",
     btn_salva: "Enregistrer",
     note_testi_notifiche: "Vide = texte par défaut dans la langue de Home Assistant.",
     note_nessuna_automazione: "Aucune automatisation Uconnect active.",
@@ -573,6 +577,8 @@ const I18N = {
     lbl_nt_charge_body: "Texto recarga completada",
     lbl_nt_low_title: "Título batería baja",
     lbl_nt_low_body: "Texto batería baja",
+    lbl_notify_test: "Probar notificación",
+    toast_notify_test: "Notificación de prueba enviada",
     btn_salva: "Guardar",
     note_testi_notifiche: "Vacío = texto predeterminado en el idioma de Home Assistant.",
     note_nessuna_automazione: "Ninguna automatización Uconnect activa.",
@@ -846,6 +852,8 @@ const I18N = {
     lbl_nt_charge_body: "Text Ladung abgeschlossen",
     lbl_nt_low_title: "Titel Batterie schwach",
     lbl_nt_low_body: "Text Batterie schwach",
+    lbl_notify_test: "Testbenachrichtigung",
+    toast_notify_test: "Testbenachrichtigung gesendet",
     btn_salva: "Speichern",
     note_testi_notifiche: "Leer = Standardtext in der Sprache von Home Assistant.",
     note_nessuna_automazione: "Keine aktive Uconnect-Automatisierung.",
@@ -3974,6 +3982,12 @@ class UconnectEvCenterPanel extends HTMLElement {
         this._call(D, "set_zone_ricarica", { zones }, "💾 Zone salvate");
         break;
       }
+      case "notify_test": {
+        const t = ((el && el.dataset.ntype) || "cs").trim();
+        this._call(D, "test_notification", { tipo: t },
+                   `${_t("toast_notify_test", "Notifica di prova")}: ${t}`);
+        break;
+      }
       case "save_notify_texts": {
         const texts = {};
         this.shadowRoot.querySelectorAll("[data-nt]").forEach((el) => { texts[el.dataset.nt] = el.value; });
@@ -6178,7 +6192,20 @@ const PAGES = () => ({
       <div class="inp" style="align-items:flex-start"><span>${_t("lbl_nt_low_body", "Testo batteria bassa")}</span>
         <textarea data-nt="low_body" rows="3" style="flex:1;min-width:180px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--txt);font-family:inherit;font-size:12.5px" placeholder="{batteria} {autonomia}"></textarea></div>
       <div class="btn" data-cmd="save_notify_texts">💾 ${_t("btn_salva", "Salva")}</div>
-      <div class="note" style="margin-top:8px">${_t("note_testi_notifiche", "Vuoto = testo predefinito nella lingua di Home Assistant.")}</div></div>
+      <div class="note" style="margin-top:8px">${_t("note_testi_notifiche", "Vuoto = testo predefinito nella lingua di Home Assistant.")}</div>
+      <div style="margin-top:12px"><div style="color:var(--muted);font-size:11.5px;margin-bottom:6px">${_t("lbl_notify_test", "Prova notifica")}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="cs">cs</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="cc">cc</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="lb">lb</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="sum">sum</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="dead">dead</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="bal">bal</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="sol">sol</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="gse_stop">gse_stop</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="gse_go">gse_go</div>
+          <div class="chip" style="cursor:pointer" data-cmd="notify_test" data-ntype="auto_start">auto_start</div>
+        </div></div></div>
   </div>`,
 
   p12: `<h1>${_t("nav_p12", "Veicolo")} <span class="chip">${_POWERTRAIN}</span></h1>

@@ -2075,6 +2075,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 await self.async_restore_auto_states()
             except Exception:  # noqa: BLE001
                 pass
+        # riepilogo serale: qui, fuori dai blocchi condizionali (una volta al giorno)
+        await self._check_daily_summary(now)
         return data
 
     # ------------------------------------------------------------ fine ricarica
@@ -3126,6 +3128,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                            "📊 Batteria: {soc_start}% → {soc_end}%\n💰 Costo stimato: {costo} €",
             "low_title": "⚠️ Batteria bassa",
             "low_body": "Batteria al {batteria}% ({autonomia} km).\nCollega la wallbox!",
+            "sum_title": "📊 Riepilogo giornaliero",
+            "sum_km": "Km oggi: {km} km",
+            "sum_energy": "Energia consumata oggi: {kwh} kWh",
+            "sum_cost": "Costo totale energia oggi (stimato, tariffa casa): {costo} €",
+            "sum_cons": "Consumo: {cons} kWh/100km · Costo/km: {costkm} €/km",
+            "test_title": "🧪 Notifica di prova",
+            "test_body": "Prova \"{tipo}\": {dettagli}",
         },
         "en": {
             "charge_title": "🔋 Charging complete",
@@ -3133,6 +3142,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                            "📊 Battery: {soc_start}% → {soc_end}%\n💰 Estimated cost: {costo} €",
             "low_title": "⚠️ Low battery",
             "low_body": "Battery at {batteria}% ({autonomia} km).\nPlug in the wallbox!",
+            "sum_title": "📊 Daily summary",
+            "sum_km": "Km today: {km} km",
+            "sum_energy": "Energy used today: {kwh} kWh",
+            "sum_cost": "Total energy cost today (estimated, home tariff): {costo} €",
+            "sum_cons": "Consumption: {cons} kWh/100km · Cost/km: {costkm} €/km",
+            "test_title": "🧪 Test notification",
+            "test_body": "Test \"{tipo}\": {dettagli}",
         },
         "fr": {
             "charge_title": "🔋 Recharge terminée",
@@ -3140,6 +3156,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                            "📊 Batterie : {soc_start}% → {soc_end}%\n💰 Coût estimé : {costo} €",
             "low_title": "⚠️ Batterie faible",
             "low_body": "Batterie à {batteria}% ({autonomia} km).\nBranchez la wallbox !",
+            "sum_title": "📊 Résumé quotidien",
+            "sum_km": "Km aujourd'hui : {km} km",
+            "sum_energy": "Énergie consommée aujourd'hui : {kwh} kWh",
+            "sum_cost": "Coût total de l'énergie aujourd'hui (estimé, tarif maison) : {costo} €",
+            "sum_cons": "Consommation : {cons} kWh/100km · Coût/km : {costkm} €/km",
+            "test_title": "🧪 Notification de test",
+            "test_body": "Test \"{tipo}\" : {dettagli}",
         },
         "es": {
             "charge_title": "🔋 Recarga completada",
@@ -3147,6 +3170,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                            "📊 Batería: {soc_start}% → {soc_end}%\n💰 Coste estimado: {costo} €",
             "low_title": "⚠️ Batería baja",
             "low_body": "Batería al {batteria}% ({autonomia} km).\n¡Conecta la wallbox!",
+            "sum_title": "📊 Resumen diario",
+            "sum_km": "Km hoy: {km} km",
+            "sum_energy": "Energía consumida hoy: {kwh} kWh",
+            "sum_cost": "Coste total de la energía hoy (estimado, tarifa casa): {costo} €",
+            "sum_cons": "Consumo: {cons} kWh/100km · Coste/km: {costkm} €/km",
+            "test_title": "🧪 Notificación de prueba",
+            "test_body": "Prueba \"{tipo}\": {dettagli}",
         },
         "de": {
             "charge_title": "🔋 Ladung abgeschlossen",
@@ -3154,6 +3184,13 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                            "📊 Batterie: {soc_start}% → {soc_end}%\n💰 Geschätzte Kosten: {costo} €",
             "low_title": "⚠️ Batterie schwach",
             "low_body": "Batterie bei {batteria}% ({autonomia} km).\nWallbox anschließen!",
+            "sum_title": "📊 Tageszusammenfassung",
+            "sum_km": "Km heute: {km} km",
+            "sum_energy": "Heute verbrauchte Energie: {kwh} kWh",
+            "sum_cost": "Gesamtkosten Energie heute (geschätzt, Haustarif): {costo} €",
+            "sum_cons": "Verbrauch: {cons} kWh/100km · Kosten/km: {costkm} €/km",
+            "test_title": "🧪 Testbenachrichtigung",
+            "test_body": "Test \"{tipo}\": {dettagli}",
         },
     }
 
@@ -3196,6 +3233,91 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
         await self._send_notify(self._notify_text("charge_title"),
                                 _fmt(self._notify_text("charge_body")))
+
+    # --- notifiche: riepilogo giornaliero e prove dal pannello -------------------
+    NOTIFY_TEST_TYPES = ("cs", "cc", "lb", "sum", "dead", "bal", "sol",
+                         "gse_stop", "gse_go", "auto_start")
+    # valori finti per i placeholder di ogni messaggio di prova
+    NOTIFY_TEST_SAMPLES = {
+        "cs": {"zona": "Casa", "kwh": 12.4, "minuti": 95, "soc_start": 42,
+               "soc_end": 78, "costo": 3.1},
+        "cc": {"zona": "Casa", "kwh": 18.2, "minuti": 130, "soc_start": 40,
+               "soc_end": 80, "costo": 4.55},
+        "lb": {"batteria": 12, "autonomia": 45},
+        "sum": {"km": 9.0, "kwh": 1.8, "costo": 0.45, "cons": 16.62, "costkm": 0.042},
+        "dead": {"batteria": 3, "autonomia": 8, "ore": 6},
+        "bal": {"kwh": 2.4, "minuti": 35, "soc": 66},
+        "sol": {"kwh": 3.1, "minuti": 50, "soc": 71},
+        "gse_stop": {"kwh": 1.2, "minuti": 20, "soc": 58},
+        "gse_go": {"kwh": 4.6, "minuti": 70, "soc": 83},
+        "auto_start": {"kwh": 0.9, "minuti": 12, "soc": 55},
+    }
+
+    def _tr(self, key: str, vals: dict[str, Any]) -> str:
+        """Testo con i placeholder sostituiti; se non combaciano torna il grezzo.
+
+        Senza il try/except una notifica di prova crasha appena l'utente cambia
+        un placeholder dal pannello.
+        """
+        text = self._notify_text(key)
+        try:
+            return text.format(**vals)
+        except (KeyError, IndexError, ValueError):
+            return text
+
+    def _notify_test_body(self, tipo: str) -> tuple[str, str]:
+        """(titolo, corpo) del messaggio di prova per il tipo richiesto."""
+        vals = dict(self.NOTIFY_TEST_SAMPLES.get(tipo) or {})
+        if tipo == "sum":
+            righe = [self._tr(k, vals) for k in
+                     ("sum_km", "sum_energy", "sum_cost", "sum_cons")]
+            return self._tr("sum_title", vals), "\n".join(r for r in righe if r)
+        if tipo == "lb":
+            return self._tr("low_title", vals), self._tr("low_body", vals)
+        if tipo in ("cs", "cc"):
+            # qui esiste un solo messaggio di ricarica (fine): la prova lo usa
+            return self._tr("charge_title", vals), self._tr("charge_body", vals)
+        # tipi senza un testo dedicato in questa integrazione: riga generica con i valori
+        dettagli = ", ".join(f"{k}={v}" for k, v in vals.items()) or "—"
+        return (self._tr("test_title", {"tipo": tipo}),
+                self._tr("test_body", {"tipo": tipo, "dettagli": dettagli}))
+
+    async def service_test_notification(self, tipo: str) -> bool:
+        """Invia una notifica di prova con valori finti. False se il tipo non esiste."""
+        tipo = str(tipo or "").strip().lower()
+        if tipo not in self.NOTIFY_TEST_TYPES:
+            return False
+        title, body = self._notify_test_body(tipo)
+        await self._send_notify(title, body)
+        return True
+
+    async def _check_daily_summary(self, oggi: datetime) -> None:
+        """Riepilogo serale (dopo le 21) con km, energia, costo e consumo del giorno."""
+        if not self.notify_service or not self._switch_on("notify_daily"):
+            return
+        if oggi.hour < 21:
+            return
+        data_oggi = oggi.date().isoformat()
+        counters = self.store.data.setdefault("counters", {})
+        if str(counters.get("last_summary") or "") == data_oggi:
+            return
+        km = _f(self._km_shown("daily"))
+        if km <= 0.5:
+            km = _f((self.data or {}).get("km_oggi_trip"))
+        kwh = abs(_f(self._kwh_shown("daily")))
+        if km <= 0.5 or kwh <= 0:
+            return
+        cons = round(kwh / km * 100, 2)
+        costo = round(kwh * _f(self.price_home), 2)
+        costo_km = round(costo / km, 3)
+        vals = {"km": round(km, 1), "kwh": round(kwh, 2), "costo": costo,
+                "cons": cons, "costkm": costo_km}
+        righe = [self._tr(k, vals) for k in
+                 ("sum_km", "sum_energy", "sum_cost", "sum_cons")]
+        await self._send_notify(self._tr("sum_title", vals),
+                                "\n".join(r for r in righe if r))
+        counters["last_summary"] = data_oggi
+        self.persist(force=True)
 
     async def _send_notify(self, title: str, message: str) -> None:
         """Invia una notifica tramite il servizio notify configurato."""

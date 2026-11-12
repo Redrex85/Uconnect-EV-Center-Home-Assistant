@@ -596,6 +596,13 @@
       }
     }
   },
+  "entity": {
+    "switch": {
+      "notify_daily": {
+        "name": "Resumen diario"
+      }
+    }
+  },
   "services": {
     "close_trip": {
       "name": "Cerrar viaje ahora",
@@ -705,6 +712,16 @@
         },
         "valore": {
           "name": "Valor"
+        }
+      }
+    },
+    "test_notification": {
+      "name": "Notificación de prueba",
+      "description": "Envía una notificación de prueba con valores ficticios para verificar el servicio notify configurado.",
+      "fields": {
+        "tipo": {
+          "name": "Tipo",
+          "description": "cs inicio de recarga, cc fin de recarga, lb batería baja, sum resumen diario, dead batería descargada, bal balanceo, sol solar, gse_stop/gse_go GSE, auto_start recarga programada."
         }
       }
     },

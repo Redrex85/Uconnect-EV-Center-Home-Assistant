@@ -66,6 +66,7 @@ SERVICE_SET_NOTIFY_TEXTS = "set_notify_texts"
 SERVICE_SET_ZONES = "set_zone_ricarica"
 SERVICE_EXPORT_DATA = "export_data"
 SERVICE_IMPORT_DATA = "import_data"
+SERVICE_TEST_NOTIFICATION = "test_notification"
 
 RESET_SCOPES = ["km", "energia", "costi", "viaggi", "ricariche", "all"]
 
@@ -262,6 +263,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for coord in _targets(hass, call):
             coord.service_set_notify_texts(dict(texts))
 
+    async def handle_test_notification(call: ServiceCall) -> None:
+        tipo = str(call.data.get("tipo") or "cs")
+        for coord in _targets(hass, call):
+            ok = await coord.service_test_notification(tipo)
+            if ok:
+                _LOGGER.info("Notifica di prova '%s' inviata", tipo)
+            else:
+                _LOGGER.warning(
+                    "Notifica di prova '%s' NON inviata: servizio notify mancante "
+                    "o tipo sconosciuto", tipo)
+
     async def handle_export_data(call: ServiceCall) -> dict | None:
         out: dict = {}
         for coord in _targets(hass, call):
@@ -408,6 +420,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
               }))
     _register(SERVICE_CREATE_DASHBOARD, handle_create_dashboard,
               schema=vol.Schema({vol.Optional("entry_id"): str}))
+    _register(SERVICE_TEST_NOTIFICATION, handle_test_notification,
+              schema=vol.Schema({vol.Optional("entry_id"): str,
+                                 vol.Optional("tipo", default="cs"): str}))
     _register(SERVICE_EXPORT_DATA, handle_export_data,
               schema=vol.Schema({vol.Optional("entry_id"): str}),
               supports_response=SupportsResponse.OPTIONAL)
@@ -498,6 +513,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 SERVICE_SET_LOW_SOC_DAYS,
                 SERVICE_SET_NOTIFY_SERVICE, SERVICE_SET_NOTIFY_TEXTS, SERVICE_SET_ZONES,
         SERVICE_EXPORT_DATA, SERVICE_IMPORT_DATA,
+        SERVICE_TEST_NOTIFICATION,
                 "set_maintenance", "refresh_car", "set_auto_state", "set_schedule",
             ):
                 hass.services.async_remove(DOMAIN, name)
