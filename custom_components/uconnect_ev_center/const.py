@@ -310,6 +310,8 @@ WALLBOX_FINISHED_TOKENS = ("finish", "charged", "complete", "full", "ended",
 EXPORT_DIR = "uconnect_ev_center_export"
 
 CHARGE_MERGE_WINDOW_S = 1200
+# vampire drain: tetto di velocita' (calo %/h). Oltre, e' guida, non stand-by
+VAMP_RATE_MAX = 1.0
 # carica ferma per 15 min = sessione chiusa, anche con la spina inserita e uno stato
 # wallbox non riconosciuto: senza questo la ricarica restava appesa e non veniva registrata
 CHARGE_STOP_CLOSE_S = 900

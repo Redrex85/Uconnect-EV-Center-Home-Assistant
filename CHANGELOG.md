@@ -4,6 +4,27 @@ Tutte le modifiche rilevanti di **Uconnect EV Center**.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.17] - 2026-11-12
+
+### Corretto
+- **Vampire drain onesto**: il calo da fermo contava anche la guida lenta e le letture
+  senza odometro ("oggi 4%, mese 44%"). Ora conta solo con auto non in carica, nessun
+  viaggio in corso e odometro immobile tra due letture, con tetto `VAMP_RATE_MAX`
+  = 1 %/h (nuova costante).
+- **Toponimi nella lingua di Home Assistant**: Nominatim riceve `accept-language` dalla
+  lingua di HA (prima "it" fisso), la cache e' per lingua e al cambio lingua viaggi e
+  ricariche vengono rigeocodificati una volta (throttle invariato ~1,1 s).
+- **Climate senza avvisi di deprecazione**: `native_temperature_unit`,
+  `native_target_temperature`, `native_current_temperature`.
+
+### Aggiunto
+- **Foto auto personalizzata**: se esiste `/config/www/uconnect_ev_center/auto.png`
+  viene usata nella dashboard (cache-busting via mtime), con fallback sul modello e
+  placeholder solo al secondo errore.
+- **Pannello**: ~40 testi residui tradotti in UI2 (mesi, stati, opzioni filtro,
+  messaggi di tabelle/grafici vuoti, toast, tooltip) e la frase "Fuori" e' tradotta
+  anche dentro i testi composti ("Dehors → Fuori" e simili) via PHRASES.
+
 ## [1.0.16] - 2026-11-12
 
 ### Corretto

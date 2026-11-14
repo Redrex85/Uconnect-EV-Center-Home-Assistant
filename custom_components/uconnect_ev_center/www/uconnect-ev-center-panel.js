@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.16";
+const REC_VER = "1.0.17";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -2598,7 +2598,260 @@ const UI2 = {
     "fr": "Km aujourd'hui",
     "es": "Km hoy",
     "de": "Km heute"
-  }
+  },
+  "Gennaio": {
+    "en": "January",
+    "fr": "Janvier",
+    "es": "Enero",
+    "de": "Januar"
+  },
+  "Febbraio": {
+    "en": "February",
+    "fr": "Février",
+    "es": "Febrero",
+    "de": "Februar"
+  },
+  "Marzo": {
+    "en": "March",
+    "fr": "Mars",
+    "es": "Marzo",
+    "de": "März"
+  },
+  "Aprile": {
+    "en": "April",
+    "fr": "Avril",
+    "es": "Abril",
+    "de": "April"
+  },
+  "Maggio": {
+    "en": "May",
+    "fr": "Mai",
+    "es": "Mayo",
+    "de": "Mai"
+  },
+  "Giugno": {
+    "en": "June",
+    "fr": "Juin",
+    "es": "Junio",
+    "de": "Juni"
+  },
+  "Luglio": {
+    "en": "July",
+    "fr": "Juillet",
+    "es": "Julio",
+    "de": "Juli"
+  },
+  "Agosto": {
+    "en": "August",
+    "fr": "Août",
+    "es": "Agosto",
+    "de": "August"
+  },
+  "Settembre": {
+    "en": "September",
+    "fr": "Septembre",
+    "es": "Septiembre",
+    "de": "September"
+  },
+  "Ottobre": {
+    "en": "October",
+    "fr": "Octobre",
+    "es": "Octubre",
+    "de": "Oktober"
+  },
+  "Novembre": {
+    "en": "November",
+    "fr": "Novembre",
+    "es": "Noviembre",
+    "de": "November"
+  },
+  "Dicembre": {
+    "en": "December",
+    "fr": "Décembre",
+    "es": "Diciembre",
+    "de": "Dezember"
+  },
+  "Fotovoltaico": {
+    "en": "Photovoltaic",
+    "fr": "Photovoltaïque",
+    "es": "Fotovoltaico",
+    "de": "Photovoltaik"
+  },
+  "Non disponibile": {
+    "en": "Unavailable",
+    "fr": "Non disponible",
+    "es": "No disponible",
+    "de": "Nicht verfügbar"
+  },
+  "In carica (potenza non nota)": {
+    "en": "Charging (power unknown)",
+    "fr": "En charge (puissance inconnue)",
+    "es": "Cargando (potencia desconocida)",
+    "de": "Lädt (Leistung unbekannt)"
+  },
+  "Nessun viaggio.": {
+    "en": "No trips.",
+    "fr": "Aucun trajet.",
+    "es": "Ningún viaje.",
+    "de": "Keine Fahrten."
+  },
+  "Nessuna sessione": {
+    "en": "No sessions",
+    "fr": "Aucune session",
+    "es": "Ninguna sesión",
+    "de": "Keine Sitzungen"
+  },
+  "Nessun dato storico.": {
+    "en": "No historical data.",
+    "fr": "Aucune donnée historique.",
+    "es": "Sin datos históricos.",
+    "de": "Keine Verlaufsdaten."
+  },
+  "Dati insufficienti.": {
+    "en": "Not enough data.",
+    "fr": "Données insuffisantes.",
+    "es": "Datos insuficientes.",
+    "de": "Zu wenig Daten."
+  },
+  "Grafico non disponibile.": {
+    "en": "Chart unavailable.",
+    "fr": "Graphique non disponible.",
+    "es": "Gráfico no disponible.",
+    "de": "Diagramm nicht verfügbar."
+  },
+  "Posizione non disponibile": {
+    "en": "Location unavailable",
+    "fr": "Position non disponible",
+    "es": "Posición no disponible",
+    "de": "Position nicht verfügbar"
+  },
+  "Mappa non disponibile": {
+    "en": "Map unavailable",
+    "fr": "Carte non disponible",
+    "es": "Mapa no disponible",
+    "de": "Karte nicht verfügbar"
+  },
+  "Servizio notify salvato": {
+    "en": "Notify service saved",
+    "fr": "Service notify enregistré",
+    "es": "Servicio notify guardado",
+    "de": "Notify-Dienst gespeichert"
+  },
+  "A/C avviata": {
+    "en": "A/C started",
+    "fr": "Climatisation démarrée",
+    "es": "A/C iniciado",
+    "de": "Klimaanlage gestartet"
+  },
+  "Avvia carica": {
+    "en": "Start charging",
+    "fr": "Démarrer la charge",
+    "es": "Iniciar carga",
+    "de": "Laden starten"
+  },
+  "Avvia carica (auto)": {
+    "en": "Start charging (car)",
+    "fr": "Démarrer la charge (voiture)",
+    "es": "Iniciar carga (coche)",
+    "de": "Laden starten (Auto)"
+  },
+  "Viaggio chiuso": {
+    "en": "Trip closed",
+    "fr": "Trajet clôturé",
+    "es": "Viaje cerrado",
+    "de": "Fahrt beendet"
+  },
+  "CSV esportato": {
+    "en": "CSV exported",
+    "fr": "CSV exporté",
+    "es": "CSV exportado",
+    "de": "CSV exportiert"
+  },
+  "Zone salvate": {
+    "en": "Zones saved",
+    "fr": "Zones enregistrées",
+    "es": "Zonas guardadas",
+    "de": "Zonen gespeichert"
+  },
+  "Testi notifiche salvati": {
+    "en": "Notification texts saved",
+    "fr": "Textes des notifications enregistrés",
+    "es": "Textos de notificaciones guardados",
+    "de": "Benachrichtigungstexte gespeichert"
+  },
+  "Aggiornamento auto richiesto": {
+    "en": "Car update requested",
+    "fr": "Mise à jour du véhicule demandée",
+    "es": "Actualización del coche solicitada",
+    "de": "Fahrzeugaktualisierung angefordert"
+  },
+  "Km azzerati": {
+    "en": "Km reset",
+    "fr": "Km réinitialisés",
+    "es": "Km reiniciados",
+    "de": "Km zurückgesetzt"
+  },
+  "Energia azzerata": {
+    "en": "Energy reset",
+    "fr": "Énergie réinitialisée",
+    "es": "Energía reiniciada",
+    "de": "Energie zurückgesetzt"
+  },
+  "Costi azzerati": {
+    "en": "Costs reset",
+    "fr": "Coûts réinitialisés",
+    "es": "Costes reiniciados",
+    "de": "Kosten zurückgesetzt"
+  },
+  "Rinnovata +6 mesi": {
+    "en": "Renewed +6 months",
+    "fr": "Renouvelée +6 mois",
+    "es": "Renovada +6 meses",
+    "de": "Verlängert +6 Monate"
+  },
+  "Rinnovata +1 anno": {
+    "en": "Renewed +1 year",
+    "fr": "Renouvelée +1 an",
+    "es": "Renovada +1 año",
+    "de": "Verlängert +1 Jahr"
+  },
+  "Notifica attivata": {
+    "en": "Notification enabled",
+    "fr": "Notification activée",
+    "es": "Notificación activada",
+    "de": "Benachrichtigung aktiviert"
+  },
+  "Notifica disattivata": {
+    "en": "Notification disabled",
+    "fr": "Notification désactivée",
+    "es": "Notificación desactivada",
+    "de": "Benachrichtigung deaktiviert"
+  },
+  "Automazione attivata": {
+    "en": "Automation turned on",
+    "fr": "Automatisation activée",
+    "es": "Automación activada",
+    "de": "Automatisierung aktiviert"
+  },
+  "Automazione disattivata": {
+    "en": "Automation turned off",
+    "fr": "Automatisation désactivée",
+    "es": "Automación desactivada",
+    "de": "Automatisierung deaktiviert"
+  },
+  "Modifica": {
+    "en": "Edit",
+    "fr": "Modifier",
+    "es": "Editar",
+    "de": "Bearbeiten"
+  },
+  "Elimina": {
+    "en": "Delete",
+    "fr": "Supprimer",
+    "es": "Eliminar",
+    "de": "Löschen"
+  },
+
 };
 
 // Frasi da tradurre anche dentro testi piu lunghi (tooltip, celle con numeri, ecc.).
@@ -2702,7 +2955,18 @@ const PHRASES = [
       "es": "(completa)",
       "de": "(voll)"
     }
+  ],
+  [
+    "Fuori",
+    {
+      "it": "Fuori",
+      "en": "Outside",
+      "fr": "Dehors",
+      "es": "Fuera",
+      "de": "Außerhalb"
+    }
   ]
+
 ];
 
 let _UI_IDX = null;
@@ -2811,6 +3075,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       name,
       car: config.car || this._slug(name),
       image: config.image || "/uconnect_ev_center/images/custom.png",
+      imageFallback: config.imageFallback || "",
       notify: config.notify || "",
       overrides: config.overrides || {},
       capacity: config.capacity || 60,
@@ -4335,11 +4600,17 @@ class UconnectEvCenterPanel extends HTMLElement {
     if (chipPlug) chipPlug.textContent = this._plugOn() ? _t("chip_collegata", "🔗 Collegata") : _t("chip_scollegata", "🔗 Scollegata");
     const chargeStatus = root.querySelector('[data-c="chargestatus"]');
     if (chargeStatus) chargeStatus.textContent = this._chargeOn() ? _t("state_in_carica", "In carica") : _t("state_non_in_carica", "Non in carica");
-    // foto auto
+    // foto auto: /config/www/uconnect_ev_center/auto.png se presente, altrimenti modello
     const img = root.querySelector('[data-c="carimg"]');
     if (img) {
+      const bust = (u) => u + (u.indexOf("?") < 0 ? "?v=" : "&v=") + REC_VER;
+      const fb = this._cfg.imageFallback;
+      const ph = "this.parentNode.innerHTML='<div class=\\'ph\\'>🚗</div>'";
+      const onerr = fb
+        ? `if(this.dataset.fb&&this.getAttribute('src')!==this.dataset.fb){this.src=this.dataset.fb}else{${ph}}`
+        : ph;
       img.innerHTML = this._cfg.image
-        ? `<img src="${this._cfg.image + (this._cfg.image.indexOf("?") < 0 ? "?v=" : "&v=") + REC_VER}" alt="${this._cfg.name}" onerror="this.parentNode.innerHTML='<div class=\\'ph\\'>🚗</div>'">`
+        ? `<img src="${bust(this._cfg.image)}" alt="${this._cfg.name}"${fb ? ` data-fb="${bust(fb)}"` : ""} onerror="${onerr}">`
         : `<div class="ph">🚗</div>`;
     }
     // comandi: valori

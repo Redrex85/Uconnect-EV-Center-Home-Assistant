@@ -153,6 +153,7 @@ DEFAULT_WB_START_W,
     WALLBOX_FINISHED_TOKENS,
     CHARGE_STOP_CLOSE_S,
     CHARGE_MERGE_WINDOW_S,
+    VAMP_RATE_MAX,
     EXPORT_DIR,
 )
 from .meters import DeltaMeter, PeriodMeter, period_keys
@@ -326,7 +327,11 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         opts = {**entry.data, **entry.options}
         self.entry = entry
         self.geocode_enabled = bool(opts.get(CONF_GEOCODE_ENABLED, True))
-        self._geocode_backfilled = False
+        self._geocode_lang_done: str | None = None  # ultima lingua geocodificata
+        # --- vampire drain: riferimento per il calo "lento" da fermo --------------
+        self._vamp_prev_batt: float | None = None
+        self._vamp_prev_ts: float | None = None
+        self._vamp_prev_odo: float | None = None
         # --- diagnostica (redatta): esito update, esito rete, contatori geocodifica ---
         self.last_update_ok: bool | None = None
         self.geocode_stats: dict[str, int] = {"ok": 0, "none": 0, "error": 0}
@@ -1273,16 +1278,24 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 self.today_rec["soc_start"] = _soc_rif
         km_oggi = self._km_shown("daily")
         kwh_oggi = self._kwh_shown("daily")
-        # vampire drain = delta del SoC su un giorno SENZA viaggi. Se l'auto ha girato
-        # la discesa e' guida, non stand-by: il vecchio gate odometro non lo distingue
-        # perche' il cloud Uconnect riporta l'odometro solo a fine tratta.
         _soc_end = (round(_f(battery), 1) if 0 < _f(battery) <= 100
                     else self.today_rec.get("soc_end"))
-        _viaggi_oggi = any(str(t.get("data", "")) == today_key
-                           for t in self.store.data["trips"])
-        _ss = self.today_rec.get("soc_start")
-        _vamp_oggi = (0.0 if (_viaggi_oggi or _ss is None or _soc_end is None)
-                      else round(max(_f(_ss) - _soc_end, 0.0), 1))
+        # vampire drain onesto: conta il calo solo da FERMO VERO (auto non in carica,
+        # nessun viaggio in corso e odometro noto e immobile tra due letture: prima
+        # contava anche la guida lenta e l'odometro ignoto, "oggi 4%, mese 44%").
+        # Il tetto VAMP_RATE_MAX scarta i cali troppo rapidi per essere stand-by.
+        if 0 < _f(battery) <= 100:
+            if (self._vamp_prev_batt is not None and self._vamp_prev_ts is not None
+                    and not charging and not self.trip.active
+                    and odometer is not None and odometer == self._vamp_prev_odo):
+                _dt_h = (time.time() - self._vamp_prev_ts) / 3600.0
+                _drop = self._vamp_prev_batt - _f(battery)
+                if _drop > 0 and 0 < _dt_h <= 24.0 and _drop / _dt_h < VAMP_RATE_MAX:
+                    self.today_rec["vamp"] = round(_f(self.today_rec.get("vamp")) + _drop, 2)
+            self._vamp_prev_batt = _f(battery)
+            self._vamp_prev_ts = time.time()
+            self._vamp_prev_odo = odometer
+        _vamp_oggi = round(_f(self.today_rec.get("vamp")), 1)
         self.today_rec.update({
             "km": round(km_oggi, 1),
             "kwh": round(kwh_oggi, 2),
@@ -1295,18 +1308,10 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "prezzo_carburante": round(self._prezzo_termico(), 3),
         })
         _storico = self.store.data["daily"]
-        _trip_day: dict[str, int] = {}
-        for _t in self.store.data["trips"]:
-            _gd = str(_t.get("data", ""))
-            _trip_day[_gd] = _trip_day.get(_gd, 0) + 1
 
         def _vamp_row(_r: dict) -> float:
-            if _trip_day.get(str(_r.get("data", "")), 0) > 0:
-                return 0.0
-            _s, _e = _r.get("soc_start"), _r.get("soc_end")
-            if _s is None or _e is None:
-                return 0.0
-            return round(max(_f(_s) - _f(_e), 0.0), 1)
+            # valore di vampire accumulato quel giorno (calo lento da fermo)
+            return round(_f(_r.get("drain")), 1)
 
         _ieri = (now - timedelta(days=1)).strftime("%Y-%m-%d")
         _vamp_ieri = _vamp_row(next((r for r in _storico
@@ -2327,7 +2332,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         """Avvia in background il reverse-geocoding partenza+arrivo (non blocca il ciclo)."""
         if not self.geocode_enabled:
             return
-        if record.get("luogo_partenza") and record.get("luogo_arrivo"):
+        if (record.get("luogo_partenza") and record.get("luogo_arrivo")
+                and record.get("geo_lang") == self._geo_lang()):
             return
         if not (record.get("gps_partenza") or record.get("gps_arrivo")):
             return
@@ -2373,19 +2379,24 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                 "at": dt_util.now().isoformat(timespec="seconds"),
             }
 
+    def _geo_lang(self) -> str:
+        """Lingua dei toponimi = lingua di Home Assistant (prima era "it" fisso)."""
+        return str(getattr(self.hass.config, "language", "") or "it").split("-")[0].lower()
+
     async def _reverse_geocode(self, lat: float, lon: float) -> dict[str, str]:
         """Coordinate → {via, citta, paese, label} via Nominatim/OSM, con cache su disco."""
         if not self.geocode_enabled:
             return {}
         lat4, lon4 = round(_f(lat), 4), round(_f(lon), 4)
-        key = f"{lat4},{lon4}"
+        lang = self._geo_lang()
+        key = f"{lat4},{lon4},{lang}"
         cache = self.store.data.setdefault("geocache", {})
         if key in cache:
             return cache[key]
         from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
         url = ("https://nominatim.openstreetmap.org/reverse?format=jsonv2"
-               f"&lat={lat4}&lon={lon4}&zoom=16&addressdetails=1&accept-language=it")
+               f"&lat={lat4}&lon={lon4}&zoom=16&addressdetails=1&accept-language={lang}")
         await self._geo_throttle()  # condiviso da viaggi E ricariche (~1/1.1 s)
         try:
             session = async_get_clientsession(self.hass)
@@ -2417,18 +2428,22 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
     async def _geocode_trip(self, record: dict[str, Any]) -> None:
         """Scrive via/città/paese di partenza e arrivo sul viaggio (best-effort)."""
+        lang = self._geo_lang()
         for gkey, lkey, pkey in (("gps_partenza", "luogo_partenza", "paese_partenza"),
                                  ("gps_arrivo", "luogo_arrivo", "paese_arrivo")):
-            if record.get(lkey):
-                continue
             gps = record.get(gkey) or {}
             lat, lon = gps.get("lat"), gps.get("lon")
             if lat is None or lon is None:
+                continue  # senza coordinate il toponimo esistente resta (e' tutto cio' che c'e')
+            if record.get(lkey) and record.get("geo_lang") == lang:
                 continue
+            if record.get(lkey):
+                record[lkey] = ""  # c'e' ma in un'altra lingua: rigeocodifica
             info = await self._reverse_geocode(lat, lon)
             if info:
                 record[lkey] = info.get("label") or info.get("citta") or ""
                 record[pkey] = info.get("paese") or ""
+        record["geo_lang"] = lang
         self.persist()
 
     async def _geo_throttle(self) -> None:
@@ -2440,11 +2455,17 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
     def _queue_geocode_charge(self, record: dict[str, Any]) -> None:
         """Reverse-geocoding della POSIZIONE della ricarica (best-effort, non bloccante)."""
-        if not self.geocode_enabled or record.get("luogo"):
+        if not self.geocode_enabled:
             return
         gps = record.get("gps") or {}
         if gps.get("lat") is None or gps.get("lon") is None:
+            return  # senza coordinate il toponimo esistente resta (e' tutto cio' che c'e')
+        lang = self._geo_lang()
+        if record.get("luogo") and record.get("geo_lang") == lang:
             return
+        if record.get("luogo"):
+            record["luogo"] = ""  # presente ma in un'altra lingua: rigeocodifica
+            record["paese"] = ""
         try:
             self.hass.async_create_task(self._geocode_charge(record))
         except RuntimeError:  # nessun event loop attivo
@@ -2457,24 +2478,30 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         if info:
             record["luogo"] = info.get("label") or info.get("citta") or ""
             record["paese"] = info.get("paese") or ""
+            record["geo_lang"] = self._geo_lang()
             self.persist()
 
     def _maybe_backfill_geocode(self) -> None:
-        """Una tantum: geocodifica i viaggi registrati prima che il geocoding esistesse."""
-        if self._geocode_backfilled or not self.geocode_enabled:
+        """Rigeocodifica viaggi/ricariche quando cambia la lingua di Home Assistant.
+
+        Gira una volta per lingua avviata: la cache e' gia' per lingua e il throttle
+        Nominatim resta quello di `_reverse_geocode`.
+        """
+        if not self.geocode_enabled:
             return
-        self._geocode_backfilled = True
-        legacy = [t for t in self.store.data.get("trips", [])
-                  if (t.get("gps_partenza") or t.get("gps_arrivo"))
-                  and not (t.get("luogo_partenza") and t.get("luogo_arrivo"))]
-        if legacy:
-            self.hass.async_create_task(self._geocode_backfill())
+        lang = self._geo_lang()
+        if self._geocode_lang_done == lang:
+            return
+        self._geocode_lang_done = lang
+        self.hass.async_create_task(self._geocode_backfill())
 
     async def _geocode_backfill(self) -> None:
-        """Geocodifica i viaggi vecchi, 1 alla volta (rispetta il limite ~1 req/s)."""
+        """Geocodifica i record senza toponimi o con lingua diversa, 1 alla volta (~1 req/s)."""
+        lang = self._geo_lang()
         n = 0
         for t in self.store.data.get("trips", []):
-            if t.get("luogo_partenza") and t.get("luogo_arrivo"):
+            if (t.get("geo_lang") == lang and t.get("luogo_partenza")
+                    and t.get("luogo_arrivo")):
                 continue
             if not (t.get("gps_partenza") or t.get("gps_arrivo")):
                 continue
@@ -2483,8 +2510,18 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             if n >= 120:
                 break
             await asyncio.sleep(1.1)
+        for c in self.store.data.get("charges", []):
+            if not c.get("gps"):
+                continue
+            if c.get("geo_lang") == lang and c.get("luogo"):
+                continue
+            await self._geocode_charge(c)
+            n += 1
+            if n >= 160:
+                break
+            await asyncio.sleep(1.1)
         if n:
-            _LOGGER.info("Geocoding: rielaborati %s viaggi", n)
+            _LOGGER.info("Geocoding: rielaborati %s record (%s)", n, lang)
         self.persist()
 
     def _filter_charges(self, charges: list[dict], now) -> dict[str, Any]:
