@@ -36,7 +36,8 @@
           "gse": {
             "name": "⚡ Plan piloto GSE",
             "data": {
-              "gse_enabled": "Activar la experimentación GSE", "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
+              "gse_enabled": "Activar la experimentación GSE",
+              "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
               "gse_kw_ridotta": "Potencia fuera de la franja (kW)",
               "gse_start": "Inicio de la franja permitida",
               "gse_end": "Fin de la franja permitida",
@@ -203,7 +204,8 @@
           "gse": {
             "name": "⚡ Plan piloto GSE",
             "data": {
-              "gse_enabled": "Activar la experimentación GSE", "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
+              "gse_enabled": "Activar la experimentación GSE",
+              "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
               "gse_kw_ridotta": "Potencia fuera de la franja (kW)",
               "gse_start": "Inicio de la franja permitida",
               "gse_end": "Fin de la franja permitida",
@@ -302,7 +304,7 @@
               "co2_thermal_gkm": "CO2 térmico (g/km)",
               "co2_grid_gkwh": "CO2 de la red (g/kWh)",
               "geocode_enabled": "Calle y país en viajes y recargas (geocodificación OpenStreetMap)",
-          "merge_charges": "Unir recargas fragmentadas de la misma sesión",
+              "merge_charges": "Unir recargas fragmentadas de la misma sesión",
               "avg_speed_kmh": "Velocidad media estimada para la hora de salida del viaje",
               "scadenze_enabled": "Activar recordatorios de vencimiento",
               "scadenza_bollo": "Fecha de vencimiento del impuesto (AAAA-MM-DD)",
@@ -361,6 +363,7 @@
           "car": {
             "name": "🚗 Coche",
             "data": {
+              "model": "Modelo del coche — 1ª opción: define la imagen",
               "name": "Nombre del coche",
               "odometer_entity": "Sensor de odómetro",
               "battery_level_entity": "Sensor de nivel de batería (%)",
@@ -483,7 +486,8 @@
           "gse": {
             "name": "⚡ Plan piloto GSE",
             "data": {
-              "gse_enabled": "Activar la experimentación GSE", "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
+              "gse_enabled": "Activar la experimentación GSE",
+              "gse_kw_max": "Potencia permitida dentro de la franja (kW)",
               "gse_kw_ridotta": "Potencia fuera de la franja (kW)",
               "gse_start": "Inicio de la franja permitida",
               "gse_end": "Fin de la franja permitida",
@@ -582,7 +586,7 @@
               "co2_thermal_gkm": "CO2 térmico (g/km)",
               "co2_grid_gkwh": "CO2 de la red (g/kWh)",
               "geocode_enabled": "Calle y país en viajes y recargas (geocodificación OpenStreetMap)",
-          "merge_charges": "Unir recargas fragmentadas de la misma sesión",
+              "merge_charges": "Unir recargas fragmentadas de la misma sesión",
               "avg_speed_kmh": "Velocidad media estimada para la hora de salida del viaje",
               "scadenze_enabled": "Activar recordatorios de vencimiento",
               "scadenza_bollo": "Fecha de vencimiento del impuesto (AAAA-MM-DD)",

@@ -20,8 +20,10 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.18";
+const REC_VER = "1.0.19-beta";
 let _recVerChecked = false;
+/** timestamp del caricamento pagina: cache-busting della foto utente senza flicker */
+const _REC_PAGE_TS = Date.now();
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
 const I18N = {
@@ -4664,15 +4666,19 @@ class UconnectEvCenterPanel extends HTMLElement {
     const img = root.querySelector('[data-c="carimg"]');
     if (img) {
       const bust = (u) => u + (u.indexOf("?") < 0 ? "?v=" : "&v=") + REC_VER +
-      (u.indexOf("auto.png") >= 0 ? "&t=" + Date.now() : "");
+      // timestamp PER CARICAMENTO PAGINA (non per render): evita la cache del
+      // browser senza far sfarfallare l'immagine a ogni aggiornamento hass
+      (u.indexOf("auto.png") >= 0 ? "&t=" + _REC_PAGE_TS : "");
       const fb = this._cfg.imageFallback;
       const ph = "this.parentNode.innerHTML='<div class=\\'ph\\'>🚗</div>'";
       const onerr = fb
         ? `if(this.dataset.fb&&this.getAttribute('src')!==this.dataset.fb){this.src=this.dataset.fb}else{${ph}}`
         : ph;
-      img.innerHTML = this._cfg.image
+      const html = this._cfg.image
         ? `<img src="${bust(this._cfg.image)}" alt="${this._cfg.name}"${fb ? ` data-fb="${bust(fb)}"` : ""} onerror="${onerr}">`
         : `<div class="ph">🚗</div>`;
+      // ricostruito solo se il markup cambia: un innerHTML uguale ricaricava l'immagine
+      if (img.dataset.html !== html) { img.dataset.html = html; img.innerHTML = html; }
     }
     // comandi: valori
     const setV = (attr, val) => root.querySelectorAll(`[data-v="${attr}"]`).forEach((el) => { el.textContent = val; });

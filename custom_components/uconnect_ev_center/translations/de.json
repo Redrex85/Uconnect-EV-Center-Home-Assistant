@@ -36,7 +36,8 @@
           "gse": {
             "name": "⚡ GSE-Pilotprojekt",
             "data": {
-              "gse_enabled": "GSE-Experiment aktivieren", "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
+              "gse_enabled": "GSE-Experiment aktivieren",
+              "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
               "gse_kw_ridotta": "Leistung außerhalb des Zeitfensters (kW)",
               "gse_start": "Beginn des erlaubten Zeitfensters",
               "gse_end": "Ende des erlaubten Zeitfensters",
@@ -203,7 +204,8 @@
           "gse": {
             "name": "⚡ GSE-Pilotprojekt",
             "data": {
-              "gse_enabled": "GSE-Experiment aktivieren", "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
+              "gse_enabled": "GSE-Experiment aktivieren",
+              "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
               "gse_kw_ridotta": "Leistung außerhalb des Zeitfensters (kW)",
               "gse_start": "Beginn des erlaubten Zeitfensters",
               "gse_end": "Ende des erlaubten Zeitfensters",
@@ -302,7 +304,7 @@
               "co2_thermal_gkm": "Verbrenner-CO2 (g/km)",
               "co2_grid_gkwh": "Netz-CO2 (g/kWh)",
               "geocode_enabled": "Straße und Land in Fahrten und Ladevorgängen (OpenStreetMap-Geocoding)",
-          "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
+              "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
               "avg_speed_kmh": "Geschätzte Durchschnittsgeschwindigkeit für die Abfahrtszeit der Fahrt",
               "scadenze_enabled": "Fristenerinnerungen aktivieren",
               "scadenza_bollo": "Fälligkeitsdatum Kfz-Steuer (JJJJ-MM-TT)",
@@ -361,6 +363,7 @@
           "car": {
             "name": "🚗 Auto",
             "data": {
+              "model": "Automodell — 1. Wahl: legt das Bild fest",
               "name": "Autoname",
               "odometer_entity": "Tacho-Sensor",
               "battery_level_entity": "Batteriestand-Sensor (%)",
@@ -483,7 +486,8 @@
           "gse": {
             "name": "⚡ GSE-Pilotprojekt",
             "data": {
-              "gse_enabled": "GSE-Experiment aktivieren", "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
+              "gse_enabled": "GSE-Experiment aktivieren",
+              "gse_kw_max": "Erlaubte Leistung im Zeitfenster (kW)",
               "gse_kw_ridotta": "Leistung außerhalb des Zeitfensters (kW)",
               "gse_start": "Beginn des erlaubten Zeitfensters",
               "gse_end": "Ende des erlaubten Zeitfensters",
@@ -582,7 +586,7 @@
               "co2_thermal_gkm": "Verbrenner-CO2 (g/km)",
               "co2_grid_gkwh": "Netz-CO2 (g/kWh)",
               "geocode_enabled": "Straße und Land in Fahrten und Ladevorgängen (OpenStreetMap-Geocoding)",
-          "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
+              "merge_charges": "Fragmentierte Ladevorgänge derselben Sitzung zusammenführen",
               "avg_speed_kmh": "Geschätzte Durchschnittsgeschwindigkeit für die Abfahrtszeit der Fahrt",
               "scadenze_enabled": "Fristenerinnerungen aktivieren",
               "scadenza_bollo": "Fälligkeitsdatum Kfz-Steuer (JJJJ-MM-TT)",

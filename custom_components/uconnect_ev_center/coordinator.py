@@ -1662,7 +1662,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                     target = _f(kmv)
                     mancanti = target - odometer
                     scadenze.append({"nome": label, "km": round(mancanti, 0),
-                                     "data": f"a {target:.0f} km",
+                                     "data": f"{target:.0f} km",
                                      "giorni": max(int(mancanti / km_giorno), 0)})
                 dv = str(scad_cfg.get(f"{key}_data") or "").strip()
                 if dv:

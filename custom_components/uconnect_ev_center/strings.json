@@ -36,7 +36,8 @@
           "gse": {
             "name": "⚡ Sperimentazione GSE",
             "data": {
-              "gse_enabled": "Attiva la sperimentazione GSE", "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_enabled": "Attiva la sperimentazione GSE",
+              "gse_kw_max": "Potenza consentita nella fascia (kW)",
               "gse_kw_ridotta": "Potenza fuori fascia (kW)",
               "gse_start": "Inizio fascia consentita",
               "gse_end": "Fine fascia consentita",
@@ -203,7 +204,8 @@
           "gse": {
             "name": "⚡ Sperimentazione GSE",
             "data": {
-              "gse_enabled": "Attiva la sperimentazione GSE", "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_enabled": "Attiva la sperimentazione GSE",
+              "gse_kw_max": "Potenza consentita nella fascia (kW)",
               "gse_kw_ridotta": "Potenza fuori fascia (kW)",
               "gse_start": "Inizio fascia consentita",
               "gse_end": "Fine fascia consentita",
@@ -302,7 +304,7 @@
               "co2_thermal_gkm": "CO2 termico (g/km)",
               "co2_grid_gkwh": "CO2 rete (g/kWh)",
               "geocode_enabled": "Via e paese in viaggi e ricariche (geocoding OpenStreetMap)",
-          "merge_charges": "Unisci ricariche frammentate della stessa sessione",
+              "merge_charges": "Unisci ricariche frammentate della stessa sessione",
               "avg_speed_kmh": "Velocità media stimata nei viaggi (per l'orario di partenza)",
               "scadenze_enabled": "Abilita promemoria scadenze",
               "scadenza_bollo": "Scadenza bollo (YYYY-MM-DD)",
@@ -361,6 +363,7 @@
           "car": {
             "name": "🚗 L'auto",
             "data": {
+              "model": "Modello dell'auto — 1ª scelta: imposta la foto",
               "name": "Nome dell'auto",
               "odometer_entity": "Sensore odometro/chilometraggio",
               "battery_level_entity": "Sensore livello batteria (%)",
@@ -483,7 +486,8 @@
           "gse": {
             "name": "⚡ Sperimentazione GSE",
             "data": {
-              "gse_enabled": "Attiva la sperimentazione GSE", "gse_kw_max": "Potenza consentita nella fascia (kW)",
+              "gse_enabled": "Attiva la sperimentazione GSE",
+              "gse_kw_max": "Potenza consentita nella fascia (kW)",
               "gse_kw_ridotta": "Potenza fuori fascia (kW)",
               "gse_start": "Inizio fascia consentita",
               "gse_end": "Fine fascia consentita",
@@ -582,7 +586,7 @@
               "co2_thermal_gkm": "CO2 termico (g/km)",
               "co2_grid_gkwh": "CO2 rete (g/kWh)",
               "geocode_enabled": "Via e paese in viaggi e ricariche (geocoding OpenStreetMap)",
-          "merge_charges": "Unisci ricariche frammentate della stessa sessione",
+              "merge_charges": "Unisci ricariche frammentate della stessa sessione",
               "avg_speed_kmh": "Velocità media stimata nei viaggi (per l'orario di partenza)",
               "scadenze_enabled": "Abilita promemoria scadenze",
               "scadenza_bollo": "Scadenza bollo (YYYY-MM-DD)",

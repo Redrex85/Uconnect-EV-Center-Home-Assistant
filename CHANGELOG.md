@@ -1,3 +1,9 @@
+## 1.0.19-beta
+
+- **Foto auto che sfarfallava**: l'URL della foto utente era rigenerato con un timestamp nuovo a ogni aggiornamento `hass`, ricaricando l'immagine più volte al secondo. Ora il cache-busting usa un timestamp per **caricamento pagina** e l'elemento viene ricostruito solo se il markup cambia (porting dal riferimento).
+- **Configura → Auto**: nel form di configurazione la label del campo "Modello" compariva grezza (`model`) perché la traduzione era solo nel blocco `data` e non in `sections.car.data`. Aggiunta in tutte le 5 lingue (porting dal riferimento).
+- **Manutenzione → Prossimo cambio**: il backend anteponeva "a" alla data-km (`a 105573 km`) in italiano fisso, non traducibile. Ora restituisce `105573 km` (porting dal riferimento).
+
 # Changelog
 
 Tutte le modifiche rilevanti di **Uconnect EV Center**.
