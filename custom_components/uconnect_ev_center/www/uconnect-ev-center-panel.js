@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.17";
+const REC_VER = "1.0.18";
 let _recVerChecked = false;
 
 // --- i18n del pannello: lingua da hass.language (IT base, EN/FR). ES/DE in arrivo ---
@@ -2852,6 +2852,34 @@ const UI2 = {
     "de": "Löschen"
   },
 
+  "Nessun dato.": { "en": "No data.", "fr": "Aucune donnée.", "es": "Sin datos.", "de": "Keine Daten." },
+  "inviato": { "en": "sent", "fr": "envoyé", "es": "enviado", "de": "gesendet" },
+  "Filtro": { "en": "Filter", "fr": "Filtre", "es": "Filtro", "de": "Filter" },
+  "Limite corrente": { "en": "Current limit", "fr": "Limite de courant", "es": "Límite de corriente", "de": "Stromlimit" },
+  "Intervento eliminato": { "en": "Maintenance deleted", "fr": "Intervention supprimée", "es": "Mantenimiento eliminado", "de": "Wartung gelöscht" },
+  "Ricarica eliminata": { "en": "Charge deleted", "fr": "Recharge supprimée", "es": "Recarga eliminada", "de": "Ladung gelöscht" },
+  "Ricarica separata": { "en": "Charge split", "fr": "Recharge séparée", "es": "Recarga separada", "de": "Ladung geteilt" },
+  "Ricarica modificata": { "en": "Charge updated", "fr": "Recharge modifiée", "es": "Recarga actualizada", "de": "Ladung aktualisiert" },
+  "Ricarica registrata": { "en": "Charge logged", "fr": "Recharge enregistrée", "es": "Recarga registrada", "de": "Ladung erfasst" },
+  "Notifica di prova inviata": { "en": "Test notification sent", "fr": "Notification de test envoyée", "es": "Notificación de prueba enviada", "de": "Testbenachrichtigung gesendet" },
+  "Testi salvati": { "en": "Texts saved", "fr": "Textes enregistrés", "es": "Textos guardados", "de": "Texte gespeichert" },
+  "A/C: 21 °C": { "en": "A/C: 21 °C", "fr": "Clim : 21 °C", "es": "A/A: 21 °C", "de": "A/C: 21 °C" },
+  "Configura → Bilanciamento casa": { "en": "Settings → Home balancing", "fr": "Configurer → Équilibrage maison", "es": "Configurar → Balanceo del hogar", "de": "Einstellungen → Hausausgleich" },
+  "Configura → Fotovoltaico": { "en": "Settings → Solar", "fr": "Configurer → Photovoltaïque", "es": "Configurar → Solar", "de": "Einstellungen → Photovoltaik" },
+  "Configura → Sperimentazione GSE": { "en": "Settings → GSE trial", "fr": "Configurer → Essai GSE", "es": "Configurar → Prueba GSE", "de": "Einstellungen → GSE-Test" },
+  "Configura → Prezzi": { "en": "Settings → Prices", "fr": "Configurer → Prix", "es": "Configurar → Precios", "de": "Einstellungen → Preise" },
+  "Configura → Comandi": { "en": "Settings → Commands", "fr": "Configurer → Commandes", "es": "Configurar → Comandos", "de": "Einstellungen → Befehle" },
+  "Configura → Wallbox": { "en": "Settings → Wallbox", "fr": "Configurer → Wallbox", "es": "Configurar → Wallbox", "de": "Einstellungen → Wallbox" },
+  "Batteria solo senza sole": { "en": "Battery only without sun", "fr": "Batterie uniquement sans soleil", "es": "Batería solo sin sol", "de": "Batterie nur ohne Sonne" },
+  "Archivio viaggi vuoto": { "en": "Trip archive empty", "fr": "Archive des trajets vide", "es": "Archivo de viajes vacío", "de": "Fahrtenarchiv leer" },
+  "TOTALE": { "en": "TOTAL", "fr": "TOTAL", "es": "TOTAL", "de": "GESAMT" },
+  "sess": { "en": "sess", "fr": "sess", "es": "ses.", "de": "Sitz." },
+  "FV": { "en": "PV", "fr": "PV", "es": "FV", "de": "PV" },
+  "Bat": { "en": "Bat", "fr": "Batt", "es": "Bat", "de": "Batt" },
+  "Pub": { "en": "Pub", "fr": "Pub", "es": "Púb.", "de": "Öff." },
+  "Fascia di temperatura": { "en": "Temperature range", "fr": "Plage de température", "es": "Rango de temperatura", "de": "Temperaturbereich" },
+  "km mancanti": { "en": "km left", "fr": "km restants", "es": "km restantes", "de": "km übrig" },
+  "da configurare": { "en": "to be configured", "fr": "à configurer", "es": "por configurar", "de": "nicht konfiguriert" },
 };
 
 // Frasi da tradurre anche dentro testi piu lunghi (tooltip, celle con numeri, ecc.).
@@ -2998,14 +3026,75 @@ function _t(key, fallback) {
   return v !== undefined ? v : (fallback !== undefined ? fallback : key);
 }
 function _ui(src) {
-  const e = UI[src];
+  const e = UI[src] || UI2[src];
   return (e && (e[_LANG] || e.it)) || src;
+}
+
+/** forme plurali per lingua: hr ha 1 / 2-4 / 5+ */
+const _PL = {
+  viaggi: { it: ["viaggio", "viaggi"], en: ["trip", "trips"], fr: ["trajet", "trajets"],
+    es: ["viaje", "viajes"], de: ["Fahrt", "Fahrten"], hr: ["vožnja", "vožnje", "vožnji"] },
+  giorni: { it: ["giorno", "giorni"], en: ["day", "days"], fr: ["jour", "jours"],
+    es: ["día", "días"], de: ["Tag", "Tage"], hr: ["dan", "dana", "dana"] },
+};
+function _pl(n, key) {
+  const f = _PL[key];
+  if (!f) return String(n);
+  const arr = f[_LANG] || f.it;
+  const k = Math.abs(Number(n) || 0);
+  if (_LANG === "hr") {
+    const m = k % 100, d = k % 10;
+    const i = (m === 1) ? 0 : ((d >= 2 && d <= 4 && (m < 12 || m > 14)) ? 1 : 2);
+    return arr[i] || arr[arr.length - 1];
+  }
+  return arr[k === 1 ? 0 : 1];
 }
 const _LOCALES = { it: "it-IT", en: "en-GB", fr: "fr-FR", es: "es-ES", de: "de-DE" };
 function _loc() { return _LOCALES[_LANG] || "it-IT"; }
 function _detectLang(hass) {
   const l = String((hass && hass.language) || "it").slice(0, 2).toLowerCase();
   return I18N[l] ? l : "it";
+}
+
+/** Traduit une chaîne IT (toasts, HTML dynamique) via UI/UI2/PHRASES. */
+function _trText(raw) {
+  if (raw == null || raw === "") return raw;
+  if (_LANG === "it") return String(raw);
+  try {
+    const { R, P } = _uiIndex();
+    const lang = _LANG;
+    const tr = (text) => {
+      if (!text) return text;
+      const lead = (text.match(/^\s*/) || [""])[0];
+      const trail = (text.match(/\s*$/) || [""])[0];
+      const core = text.replace(/\s+/g, " ").trim();
+      if (!core) return text;
+      let out = null, pre = "", suf = "";
+      const ex = R[core] || R[core.toLowerCase()];
+      if (ex) out = ex[lang] || ex.it || core;
+      if (out === null) {
+        let body = core.replace(/^[^\p{L}\p{N}]+/u, "").replace(/^[\d.,\s]+/u, "");
+        pre = core.slice(0, core.length - body.length);
+        let e = R[body] || R[body.toLowerCase()];
+        if (!e) {
+          const tail = body.replace(/[^\p{L}\p{N}]+$/u, "");
+          if (tail) { e = R[tail] || R[tail.toLowerCase()]; if (e) suf = body.slice(tail.length); }
+        }
+        if (e) out = e[lang] || e.it || body;
+      }
+      if (out === null) return text;
+      if (/[A-ZÀ-ÖØ-Þ]/.test(core) && core === core.toUpperCase()) out = out.toUpperCase();
+      return lead + pre + out + suf + trail;
+    };
+    let v = tr(String(raw));
+    for (const [re, map] of P) {
+      const t = map[lang] || map.it;
+      if (t) v = v.replace(re, t);
+    }
+    return v;
+  } catch (e) {
+    return String(raw);
+  }
 }
 
 class UconnectEvCenterPanel extends HTMLElement {
@@ -3097,47 +3186,18 @@ class UconnectEvCenterPanel extends HTMLElement {
   }
 
   _translateDom() {
-    const lang = _LANG;
     if (!this.shadowRoot) return;
     try {
-      const { R, P } = _uiIndex();
-      const tr = (raw) => {
-        if (!raw) return raw;
-        const lead = (raw.match(/^\s*/) || [""])[0];
-        const trail = (raw.match(/\s*$/) || [""])[0];
-        const core = raw.replace(/\s+/g, " ").trim();
-        if (!core) return raw;
-        let out = null, pre = "", suf = "";
-        const ex = R[core] || R[core.toLowerCase()];
-        if (ex) out = ex[lang] || ex.it || core;
-        if (out === null) {
-          let body = core.replace(/^[^\p{L}\p{N}]+/u, "").replace(/^[\d.,\s]+/u, "");
-          pre = core.slice(0, core.length - body.length);
-          let e = R[body] || R[body.toLowerCase()];
-          if (!e) {
-            const tail = body.replace(/[^\p{L}\p{N}]+$/u, "");
-            if (tail) { e = R[tail] || R[tail.toLowerCase()]; if (e) suf = body.slice(tail.length); }
-          }
-          if (e) out = e[lang] || e.it || body;
-        }
-        if (out === null) return raw;
-        if (/[A-ZÀ-ÖØ-Þ]/.test(core) && core === core.toUpperCase()) out = out.toUpperCase();
-        return lead + pre + out + suf + trail;
-      };
       const w = document.createTreeWalker(this.shadowRoot, NodeFilter.SHOW_TEXT);
       let n;
       while ((n = w.nextNode())) {
-        let v = tr(n.nodeValue);
-        for (const [re, map] of P) {
-          const t = map[lang] || map.it;
-          if (t) v = v.replace(re, t);
-        }
+        const v = _trText(n.nodeValue);
         if (v !== n.nodeValue) n.nodeValue = v;
       }
       this.shadowRoot.querySelectorAll("[title],[placeholder],[aria-label]").forEach((el) => {
         ["title", "placeholder", "aria-label"].forEach((a) => {
           const v = el.getAttribute(a);
-          const t = tr(v);
+          const t = _trText(v);
           if (t !== v) el.setAttribute(a, t);
         });
       });
@@ -3351,7 +3411,7 @@ class UconnectEvCenterPanel extends HTMLElement {
   _toast(text) {
     const t = this.shadowRoot.getElementById("toast");
     if (!t) return;
-    t.textContent = text;
+    t.textContent = _trText(text);
     t.classList.add("show");
     clearTimeout(this._toastT);
     this._toastT = setTimeout(() => t.classList.remove("show"), 2600);
@@ -4603,7 +4663,8 @@ class UconnectEvCenterPanel extends HTMLElement {
     // foto auto: /config/www/uconnect_ev_center/auto.png se presente, altrimenti modello
     const img = root.querySelector('[data-c="carimg"]');
     if (img) {
-      const bust = (u) => u + (u.indexOf("?") < 0 ? "?v=" : "&v=") + REC_VER;
+      const bust = (u) => u + (u.indexOf("?") < 0 ? "?v=" : "&v=") + REC_VER +
+      (u.indexOf("auto.png") >= 0 ? "&t=" + Date.now() : "");
       const fb = this._cfg.imageFallback;
       const ph = "this.parentNode.innerHTML='<div class=\\'ph\\'>🚗</div>'";
       const onerr = fb
@@ -4992,7 +5053,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:8px">
         <span style="width:11px;height:11px;border-radius:50%;background:${p.color};flex:0 0 auto"></span>
         <span style="flex:1">${p.label}</span>
-        <b>${p.n || 0}</b><span style="color:var(--muted)"> sess · </span>
+        <b>${p.n || 0}</b><span style="color:var(--muted)"> ${_ui("sess")} · </span>
         <b>${this._fmt(p.value || 0, 2)}</b><span style="color:var(--muted)"> kWh · ${pct}%</span></div>`;
     }).join("");
     return `<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
@@ -5197,9 +5258,9 @@ class UconnectEvCenterPanel extends HTMLElement {
       svg += `<rect x="${x}" y="${y}" width="${bw * 0.6}" height="${h}" rx="5" fill="#3ea6ff" fill-opacity="0.85"><title>${this._esc(r.l)} = ${f1(r.v)} kWh/100km (${r.n} viaggi)</title></rect>`;
       svg += `<text x="${x + bw * 0.3}" y="${y - 5}" fill="var(--txt)" font-size="11" text-anchor="middle">${f1(r.v)}</text>`;
       svg += `<text x="${x + bw * 0.3}" y="${pt + ih + 15}" fill="var(--muted)" font-size="10" text-anchor="middle">${this._esc(r.l)}</text>`;
-      svg += `<text x="${x + bw * 0.3}" y="${pt + ih + 28}" fill="var(--muted)" font-size="9" text-anchor="middle">${r.n} viaggi</text>`;
+      svg += `<text x="${x + bw * 0.3}" y="${pt + ih + 28}" fill="var(--muted)" font-size="9" text-anchor="middle">${r.n} ${_pl(r.n, "viaggi")}</text>`;
     });
-    svg += `<text x="${pl + iw / 2}" y="${H - 4}" fill="var(--muted)" font-size="10" text-anchor="middle">Fascia di temperatura</text>`;
+    svg += `<text x="${pl + iw / 2}" y="${H - 4}" fill="var(--muted)" font-size="10" text-anchor="middle">${_ui("Fascia di temperatura")}</text>`;
     svg += `<text x="13" y="${pt + ih / 2}" fill="var(--muted)" font-size="10" text-anchor="middle" transform="rotate(-90 13 ${pt + ih / 2})">kWh/100km (media)</text>`;
     svg += `</svg>`;
     box.innerHTML = svg;
@@ -5524,7 +5585,7 @@ class UconnectEvCenterPanel extends HTMLElement {
     const head = document.createElement("div");
     head.dataset.c = "bars7-head";
     head.style.cssText = "font-size:11.5px;color:var(--muted);margin-bottom:8px";
-    head.textContent = `7 giorni: ${this._i(totKm)} km · ${this._fmt(totKwh, 1)} kWh` +
+    head.textContent = `7 ${_ui("giorni")}: ${this._i(totKm)} km · ${this._fmt(totKwh, 1)} kWh` +
       (media > 0 ? ` · media ${this._fmt(media, 2)} km/kWh` : "");
     box.parentElement.insertBefore(head, box);
     box.innerHTML = data.map((d) => {
@@ -5838,24 +5899,25 @@ class UconnectEvCenterPanel extends HTMLElement {
     const opened = (this._treeOpen = this._treeOpen || {});
     // il mese PRECEDENTE resta chiuso di default: con tutti i mesi aperti
     // l'albero diventava lunghissimo. Un'apertura manuale viene ricordata.
-    const _d0 = new Date();
-    const prevKey = `${_d0.getMonth() ? _d0.getFullYear() : _d0.getFullYear() - 1}-` +
-      `${String(_d0.getMonth() || 12).padStart(2, "0")}`;
-    const op = (k) => {
+    const _ys = Object.keys(tree).sort((a, b) => b.localeCompare(a));
+    const _lastY = _ys[0] || "";
+    const _ms = _lastY ? Object.keys(tree[_lastY]).sort((a, b) => b.localeCompare(a)) : [];
+    const lastKey = _ms.length ? `${_lastY}-${_ms[0]}` : "";
+    const op = (k, dflt) => {
       if (opened[k] === true) return "open";
       if (opened[k] === false) return "";
-      return k === prevKey ? "" : "open";
+      return dflt ? "open" : "";
     };
     box.innerHTML = Object.entries(tree).sort((a, b) => b[0].localeCompare(a[0])).map(([y, mesi]) => {
       const tot = Object.values(mesi).flat();
       const km = tot.reduce((a, r) => a + r.km, 0);
-      return `<details class="anno" data-tk="${y}" ${op(y)}>
-        <summary>▼ ${y} <span class="tr">${tot.length} giorni · <b>${this._i(km)} km</b></span></summary>
+      return `<details class="anno" data-tk="${y}" ${op(y, true)}>
+        <summary>▼ ${y} <span class="tr">${tot.length} ${_pl(tot.length, "giorni")} · <b>${this._i(km)} km</b></span></summary>
         ${Object.entries(mesi).sort((a, b) => b[0].localeCompare(a[0])).map(([m, rs]) => {
           const kmM = rs.reduce((a, r) => a + r.km, 0);
           const nm = NOMI_MESI()[parseInt(m, 10) - 1] || m;
-          return `<details class="mese" data-tk="${y}-${m}" ${op(`${y}-${m}`)}>
-            <summary>▼ ${nm} <span class="tr">${rs.length} giorni · <b>${this._i(kmM)} km</b></span></summary>
+          return `<details class="mese" data-tk="${y}-${m}" ${op(`${y}-${m}`, `${y}-${m}` === lastKey)}>
+            <summary>▼ ${nm} <span class="tr">${rs.length} ${_pl(rs.length, "giorni")} · <b>${this._i(kmM)} km</b></span></summary>
             ${rs.map((r) => `<div class="giorno">• <b>${this._d(r.data)}</b> — ${this._fmt(r.km, 1)} km <span class="badge">${this._fmt(effOf(r), 1)}</span> · ${this._fmt(r.costo, 2)} €</div>`).join("")}
           </details>`;
         }).join("")}

@@ -327,7 +327,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         opts = {**entry.data, **entry.options}
         self.entry = entry
         self.geocode_enabled = bool(opts.get(CONF_GEOCODE_ENABLED, True))
-        self._geocode_lang_done: str | None = None  # ultima lingua geocodificata
+        self._geocode_lang_done: str | None = None
+        self._geocode_busy = False  # ultima lingua geocodificata
         # --- vampire drain: riferimento per il calo "lento" da fermo --------------
         self._vamp_prev_batt: float | None = None
         self._vamp_prev_ts: float | None = None
@@ -2429,6 +2430,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
     async def _geocode_trip(self, record: dict[str, Any]) -> None:
         """Scrive via/città/paese di partenza e arrivo sul viaggio (best-effort)."""
         lang = self._geo_lang()
+        got = False
         for gkey, lkey, pkey in (("gps_partenza", "luogo_partenza", "paese_partenza"),
                                  ("gps_arrivo", "luogo_arrivo", "paese_arrivo")):
             gps = record.get(gkey) or {}
@@ -2443,7 +2445,11 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             if info:
                 record[lkey] = info.get("label") or info.get("citta") or ""
                 record[pkey] = info.get("paese") or ""
-        record["geo_lang"] = lang
+                got = True
+        # la lingua si marca solo se almeno un toponimo è stato scritto: altrimenti il
+        # record resterebbe con il testo vecchio e non verrebbe più riprovato
+        if got:
+            record["geo_lang"] = lang
         self.persist()
 
     async def _geo_throttle(self) -> None:
@@ -2487,41 +2493,63 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         Gira una volta per lingua avviata: la cache e' gia' per lingua e il throttle
         Nominatim resta quello di `_reverse_geocode`.
         """
-        if not self.geocode_enabled:
+        if not self.geocode_enabled or self._geocode_busy:
             return
-        lang = self._geo_lang()
-        if self._geocode_lang_done == lang:
+        if self._geocode_lang_done == self._geo_lang():
             return
-        self._geocode_lang_done = lang
         self.hass.async_create_task(self._geocode_backfill())
+
+    def _geocode_pending(self, lang: str) -> int:
+        """Quanti record hanno ancora bisogno di toponimi nella lingua `lang`."""
+        n = 0
+        for t in self.store.data.get("trips", []):
+            if not (t.get("gps_partenza") or t.get("gps_arrivo")):
+                continue
+            if (t.get("geo_lang") == lang and t.get("luogo_partenza")
+                    and t.get("luogo_arrivo")):
+                continue
+            n += 1
+        for cc in self.store.data.get("charges", []):
+            if not cc.get("gps"):
+                continue
+            if cc.get("geo_lang") == lang and cc.get("luogo"):
+                continue
+            n += 1
+        return n
 
     async def _geocode_backfill(self) -> None:
         """Geocodifica i record senza toponimi o con lingua diversa, 1 alla volta (~1 req/s)."""
         lang = self._geo_lang()
+        self._geocode_busy = True
         n = 0
-        for t in self.store.data.get("trips", []):
-            if (t.get("geo_lang") == lang and t.get("luogo_partenza")
-                    and t.get("luogo_arrivo")):
-                continue
-            if not (t.get("gps_partenza") or t.get("gps_arrivo")):
-                continue
-            await self._geocode_trip(t)
-            n += 1
-            if n >= 120:
-                break
-            await asyncio.sleep(1.1)
-        for c in self.store.data.get("charges", []):
-            if not c.get("gps"):
-                continue
-            if c.get("geo_lang") == lang and c.get("luogo"):
-                continue
-            await self._geocode_charge(c)
-            n += 1
-            if n >= 160:
-                break
-            await asyncio.sleep(1.1)
+        try:
+            for t in self.store.data.get("trips", []):
+                if not (t.get("gps_partenza") or t.get("gps_arrivo")):
+                    continue
+                if (t.get("geo_lang") == lang and t.get("luogo_partenza")
+                        and t.get("luogo_arrivo")):
+                    continue
+                await self._geocode_trip(t)
+                n += 1
+                if n >= 120:
+                    break
+                await asyncio.sleep(1.1)
+            for cc in self.store.data.get("charges", []):
+                if not cc.get("gps"):
+                    continue
+                if cc.get("geo_lang") == lang and cc.get("luogo"):
+                    continue
+                await self._geocode_charge(cc)
+                n += 1
+                if n >= 160:
+                    break
+                await asyncio.sleep(1.1)
+        finally:
+            self._geocode_busy = False
         if n:
             _LOGGER.info("Geocoding: rielaborati %s record (%s)", n, lang)
+        if self._geocode_pending(lang) == 0:
+            self._geocode_lang_done = lang
         self.persist()
 
     def _filter_charges(self, charges: list[dict], now) -> dict[str, Any]:
