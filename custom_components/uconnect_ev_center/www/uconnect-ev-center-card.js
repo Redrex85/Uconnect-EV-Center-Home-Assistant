@@ -182,4 +182,4 @@ try {
   /* ambiente non-HA (demo): ignora */
 }
 
-  console.info("%c UCONNECT EV CENTER CARD %c v1.0.18 " , "background:#4d8dff;color:#fff", "background:#333;color:#fff");
+  console.info("%c UCONNECT EV CENTER CARD %c v" + CARD_VER + " " , "background:#4d8dff;color:#fff", "background:#333;color:#fff");

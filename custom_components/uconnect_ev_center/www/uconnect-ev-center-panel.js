@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.19-beta";
+const REC_VER = "1.0.20-beta";
 let _recVerChecked = false;
 /** timestamp del caricamento pagina: cache-busting della foto utente senza flicker */
 const _REC_PAGE_TS = Date.now();
@@ -4791,9 +4791,11 @@ class UconnectEvCenterPanel extends HTMLElement {
     const _scSt = this._st(this._sid("prossima_scadenza"));
     if (_scSt && _scSt.attributes) {
       const _sa = _scSt.attributes;
-      const _gg = (_sa.scadenze || []).find((r) => /gomme/i.test(String(r.nome || "")));
+      const _gg = (_sa.scadenze || []).find((r) => r.key === "gomme" || /gomme/i.test(String(r.nome || "")));
       root.querySelectorAll('[data-gomme="prossimo"]').forEach((el) => {
-        el.textContent = _gg ? `${_gg.data} · ${this._i(_gg.km)} km mancanti` : "—";
+        el.textContent = _gg
+          ? `${_gg.data} · ${this._i(_gg.km)} ${_ui("Km mancanti")}`
+          : _ui("Nessun dato");
       });
       // solo il tagliando: il suo valore è l'OBIETTIVO in km.
       // Per le gomme il campo è l'ULTIMO CAMBIO (l'utente lo mette, default 0):
@@ -5986,7 +5988,9 @@ class UconnectEvCenterPanel extends HTMLElement {
       let s = typeof f === "string" ? this._st(f) : (f && f.entity_id ? f : null);
       if (!s) s = this._st(this._sid(src));
       let v = s ? this._attrAny(s, keys.length ? keys : [src]) : null;
-      if (v === null) v = s ? s.state : "—";
+      // data-nostate: senza l'attributo mostra "—" invece dello STATO del sensore
+      // (lo stato è in giorni: mostrarlo come "km" dava 35096 km fasulli)
+      if (v === null) v = el.dataset.nostate ? "—" : (s ? s.state : "—");
       if (typeof v === "object") v = v.rotta ? `${v.rotta} · ${this._fmt(parseFloat(v.eff ?? 0), 1)} kWh/100km` : (v.value ?? v.testo ?? JSON.stringify(v));
       el.textContent = String(v);
     });
@@ -6389,7 +6393,7 @@ const PAGES = () => ({
       <div class="inp"><span>${_t("lbl_scadenza_a_data", "Scadenza a data")}</span><input type="date" data-mk="tagliando" data-mdate="1"><span class="u"></span></div>
       <div class="btn" data-cmd="maint_tagliando" style="margin-top:8px">💾 Salva scadenza tagliando</div></div>
     <div class="card"><h3>${_t("h3_cambio_gomme", "🛞 Cambio gomme")}</h3>
-      <div class="row"><span>${_t("lbl_ultimo_cambio_a", "Ultimo cambio a")}</span><b><span data-attr="prossima_scadenza|gomme_km">—</span> km</b></div>
+      <div class="row"><span>${_t("lbl_ultimo_cambio_a", "Ultimo cambio a")}</span><b><span data-attr="prossima_scadenza|gomme_km" data-nostate="1">—</span> km</b></div>
       <div class="row"><span>${_t("lbl_prossimo_cambio", "Prossimo cambio")}</span><b><span data-gomme="prossimo">—</span></b></div>
       <div class="inp"><span>${_t("lbl_ultimo_cambio_km", "Ultimo cambio (km)")}</span><input type="number" data-mk="gomme" placeholder="0"><span class="u">km</span></div>
       <div class="inp"><span>${_t("lbl_scadenza_a_data_opz", "Scadenza a data (opz.)")}</span><input type="date" data-mk="gomme" data-mdate="1"><span class="u"></span></div>
