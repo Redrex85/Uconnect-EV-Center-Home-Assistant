@@ -1,16 +1,15 @@
-## 1.0.20-beta
+## 1.0.20 - Release: manutenzione, scadenze e i18n (accorpa le beta 1.0.19→1.0.20)
 
-- **Ultimo cambio gomme / cambio tagliando**: senza il valore impostato il pannello mostrava lo stato del sensore `prossima_scadenza` (giorni) come se fossero km; ora un attributo mancante vale "—". La scadenza a km non viene più inventata dall'odometro: serve un intervento registrato o un valore impostato (porting dal riferimento).
-- **Giorni stimati**: media km/giorno reale dall'installazione invece del km dell'anno solare diviso 365 (dava valori assurdi nei primi giorni d'uso); riserva 15000 km/anno (porting dal riferimento).
-- **Nomi tradotti in HA**: nome dispositivo, sensori di risparmio, stato del tipo di ricarica e nomi delle scadenze seguono la lingua di Home Assistant; le scadenze portano un campo `key` stabile (porting dal riferimento).
-- **Configura → Wallbox**: "Avvio carica" e "Stop carica" non sono più obbligatori: bloccavano il salvataggio a chi non ha wallbox o ne ha una senza switch (porting dal riferimento).
+Release stabile che raccoglie le ultime due beta. In sintesi:
+
+- **Foto auto che sfarfallava**: l'URL della foto utente era rigenerato con un timestamp nuovo a ogni aggiornamento `hass`, ricaricando l'immagine più volte al secondo. Ora il cache-busting usa un timestamp per **caricamento pagina** e l'elemento viene ricostruito solo se il markup cambia.
+- **Configura → Auto**: nel form di configurazione la label del campo "Modello" compariva grezza (`model`) perché la traduzione era solo nel blocco `data` e non in `sections.car.data`. Aggiunta in tutte le 5 lingue.
+- **Manutenzione → Prossimo cambio**: il backend anteponeva "a" alla data-km (`a 105573 km`) in italiano fisso, non traducibile. Ora restituisce `105573 km`.
+- **Ultimo cambio gomme / cambio tagliando**: senza il valore impostato il pannello mostrava lo stato del sensore `prossima_scadenza` (giorni) come se fossero km; ora un attributo mancante vale "—". La scadenza a km non viene più inventata dall'odometro: serve un intervento registrato o un valore impostato.
+- **Giorni stimati**: media km/giorno reale dall'installazione invece del km dell'anno solare diviso 365 (dava valori assurdi nei primi giorni d'uso); riserva 15000 km/anno.
+- **Nomi tradotti in HA**: nome dispositivo, sensori di risparmio, stato del tipo di ricarica e nomi delle scadenze seguono la lingua di Home Assistant; le scadenze portano un campo `key` stabile.
+- **Configura → Wallbox**: "Avvio carica" e "Stop carica" non sono più obbligatori: bloccavano il salvataggio a chi non ha wallbox o ne ha una senza switch.
 - **Card**: banner console con `CARD_VER` invece della versione fissa.
-
-## 1.0.19-beta
-
-- **Foto auto che sfarfallava**: l'URL della foto utente era rigenerato con un timestamp nuovo a ogni aggiornamento `hass`, ricaricando l'immagine più volte al secondo. Ora il cache-busting usa un timestamp per **caricamento pagina** e l'elemento viene ricostruito solo se il markup cambia (porting dal riferimento).
-- **Configura → Auto**: nel form di configurazione la label del campo "Modello" compariva grezza (`model`) perché la traduzione era solo nel blocco `data` e non in `sections.car.data`. Aggiunta in tutte le 5 lingue (porting dal riferimento).
-- **Manutenzione → Prossimo cambio**: il backend anteponeva "a" alla data-km (`a 105573 km`) in italiano fisso, non traducibile. Ora restituisce `105573 km` (porting dal riferimento).
 
 # Changelog
 
