@@ -148,7 +148,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for coord in _targets(hass, call):
             rec = coord.service_add_manual_charge(kwh, costo, tipo, quando,
                                                  str(call.data.get("descrizione", "") or ""),
-                                                 durata)
+                                                 durata,
+                                                 float(call.data.get("km", 0) or 0))
             # aggiorna SUBITO: senza questo la ricarica compariva solo al poll successivo
             await coord.async_request_refresh()
             _LOGGER.info("Ricarica manuale aggiunta: %s kWh (%s)", rec["kwh"], rec["tipo"])
@@ -173,6 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 call.data.get("durata_min"),
                 call.data.get("descrizione"),
                 quando,
+                call.data.get("km"),
             )
             await coord.async_request_refresh()
 
@@ -359,6 +361,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                   vol.Optional("tipo", default="Pubblica"): str,
                   vol.Optional("descrizione", default=""): str,
                   vol.Optional("durata_min", default=0.0): vol.Coerce(float),
+                  vol.Optional("km", default=0.0): vol.Coerce(float),
                   vol.Optional("quando"): str,
               }))
     _register(SERVICE_DELETE_CHARGE, handle_delete_charge,
@@ -372,6 +375,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                   vol.Optional("costo"): vol.Coerce(float),
                   vol.Optional("tipo"): str,
                   vol.Optional("durata_min"): vol.Coerce(float),
+                  vol.Optional("km"): vol.Coerce(float),
                   vol.Optional("descrizione"): str,
                    vol.Optional("quando"): str,
                }))

@@ -18,7 +18,7 @@
  *   range_entity: sensor.battery_autonomy
  *   odometer_entity: sensor.mileage
  */
-const CARD_VER = "1.0.20";
+const CARD_VER = "1.0.21";
 let _cardVerChecked = false;
 
 class UconnectEvCenterCard extends HTMLElement {

@@ -1,15 +1,13 @@
-## 1.0.20 - Release: manutenzione, scadenze e i18n (accorpa le beta 1.0.19→1.0.20)
+## 1.0.21 - Release: correzioni della segnalazione di @PedroHA2026
 
-Release stabile che raccoglie le ultime due beta. In sintesi:
+Portati dalla gemella Renault (1.1.42) i fix della segnalazione di **@PedroHA2026**. Tre dei cinque punti si applicano pari pari; il pannello vuoto con Home Assistant in lingua non italiana non riguarda Uconnect (qui i sensori hanno il nome italiano fisso, quindi l'`entity_id` non cambia con la lingua della UI).
 
-- **Foto auto che sfarfallava**: l'URL della foto utente era rigenerato con un timestamp nuovo a ogni aggiornamento `hass`, ricaricando l'immagine più volte al secondo. Ora il cache-busting usa un timestamp per **caricamento pagina** e l'elemento viene ricostruito solo se il markup cambia.
-- **Configura → Auto**: nel form di configurazione la label del campo "Modello" compariva grezza (`model`) perché la traduzione era solo nel blocco `data` e non in `sections.car.data`. Aggiunta in tutte le 5 lingue.
-- **Manutenzione → Prossimo cambio**: il backend anteponeva "a" alla data-km (`a 105573 km`) in italiano fisso, non traducibile. Ora restituisce `105573 km`.
-- **Ultimo cambio gomme / cambio tagliando**: senza il valore impostato il pannello mostrava lo stato del sensore `prossima_scadenza` (giorni) come se fossero km; ora un attributo mancante vale "—". La scadenza a km non viene più inventata dall'odometro: serve un intervento registrato o un valore impostato.
-- **Giorni stimati**: media km/giorno reale dall'installazione invece del km dell'anno solare diviso 365 (dava valori assurdi nei primi giorni d'uso); riserva 15000 km/anno.
-- **Nomi tradotti in HA**: nome dispositivo, sensori di risparmio, stato del tipo di ricarica e nomi delle scadenze seguono la lingua di Home Assistant; le scadenze portano un campo `key` stabile.
-- **Configura → Wallbox**: "Avvio carica" e "Stop carica" non sono più obbligatori: bloccavano il salvataggio a chi non ha wallbox o ne ha una senza switch.
-- **Card**: banner console con `CARD_VER` invece della versione fissa.
+- **Potenza wallbox mostrata in kW anche con il sensore in W**: una pinza da 11,5 W appariva come "11,5 kW". Ora l'unità (`W`/`kW`/`MW`) viene normalizzata sul valore della tile "Potenza adesso" e nei valori derivati.
+- **Configura → Wallbox**: anche "Potenza istantanea" e "Stato della wallbox" sono opzionali. Un setup con la sola pinza di misura non resta più bloccato (etichette aggiornate in tutte le 5 lingue).
+- **Ricarica manuale con km**: nuovo campo `km` nel form e nei servizi `add_manual_charge` / `update_charge`; le ricariche importate portano i loro km e il confronto risparmi non li ignora più (con soli costi importati, risparmio e CO₂ diventavano negativi).
+- **Km dall'installazione**: una baseline di 1 km (default di "km all'attivazione") faceva contare **tutto** l'odometro al box "da quando usi l'integrazione". Ora i valori sotto 100 km non sono considerati una scelta e valgono i km davvero tracciati.
+
+Grazie a **@PedroHA2026** per la segnalazione.
 
 # Changelog
 

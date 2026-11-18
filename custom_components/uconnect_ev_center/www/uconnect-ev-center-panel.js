@@ -20,7 +20,7 @@
  */
 
 /** Versione compilata: usata per l'auto-refresh quando l'integrazione viene aggiornata. */
-const REC_VER = "1.0.20";
+const REC_VER = "1.0.21";
 let _recVerChecked = false;
 /** timestamp del caricamento pagina: cache-busting della foto utente senza flicker */
 const _REC_PAGE_TS = Date.now();
@@ -109,6 +109,7 @@ const I18N = {
     h3_rotte_consumo_per_zona: "Routes (consumption by area)",
     h3_storico_mensile_tutti_gli_anni: "Monthly history (all years)",
     h3_aggiungi_ricarica_manuale: "\u2795 Add manual charge",
+    ttl_km_ricarica: "km driven with this charge: used for the savings comparison",
     h3_distribuzione_ricariche: "\u{1F4CA} Charge distribution",
     h3_storico_ricariche: "Charge history",
     h3_soh_ufficiale: "Official SOH \u270F\uFE0F",
@@ -393,6 +394,7 @@ const I18N = {
     h3_rotte_consumo_per_zona: "Itinéraires (consommation par zone)",
     h3_storico_mensile_tutti_gli_anni: "Historique mensuel (toutes années)",
     h3_aggiungi_ricarica_manuale: "\u2795 Ajouter une recharge manuelle",
+    ttl_km_ricarica: "km parcourus avec cette recharge : servent à la comparaison des économies",
     h3_distribuzione_ricariche: "\u{1F4CA} Répartition des recharges",
     h3_storico_ricariche: "Historique des recharges",
     h3_soh_ufficiale: "SOH officiel \u270F\uFE0F",
@@ -685,6 +687,7 @@ const I18N = {
     h3_rotte_consumo_per_zona: "Rutas (consumo por zona)",
     h3_storico_mensile_tutti_gli_anni: "Historial mensual (todos los años)",
     h3_aggiungi_ricarica_manuale: "➕ Añadir recarga manual",
+    ttl_km_ricarica: "km recorridos con esta recarga: se usan en la comparación de ahorro",
     h3_distribuzione_ricariche: "📊 Distribución de recargas",
     h3_storico_ricariche: "Historial de recargas",
     h3_soh_ufficiale: "SOH oficial ✏️",
@@ -977,6 +980,7 @@ const I18N = {
     h3_rotte_consumo_per_zona: "Routen (Verbrauch nach Zone)",
     h3_storico_mensile_tutti_gli_anni: "Monatsverlauf (alle Jahre)",
     h3_aggiungi_ricarica_manuale: "➕ Manuelle Ladung hinzufügen",
+    ttl_km_ricarica: "km mit dieser Ladung: werden für den Ersparnisvergleich genutzt",
     h3_distribuzione_ricariche: "📊 Verteilung der Ladevorgänge",
     h3_storico_ricariche: "Ladeverlauf",
     h3_soh_ufficiale: "Offizieller SOH ✏️",
@@ -3297,6 +3301,17 @@ class UconnectEvCenterPanel extends HTMLElement {
     const u = String((s.attributes && s.attributes.unit_of_measurement) || "").trim().toLowerCase();
     return u === "wh" ? v / 1000 : v;
   }
+  /** potenza in kW: la pinza (Shelly EM) e molte wallbox la espongono in W, non in kW. */
+  _kwS(s) {
+    if (!s) return null;
+    const v = parseFloat(String(s.state).replace(",", "."));
+    if (isNaN(v)) return null;
+    const u = String((s.attributes && s.attributes.unit_of_measurement) || "").trim().toLowerCase();
+    if (u === "w") return v / 1000;
+    if (u === "mw") return v * 1000;
+    if (u === "kw") return v;
+    return Math.abs(v) > 100 ? v / 1000 : v;  // senza unità: oltre 100 è quasi certamente W
+  }
   _attrAny(state, keys) {
     if (!state || !state.attributes) return null;
     const norm = (k) => this._slug(k);
@@ -3543,7 +3558,7 @@ class UconnectEvCenterPanel extends HTMLElement {
       case "costo_mese": return S._num(S._sid("costo_ricarica_mensile"), S._sid("costo_ricarica_mese"), "sensor.costo_ricarica_mese");
       case "costo_anno": return S._num(S._sid("costo_ricarica_annuale"), S._sid("costo_ricarica_anno"), "sensor.costo_ricarica_anno");
       case "lista_ric": return S._list(S._sid("lista_ricariche"));
-      case "wb_potenza": return S._num(S._sid("wallbox_potenza"));
+      case "wb_potenza": return S._kwS(S._st(S._sid("wallbox_potenza")));
       case "tipo_ric": return S._st(S._sid("tipo_ricarica_attuale"), "sensor.uconnect_charger_type", "sensor.uconnect_charging_mode");
       case "tempo_ric": return S._st(S._sid("tempo_ricarica_stimato"), S._car("sensor", "remaining_charge_time"));
       case "ora_compl": return S._st(S._sid("ora_completamento_ricarica"), "sensor.ora_completamento_ricarica", S._car("sensor", "remaining_charge_time"));
@@ -3928,6 +3943,7 @@ class UconnectEvCenterPanel extends HTMLElement {
           if (g("data")) g("data").value = r.data || "";
           if (g("kwh")) g("kwh").value = (r.kwh ?? r.energia ?? "");
           if (g("costo")) g("costo").value = (r.costo ?? "");
+          if (g("km")) g("km").value = (r.km ?? "");
           if (g("tipo")) g("tipo").value = r.tipo || "Pubblica";
           if (g("durata")) g("durata").value = (r.durata_min ?? r.durata ?? "");
           if (g("descrizione")) g("descrizione").value = r.note || "";
@@ -4152,12 +4168,7 @@ class UconnectEvCenterPanel extends HTMLElement {
 
     // potenza istantanea: il sensore può essere in W o in kW → normalizzo a kW
     const powerEnt = S._st(S._ov("wallbox_power"), S._sid("wallbox_potenza"), "sensor.wallbox_instant_power", S._car("sensor", "battery_charger_power"));
-    let pkw = null;
-    if (powerEnt) {
-      const pv = parseFloat(String(powerEnt.state).replace(",", "."));
-      const pu = String((powerEnt.attributes && powerEnt.attributes.unit_of_measurement) || "").trim().toLowerCase();
-      if (!isNaN(pv)) pkw = (pu === "w" || pu === "watt" || pu === "wh") ? pv / 1000 : pv;
-    }
+    const pkw = S._kwS(powerEnt);
     set("power", pkw === null ? "—" : S._fmt(pkw, 2) + " kW");
 
     // tensione (serve anche a ricavare la corrente se manca un sensore dedicato)
@@ -4509,8 +4520,10 @@ class UconnectEvCenterPanel extends HTMLElement {
         const tipo = (g("tipo") || {}).value || "Pubblica";
         const durata = parseFloat((g("durata") || {}).value);
         const descrizione = ((g("descrizione") || {}).value || "").trim();
+        const km = parseFloat((g("km") || {}).value);
         const payload = { kwh, costo: isNaN(costo) ? 0 : costo, tipo };
         if (!isNaN(durata) && durata > 0) payload.durata_min = durata;
+        if (!isNaN(km) && km > 0) payload.km = km;
         if (descrizione) payload.descrizione = descrizione;
         const btnCM = this.shadowRoot.querySelector('[data-cmd="add_charge_manual"]');
         if (this._editChargeId) {
@@ -4525,7 +4538,7 @@ class UconnectEvCenterPanel extends HTMLElement {
           if (data) payload.quando = `${data}T12:00:00`;
           this._call("uconnect_ev_center", "add_manual_charge", payload, "➕ Ricarica registrata");
         }
-        ["data", "kwh", "costo", "durata", "descrizione"].forEach((k) => { const el = g(k); if (el) el.value = ""; });
+        ["data", "kwh", "costo", "durata", "km", "descrizione"].forEach((k) => { const el = g(k); if (el) el.value = ""; });
         break;
       }
       case "tfilter-reset": {
@@ -6321,6 +6334,8 @@ const PAGES = () => ({
         <input type="number" data-mc="kwh" step="0.01" min="0" style="width:90px"></label>
       <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)">Costo €
         <input type="number" data-mc="costo" step="0.01" min="0" style="width:90px"></label>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)" title="${_t("ttl_km_ricarica", "km percorsi con questa ricarica: servono al confronto risparmi")}">km
+        <input type="number" data-mc="km" step="1" min="0" style="width:80px"></label>
       <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)">Durata min
         <input type="number" data-mc="durata" step="1" min="0" style="width:80px"></label>
       <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)">Tipo

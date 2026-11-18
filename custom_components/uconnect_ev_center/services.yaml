@@ -43,6 +43,10 @@ add_manual_charge:
       name: Durata (min)
       description: Durata opzionale della ricarica, in minuti.
       example: 45
+    km:
+      name: km percorsi
+      description: km percorsi con questa ricarica; senza, il confronto risparmi usa solo i km tracciati.
+      example: 315
 delete_charge:
   name: Elimina ricarica
   description: Cancella una ricarica registrata a mano per ID.
@@ -69,6 +73,10 @@ update_charge:
     durata_min:
       name: Durata (min)
       example: 45
+    km:
+      name: km percorsi
+      description: km percorsi con questa ricarica (usati nel confronto risparmi).
+      example: 315
     descrizione:
       name: Descrizione
       example: Colonnina DC autostrada

@@ -1323,12 +1323,15 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
         if odometer and odometer > 0:
             _inst = self.store.data.setdefault("install", {})
             _man = _f(self.opts.get(CONF_INSTALL_ODO), 0.0)
-            if _man > 0:
+            if _man >= 100:
                 # baseline scelta a mano in Configura: vale piu' della cattura automatica
                 if _inst.get("odometer") != _man:
                     _inst["odometer"] = _man
                     _inst["date"] = _inst.get("date") or today_key
-            elif not _inst.get("odometer"):
+            elif _f(_inst.get("odometer")) < 100:
+                # valori di default (0/1 km) non sono una scelta: la baseline si
+                # aggancia all'odometro attuale, altrimenti "da quando usi
+                # l'integrazione" contava TUTTI i km dell'auto (segnalato)
                 _inst["odometer"] = round(odometer, 1)
                 _inst["date"] = today_key
         if not self.today_rec or self.today_rec.get("data") != today_key:
@@ -1499,7 +1502,9 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             # Km MIEI: si parte dall'odometro all'attivazione (auto comprata usata
             # con 10000 km: quei km non sono tuoi, il costo termico va sui tuoi).
             _base0 = _f(self.store.data.get("install", {}).get("odometer"))
-            km_tot = odometer - _base0 if 0 < _base0 < odometer else odometer
+            # baseline inaffidabile (1 km): meglio i km davvero tracciati
+            # dell'odometro intero (0 = "usa i viaggi", vedi _periodo)
+            km_tot = odometer - _base0 if 100 <= _base0 < odometer else 0.0
             # il totale non può essere MENO dei km realmente tracciati (viaggi): con una
             # baseline "all'attivazione" troppo alta il totale crollava sotto il mensile
             km_tot = max(km_tot, sum(_f(t.get("km")) for t in trips))
@@ -1517,14 +1522,23 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                         v += _f(t.get("km"))
                 return v
 
+            def _km_chg(pred) -> float:
+                """km dichiarati nelle ricariche (import storico): i meter non li vedono."""
+                return sum(_f(c.get("km")) for c in charges
+                           if pred(str(c.get("data", ""))))
+
             def _periodo(label: str, pred, km_meter: float) -> None:
                 km = km_meter if km_meter > 0 else _km_of(pred)
+                # mai meno dei km dichiarati nelle ricariche: un import senza km
+                # rendeva termica bassissima e risparmio/CO2 negativi
+                km = max(km, _km_chg(pred))
                 termica = km * litri_100 * _prezzo_of(pred) / 100.0
                 elettrico = _chg_cost(pred)
                 savings[label] = round(termica - elettrico, 2)
                 if label == "totale":
                     savings["termica_totale"] = round(termica, 2)
                     savings["elettrico_totale"] = elettrico
+                    savings["km_totali"] = round(km, 1)
 
             _periodo("totale", lambda d: True, km_tot)
             _periodo("mese", lambda d: d[:7] == keys["monthly"],
@@ -1533,7 +1547,6 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
                      self._km_shown("yearly"))
             savings["prezzo_termico"] = round(_prezzo_of(lambda d: True), 3)
             savings["prezzo_live"] = round(prezzo_l, 3)
-            savings["km_totali"] = round(km_tot, 1)
 
             # --- dettaglio per voce: termica vs elettrica --------------------------
             carb_termica = _f(savings.get("termica_totale"))
@@ -2862,7 +2875,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
 
     def service_add_manual_charge(self, kwh: float, costo: float, tipo: str,
                                   quando: datetime | None, descrizione: str = "",
-                                  durata_min: float = 0.0) -> dict[str, Any]:
+                                  durata_min: float = 0.0, km: float = 0.0) -> dict[str, Any]:
         q = quando or dt_util.now()
         dur = round(float(durata_min or 0), 1)
         fine = q + timedelta(minutes=dur) if dur > 0 else q
@@ -2882,6 +2895,7 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             "soc_end": 0.0,
             "potenza_media_kw": 0.0,
             "costo": round(costo, 2),
+            "km": round(max(0.0, _f(km)), 1),
             "tipo": _norm_tipo(tipo or "Manuale"),
             "note": str(descrizione or "").strip(),
             "manuale": True,
@@ -2907,7 +2921,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
     def service_update_charge(self, charge_id: int, kwh: float | None = None,
                               costo: float | None = None, tipo: str | None = None,
                               durata_min: float | None = None, descrizione: str | None = None,
-                              quando: datetime | None = None) -> dict[str, Any] | None:
+                              quando: datetime | None = None,
+                              km: float | None = None) -> dict[str, Any] | None:
         """Modifica una ricarica esistente (solo i campi passati)."""
         rec = next((c for c in self.store.data["charges"] if c.get("id") == charge_id), None)
         if rec is None:
@@ -2919,6 +2934,8 @@ class UconnectMateCoordinator(DataUpdateCoordinator):
             rec["kwh"] = round(float(kwh), 2)
         if costo is not None:
             rec["costo"] = round(float(costo), 2)
+        if km is not None:
+            rec["km"] = round(max(0.0, float(km)), 1)
         if tipo is not None:
             rec["tipo"] = _norm_tipo(tipo)
         if descrizione is not None:
